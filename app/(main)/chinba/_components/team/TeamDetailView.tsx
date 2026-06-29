@@ -1,22 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FiSettings } from 'react-icons/fi';
 
-import FullPageModal from '@/_components/layout/FullPageModal';
-import LoadingSpinner from '@/_components/ui/LoadingSpinner';
-import { useGroupSets } from '@/_lib/hooks/useGroups';
-import { useSmartBack } from '@/_lib/hooks/useSmartBack';
-import { useTeamDetail } from '@/_lib/hooks/useTeam';
-import { useAuthInitialized } from '@/providers';
 import GroupFilterBar from '@/(main)/teams/_components/GroupFilterBar';
 import TeamSegmentTabs, { type TeamSegment } from '@/(main)/teams/_components/TeamSegmentTabs';
 import UpgradeModal from '@/(main)/teams/_components/UpgradeModal';
 import ActivityTab from '@/(main)/teams/detail/_components/ActivityTab';
 import JababwaTab from '@/(main)/teams/detail/_components/JababwaTab';
 import MannajaTab from '@/(main)/teams/detail/_components/MannajaTab';
+import FullPageModal from '@/_components/layout/FullPageModal';
+import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useGroupSets } from '@/_lib/hooks/useGroups';
+import { useSmartBack } from '@/_lib/hooks/useSmartBack';
+import { useTeamDetail } from '@/_lib/hooks/useTeam';
+import { setLastTeamId } from '@/_lib/utils/chinbaSelection';
+import { useAuthInitialized } from '@/providers';
 
 export default function TeamDetailView() {
   const router = useRouter();
@@ -37,6 +38,11 @@ export default function TeamDetailView() {
 
   const groupSets = groupSetsData?.group_sets ?? [];
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
+
+  // 마지막으로 본 동아리를 기억 → 하단 `동아리` 탭이 여기로 바로 들어옴
+  useEffect(() => {
+    if (teamId) setLastTeamId(teamId);
+  }, [teamId]);
 
   // Sync tab state when URL changes (e.g. browser back/forward)
   useEffect(() => {

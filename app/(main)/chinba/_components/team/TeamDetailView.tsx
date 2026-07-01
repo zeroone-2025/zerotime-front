@@ -33,6 +33,8 @@ export default function TeamDetailView() {
   const { data: groupSetsData } = useGroupSets(teamId || undefined);
   const [activeTab, setActiveTab] = useState<TeamSegment>(initialTab);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [pendingTab, setPendingTab] = useState<TeamSegment | null>(null);
+  const [freeNoticeSeen, setFreeNoticeSeen] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
@@ -54,16 +56,22 @@ export default function TeamDetailView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // 뭐했니/잡아봐 탭: 무료 이벤트 기간 — 안내 팝업 1회 노출 후 진입 허용
   const isPaidTab = (tab: TeamSegment) => tab === 'mwoheni' || tab === 'jabahbwa';
   const needsSubscription = team && !team.is_paid;
 
+  const goToTab = (tab: TeamSegment) => {
+    setActiveTab(tab);
+    router.replace(`/chinba/team/detail?id=${teamId}&tab=${tab}`);
+  };
+
   const handleTabChange = (tab: TeamSegment) => {
-    if (isPaidTab(tab) && needsSubscription) {
+    if (isPaidTab(tab) && needsSubscription && !freeNoticeSeen) {
+      setPendingTab(tab);
       setShowUpgrade(true);
       return;
     }
-    setActiveTab(tab);
-    router.replace(`/chinba/team/detail?id=${teamId}&tab=${tab}`);
+    goToTab(tab);
   };
 
   const handleSettingsClick = () => {
@@ -160,6 +168,11 @@ export default function TeamDetailView() {
         onClose={() => setShowUpgrade(false)}
         teamId={teamId}
         terminology="club"
+        onConfirm={() => {
+          setFreeNoticeSeen(true);
+          if (pendingTab) goToTab(pendingTab);
+          setPendingTab(null);
+        }}
       />
     </FullPageModal>
   );

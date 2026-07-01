@@ -1,28 +1,19 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
   teamId: number;
   terminology?: 'team' | 'club';
+  onConfirm?: () => void;
 }
 
 const PREMIUM_FEATURES = [
-  { label: '활동 기록 (뭐했니)', description: '조별 활동을 기록하고 공유' },
-  { label: '조별 기록 비교 (잡아봐)', description: '조별 활동 데이터를 비교·분석·랭킹' },
+  { label: '기록', description: '조별 활동을 기록하고 공유' },
+  { label: '랭킹', description: '조별 활동 데이터를 비교·분석·랭킹' },
 ];
 
-const PRICING_DISPLAY = [
-  { tier: 'Standard', members: '1~39명', price: '8,900원/월' },
-  { tier: 'Pro', members: '40~79명', price: '17,900원/월' },
-  { tier: 'Business', members: '80명+', price: '34,900원/월' },
-];
-
-export default function UpgradeModal({ isOpen, onClose, teamId, terminology = 'team' }: UpgradeModalProps) {
-  const router = useRouter();
-
+export default function UpgradeModal({ isOpen, onClose, onConfirm }: UpgradeModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -38,9 +29,9 @@ export default function UpgradeModal({ isOpen, onClose, teamId, terminology = 't
               &#x2B50;
             </span>
           </div>
-          <p className="text-base font-bold text-gray-900">프리미엄 기능입니다</p>
+          <p className="text-base font-bold text-gray-900">지금은 무료 이벤트 기간!</p>
           <p className="mt-1 text-xs text-gray-500">
-            구독하고 {terminology === 'club' ? '동아리' : '팀'} 관리 기능을 모두 이용하세요
+            아래 기능을 지금 무료로 이용할 수 있어요
           </p>
         </div>
 
@@ -59,22 +50,6 @@ export default function UpgradeModal({ isOpen, onClose, teamId, terminology = 't
           ))}
         </div>
 
-        {/* Pricing preview */}
-        <div className="mb-5 rounded-xl bg-gray-50 p-3">
-          <p className="mb-2 text-xs font-semibold text-gray-500">
-            요금제 (월 결제 기준)
-          </p>
-          <div className="flex justify-between text-xs text-gray-600">
-            {PRICING_DISPLAY.map((item) => (
-              <div key={item.tier} className="text-center">
-                <p className="font-semibold text-gray-800">{item.tier}</p>
-                <p className="font-medium text-gray-700">{item.price}</p>
-                <p className="text-gray-400">{item.members}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Actions */}
         <div className="flex gap-2">
           <button
@@ -86,11 +61,11 @@ export default function UpgradeModal({ isOpen, onClose, teamId, terminology = 't
           <button
             onClick={() => {
               onClose();
-              router.push(`/chinba/team/settings?id=${teamId}`);
+              onConfirm?.();
             }}
             className="flex-1 rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-600 active:scale-95 transition-all"
           >
-            구독하기
+            무료로 시작하기
           </button>
         </div>
       </div>

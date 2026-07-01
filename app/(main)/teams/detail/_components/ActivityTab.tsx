@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LuPlus, LuClock, LuCalendar, LuTrash2 } from 'react-icons/lu';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
@@ -25,6 +26,10 @@ export default function ActivityTab({
   selectedGroupId,
   terminology = 'team',
 }: ActivityTabProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const { data, isLoading } = useActivities(teamId);
   const { data: groupsData } = useGroups(teamId);
   const createMutation = useCreateActivity(teamId);
@@ -66,6 +71,30 @@ export default function ActivityTab({
   useEffect(() => {
     setShowForm(false);
   }, [selectedGroupId]);
+
+  // 일정 완료 처리에서 넘어온 경우: 활동 기록 폼을 완료된 일정 정보로 미리 채워 자동 오픈.
+  // (URL의 recordTitle/recordDate 파라미터를 1회 소비하고 즉시 제거해 재오픈 방지)
+  useEffect(() => {
+    const recordTitle = searchParams.get('recordTitle');
+    if (recordTitle === null) return;
+
+    if (hasRole) {
+      const recordDate = searchParams.get('recordDate');
+      setFormData({
+        title: recordTitle,
+        activity_date: recordDate || new Date().toISOString().slice(0, 10),
+      });
+      setFormScores([]);
+      setShowForm(true);
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('recordTitle');
+    params.delete('recordDate');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // 활동 필터링
   const allActivities = data?.activities ?? [];

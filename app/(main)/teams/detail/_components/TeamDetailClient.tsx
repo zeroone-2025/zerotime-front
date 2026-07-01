@@ -26,8 +26,12 @@ export default function TeamDetailClient() {
   const { data: team, isLoading, isError } = useTeamDetail(teamId);
   const { data: groupSetsData } = useGroupSets(teamId);
 
-  const [activeTab, setActiveTab] = useState<TeamSegment>('mannaja');
+  const tabParam = searchParams.get('tab') as TeamSegment | null;
+  const initialTab: TeamSegment = tabParam === 'mwoheni' || tabParam === 'jabahbwa' ? tabParam : 'mannaja';
+  const [activeTab, setActiveTab] = useState<TeamSegment>(initialTab);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [pendingTab, setPendingTab] = useState<TeamSegment | null>(null);
+  const [freeNoticeSeen, setFreeNoticeSeen] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
@@ -35,12 +39,13 @@ export default function TeamDetailClient() {
   // 세트 1개일 때 자동 선택
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
 
-  // 뭐했니/잡아봐 탭은 유료 기능 (구독 필요)
+  // 뭐했니/잡아봐 탭: 무료 이벤트 기간 — 안내 팝업 1회 노출 후 진입 허용
   const isPaidTab = (tab: TeamSegment) => tab === 'mwoheni' || tab === 'jabahbwa';
   const needsSubscription = team && !team.is_paid;
 
   const handleTabChange = (tab: TeamSegment) => {
-    if (isPaidTab(tab) && needsSubscription) {
+    if (isPaidTab(tab) && needsSubscription && !freeNoticeSeen) {
+      setPendingTab(tab);
       setShowUpgrade(true);
       return;
     }
@@ -140,6 +145,11 @@ export default function TeamDetailClient() {
           isOpen={showUpgrade}
           onClose={() => setShowUpgrade(false)}
           teamId={teamId}
+          onConfirm={() => {
+            setFreeNoticeSeen(true);
+            if (pendingTab) setActiveTab(pendingTab);
+            setPendingTab(null);
+          }}
         />
       )}
     </div>

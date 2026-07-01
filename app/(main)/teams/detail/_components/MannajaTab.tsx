@@ -1,8 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { IconType } from 'react-icons';
 import { FiPlus, FiCalendar, FiUsers, FiLayers } from 'react-icons/fi';
@@ -34,8 +34,19 @@ export default function MannajaTab({
   terminology = 'team',
 }: MannajaTabProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data, isLoading } = useTeamEvents(teamId);
   const { data: groupSetsData } = useGroupSets(teamId);
+
+  // 이벤트 상세로 이동하면서, 완료 처리 후 돌아올 "기록(뭐했니)" 탭 경로를 넘긴다.
+  // 현재 위치(pathname)를 그대로 쓰므로 /teams/detail·/chinba/team/detail 어디서든 동작.
+  const openEvent = useCallback(
+    (eventId: string) => {
+      const returnTo = encodeURIComponent(`${pathname}?id=${teamId}&tab=mwoheni`);
+      router.push(`/chinba/event?id=${eventId}&returnTo=${returnTo}`);
+    },
+    [router, pathname, teamId],
+  );
 
   const canCreate = myRole === 'captain' || myRole === 'executive';
   const groupSets = groupSetsData?.group_sets ?? [];
@@ -131,7 +142,7 @@ export default function MannajaTab({
                     key={event.event_id}
                     event={event}
                     groupSetNameMap={groupSetNameMap}
-                    onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+                    onClick={() => openEvent(event.event_id)}
                   />
                 ))
               ) : (
@@ -147,7 +158,7 @@ export default function MannajaTab({
                 key={event.event_id}
                 event={event}
                 groupSetNameMap={groupSetNameMap}
-                onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+                onClick={() => openEvent(event.event_id)}
               />
             ))
           ) : (
@@ -179,7 +190,7 @@ export default function MannajaTab({
             key={event.event_id}
             event={event}
             groupSetNameMap={groupSetNameMap}
-            onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+            onClick={() => openEvent(event.event_id)}
           />
         ))
       )}

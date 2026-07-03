@@ -100,7 +100,7 @@ if [ "$HTTP_STATUS" = "200" ]; then
 else
     echo -e "${YELLOW}⚠ 백엔드 API 서버에 연결할 수 없습니다 (${API_URL})${NC}"
     echo -e "${YELLOW}⚠ 백엔드 서버를 먼저 실행해주세요:${NC}"
-    echo -e "${YELLOW}   cd ../jbnu-alarm-api-v1 && ./run-dev.sh${NC}\n"
+    echo -e "${YELLOW}   cd ../zerotime-back && ./run-dev.sh${NC}\n"
     
     read -p "계속 진행하시겠습니까? (y/N): " -n 1 -r
     echo

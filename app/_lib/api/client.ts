@@ -16,7 +16,7 @@ const getApiBaseUrl = () => {
 
             if (Capacitor.isNativePlatform()) {
                 // Android/iOS: 원격 개발 서버 사용
-                return process.env.NEXT_PUBLIC_API_BASE_URL_NATIVE || 'https://dev-api.zerotime.kr:18181';
+                return process.env.NEXT_PUBLIC_API_BASE_URL_NATIVE || 'https://dev-api.zerotime.kr';
             }
         }
     } catch (e) {

@@ -10,7 +10,6 @@ const config: CapacitorConfig = {
         iosScheme: 'https',
         cleartext: true,
         allowNavigation: [
-            'dev-api.zerotime.kr:18181',
             '*.zerotime.kr'
         ]
     },

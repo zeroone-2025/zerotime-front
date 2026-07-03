@@ -125,7 +125,8 @@ axios, dayjs(ko locale), react-icons, react-intersection-observer, Playwright, V
   type(영문): feat / fix / docs / style / refactor / perf / test / build / chore / ci.
   scope(영문, 선택): auth, alarm, chinba, ui, filter, keywords, profile, notification, timetable 등.
 - 브랜치: `<type>/<짧은-설명>`, 이슈 있으면 `<type>/#NN-<짧은-설명>`.
-  기능 작업은 `feature/*` → **`develop`** PR, merge commit으로 머지.
+  develop 반영은 로컬 develop에 merge commit으로 머지 → push (PR은 Epic 등 리뷰 필요 시 선택).
+  에이전트는 로컬 develop 머지까지 — push는 사람이 한다 (공유 설정이 차단).
   Epic 단위 작업은 `develop`에서 Epic 브랜치를 따고 하위 브랜치를 Epic으로 머지한 뒤 Epic → `develop`.
 - **AI 세션은 항상 worktree에서 작업한다**: `git worktree add .worktrees/<슬러그> -b <브랜치> origin/develop`
   으로 시작 — checkout된 브랜치에 직접 커밋 금지 (`.worktrees/`는 gitignore됨).

@@ -1,6 +1,6 @@
 # Capacitor 기반 iOS/Android 앱 변환 계획
 
-Next.js 16 기반의 `jbnu-alarm-app-v1`을 Capacitor를 사용하여 iOS/Android 네이티브 앱으로 변환하는 상세 계획입니다.
+Next.js 16 기반의 `zerotime-front`을 Capacitor를 사용하여 iOS/Android 네이티브 앱으로 변환하는 상세 계획입니다.
 
 ## 현재 프로젝트 분석
 
@@ -99,7 +99,7 @@ sequenceDiagram
 
 ### 1. Next.js Static Export 설정
 
-#### [MODIFY] [next.config.ts](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/next.config.ts)
+#### [MODIFY] [next.config.ts](file:///Users/boseung/zerotime/zerotime-front/next.config.ts)
 
 Static Export 활성화:
 
@@ -129,7 +129,7 @@ PWA 설정에서 Capacitor 빌드 시 비활성화:
 
 ### 2. Server Component 호환성 수정
 
-#### [NEW] [DevHostMetaTag.tsx](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/app/_components/system/DevHostMetaTag.tsx)
+#### [NEW] [DevHostMetaTag.tsx](file:///Users/boseung/zerotime/zerotime-front/app/_components/system/DevHostMetaTag.tsx)
 
 `headers()` 대신 클라이언트 측 감지:
 
@@ -151,7 +151,7 @@ export default function DevHostMetaTag() {
 }
 ```
 
-#### [MODIFY] [layout.tsx](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/app/layout.tsx)
+#### [MODIFY] [layout.tsx](file:///Users/boseung/zerotime/zerotime-front/app/layout.tsx)
 
 ```diff
 -import { headers } from 'next/headers';
@@ -172,7 +172,7 @@ export default function DevHostMetaTag() {
 
 ### 3. Capacitor 프로젝트 초기화
 
-#### [NEW] [capacitor.config.ts](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/capacitor.config.ts)
+#### [NEW] [capacitor.config.ts](file:///Users/boseung/zerotime/zerotime-front/capacitor.config.ts)
 
 ```typescript
 import type { CapacitorConfig } from '@capacitor/cli';
@@ -210,7 +210,7 @@ export default config;
 
 ### 4. 네이티브 앱 환경 감지
 
-#### [NEW] [useNativeApp.ts](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/app/_lib/hooks/useNativeApp.ts)
+#### [NEW] [useNativeApp.ts](file:///Users/boseung/zerotime/zerotime-front/app/_lib/hooks/useNativeApp.ts)
 
 ```typescript
 'use client';
@@ -228,7 +228,7 @@ export function useNativeApp() {
 
 ### 5. 백엔드 CORS 및 쿠키 설정 수정
 
-#### [MODIFY] [config.py](file:///Users/boseung/zerotime/jbnu-alarm-api-v1/app/core/config.py)
+#### [MODIFY] [config.py](file:///Users/boseung/zerotime/zerotime-back/app/core/config.py)
 
 네이티브 앱의 origin 추가:
 
@@ -237,7 +237,7 @@ export function useNativeApp() {
 CORS_ORIGINS=http://localhost:3000,https://zerotime.kr,https://dev.zerotime.kr,https://app.zerotime.kr
 ```
 
-#### [MODIFY] [auth.py](file:///Users/boseung/zerotime/jbnu-alarm-api-v1/app/routers/auth.py)
+#### [MODIFY] [auth.py](file:///Users/boseung/zerotime/zerotime-back/app/routers/auth.py)
 
 쿠키 도메인 설정 (선택적):
 
@@ -259,7 +259,7 @@ CORS_ORIGINS=http://localhost:3000,https://zerotime.kr,https://dev.zerotime.kr,h
 
 ### 6. Google OAuth 네이티브 앱 지원
 
-#### [MODIFY] [auth.ts](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/app/_lib/api/auth.ts)
+#### [MODIFY] [auth.ts](file:///Users/boseung/zerotime/zerotime-front/app/_lib/api/auth.ts)
 
 네이티브 앱에서는 in-app browser를 사용:
 
@@ -306,7 +306,7 @@ useEffect(() => {
 
 ### 7. InAppBrowserGuide 조건부 렌더링
 
-#### [MODIFY] [InAppBrowserGuideModal.tsx](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/app/_components/system/InAppBrowserGuideModal.tsx)
+#### [MODIFY] [InAppBrowserGuideModal.tsx](file:///Users/boseung/zerotime/zerotime-front/app/_components/system/InAppBrowserGuideModal.tsx)
 
 ```typescript
 import { Capacitor } from '@capacitor/core';
@@ -324,7 +324,7 @@ export default function InAppBrowserGuideModal() {
 
 ### 8. Service Worker 조건부 등록
 
-#### [MODIFY] [ServiceWorkerRegistration.tsx](file:///Users/boseung/zerotime/jbnu-alarm-app-v1/app/_components/system/ServiceWorkerRegistration.tsx)
+#### [MODIFY] [ServiceWorkerRegistration.tsx](file:///Users/boseung/zerotime/zerotime-front/app/_components/system/ServiceWorkerRegistration.tsx)
 
 ```typescript
 import { Capacitor } from '@capacitor/core';
@@ -537,7 +537,7 @@ CAPACITOR_BUILD=true npm run build
 ## 디렉토리 구조 변경 예상
 
 ```
-jbnu-alarm-app-v1/
+zerotime-front/
 ├── android/                          # [NEW]
 ├── ios/                              # [NEW]
 ├── out/                              # Static export

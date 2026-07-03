@@ -40,8 +40,8 @@
 저장소를 클론하고 패키지를 설치합니다.
 
 ```bash
-git clone https://github.com/zeroone-2025/jbnu-alarm-app-v1.git
-cd jbnu-alarm-app-v1
+git clone https://github.com/zeroone-2025/zerotime-front.git
+cd zerotime-front
 npm install
 ```
 
@@ -70,7 +70,7 @@ npm run start
 **Feature-based Architecture**로 구성되어 있습니다.
 
 ```
-jbnu-alarm-app-v1/
+zerotime-front/
 ├── app/
 │   ├── (routes)/            # 📍 모든 페이지 라우트
 │   │   ├── (home)/          # 홈 화면

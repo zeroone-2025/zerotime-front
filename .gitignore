@@ -53,3 +53,6 @@ next-env.d.ts
 
 # AI 에이전트 worktree (git-conventions 참조)
 .worktrees/
+
+# 에이전트 세션 도구 상태
+.sisyphus/

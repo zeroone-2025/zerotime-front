@@ -284,7 +284,7 @@ npx cap open android     # Android Studio 열기
 |---|---|
 | [docs/ios-dev-guide.md](docs/ios-dev-guide.md) | iOS 개발 환경 가이드 |
 | [IOS_RELEASE_CHECKLIST.md](IOS_RELEASE_CHECKLIST.md) | 앱스토어 릴리스 체크리스트 |
-| [CAPACITOR_PLAN.md](CAPACITOR_PLAN.md) | Capacitor 도입 계획·이력 |
+| [하네스 위키 capacitor-hybrid-app](../wiki/platform/capacitor-hybrid-app.md) | Capacitor 하이브리드 앱 구조·함정 (도입 계획 문서의 후신) |
 | [CLAUDE.md](CLAUDE.md) | AI 에이전트용 컨텍스트 |
 
 ---

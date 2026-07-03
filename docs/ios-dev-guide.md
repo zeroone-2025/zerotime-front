@@ -14,8 +14,8 @@ iOS 시뮬레이터에서 앱을 실행하기 위한 스크립트입니다. API 
 
 1. **API 환경 선택**
    - `1` - 로컬 개발 서버 (http://localhost:8080)
-   - `2` - 개발 서버 (https://dev-api.zerotime.kr:18181)
-   - `3` - 프로덕션 서버 (https://api.zerotime.kr:18044)
+   - `2` - 개발 서버 (https://dev-api.zerotime.kr)
+   - `3` - 프로덕션 서버 (https://api.zerotime.kr)
 
 2. **자동 실행 단계**
    - `.env.local` 파일의 `NEXT_PUBLIC_API_BASE_URL_NATIVE` 업데이트

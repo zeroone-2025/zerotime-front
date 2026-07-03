@@ -23,8 +23,8 @@ echo -e "${BLUE}========================================${NC}\n"
 # 1. 환경 선택
 echo -e "${CYAN}[1/5] API 환경을 선택하세요:${NC}\n"
 echo -e "  ${GREEN}1)${NC} 로컬 개발 서버 (http://localhost:8080)"
-echo -e "  ${GREEN}2)${NC} 개발 서버 (https://dev-api.zerotime.kr:18181)"
-echo -e "  ${GREEN}3)${NC} 프로덕션 서버 (https://api.zerotime.kr:18044)"
+echo -e "  ${GREEN}2)${NC} 개발 서버 (https://dev-api.zerotime.kr)"
+echo -e "  ${GREEN}3)${NC} 프로덕션 서버 (https://api.zerotime.kr)"
 echo ""
 read -p "선택 (1-3): " env_choice
 
@@ -34,11 +34,11 @@ case $env_choice in
         ENV_NAME="로컬"
         ;;
     2)
-        API_URL="https://dev-api.zerotime.kr:18181"
+        API_URL="https://dev-api.zerotime.kr"
         ENV_NAME="개발"
         ;;
     3)
-        API_URL="https://api.zerotime.kr:18044"
+        API_URL="https://api.zerotime.kr"
         ENV_NAME="프로덕션"
         ;;
     *)

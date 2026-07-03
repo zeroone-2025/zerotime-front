@@ -30,13 +30,16 @@
 ## 목차
 
 - [주요 기능](#주요-기능)
+- [서비스 환경](#서비스-환경)
 - [기술 스택](#기술-스택)
 - [아키텍처](#아키텍처)
 - [시작하기](#시작하기)
 - [폴더 구조](#폴더-구조)
+- [개발 규칙](#개발-규칙)
 - [테스트](#테스트)
 - [네이티브 앱 (Capacitor)](#네이티브-앱-capacitor)
 - [배포](#배포)
+- [자주 겪는 문제](#자주-겪는-문제)
 - [기여](#기여)
 
 ## 주요 기능
@@ -50,6 +53,17 @@
 - 💼 **커리어 프로필** — 학력·경력·활동을 정리하는 프로필.
 - 📱 **어디서나** — 브라우저, 홈 화면 설치(PWA), iOS/Android 네이티브 앱을 모두 지원합니다.
 - 🔐 **소셜 로그인** — Google · Apple · Naver · Kakao.
+
+## 서비스 환경
+
+브랜치 push가 곧 웹 배포입니다(Vercel 자동 배포).
+
+| 브랜치 | 환경 | 웹 | 백엔드 API |
+|---|---|---|---|
+| `develop` | 개발 | dev.zerotime.kr | dev-api.zerotime.kr |
+| `main` | 운영 | zerotime.kr | api.zerotime.kr |
+
+네이티브 앱은 별도로 빌드해 스토어에 제출합니다 — [네이티브 앱](#네이티브-앱-capacitor) 참조.
 
 ## 기술 스택
 
@@ -79,9 +93,28 @@ graph LR
 ```
 
 - **플랫폼별 API 주소** — 웹과 네이티브가 서로 다른 주소를 쓸 수 있게 환경 변수를 분리했습니다. 감지 로직: `app/_lib/api/client.ts`의 `getApiBaseUrl()`.
-- **인증** — OAuth 2.0 → JWT. Access Token은 메모리에, Refresh Token은 HttpOnly 쿠키에 보관. Axios interceptor가 401 응답을 가로채 토큰을 갱신한 뒤 실패한 요청을 재시도합니다(동시 요청은 큐로 직렬화).
 - **홈 피드 필터링** — ① 구독한 게시판으로 거르고 → ② 전체/안읽음/키워드/즐겨찾기 탭으로 거르는 2단계 파이프라인 (`app/(main)/(home)/`).
-- **게시판 정의** — `app/_lib/constants/boards.ts`의 `BOARD_MAP`에 150개+ 게시판의 이름·색·카테고리가 모여 있습니다. 게시판 추가는 이 파일 한 곳만 고치면 됩니다.
+- **게시판 정의** — `app/_lib/constants/boards.ts`의 `BOARD_MAP`에 150개+ 게시판의 이름·색·카테고리가 모여 있습니다. 게시판 추가는 이 파일 한 곳만 고치면 됩니다 (백엔드 `board_code`와 키가 일치해야 함).
+
+### 인증 흐름
+
+OAuth 2.0 → JWT. Access Token은 메모리, Refresh Token은 HttpOnly 쿠키에 보관합니다.
+구현은 `app/_lib/api/client.ts`.
+
+```mermaid
+sequenceDiagram
+    participant C as 컴포넌트
+    participant I as Axios interceptor
+    participant B as 백엔드
+
+    C->>I: API 요청
+    I->>B: Authorization: Bearer <access>
+    B-->>I: 401 (토큰 만료)
+    I->>B: POST /auth/refresh (쿠키의 Refresh Token)
+    B-->>I: 새 Access Token
+    I->>B: 실패했던 요청 재시도
+    Note over I: 갱신 중 도착한 다른 요청은<br/>큐에 대기시켰다가 새 토큰으로 일괄 재시도
+```
 
 ## 시작하기
 
@@ -154,6 +187,26 @@ app/
 
 각 라우트는 자체 `_components/`, `_hooks/` 폴더를 가질 수 있습니다 (기능 단위 응집).
 
+## 개발 규칙
+
+### 코드 스타일
+
+- ESLint(Next.js core-web-vitals + TypeScript) + Prettier 통합. 커밋 전 `npm run lint`.
+- import 순서: **React → 외부 패키지 → 내부 alias(`@/_lib/*`, `@/_components/*`) → 상대 경로**
+- unused vars는 error, explicit any는 warn.
+
+### 스타일링
+
+- **`md` breakpoint는 832px(52rem)** — 기본 768px이 아닙니다. iPad Pro 세로부터 데스크톱 레이아웃을 주기 위한 커스텀 값 (`app/globals.css`의 `@theme`).
+- **동적 색상은 safelist 범위 안에서** — 게시판 색상처럼 런타임에 조합되는 `bg-*`/`text-*` 클래스는 `tailwind.config.js`의 safelist 패턴에 등록된 색상·명도만 씁니다. 패턴 밖의 색은 프로덕션 빌드에서 purge되어 **dev에서는 보이고 배포에서만 사라지는** 버그가 됩니다.
+- 유틸리티: `no-scrollbar`, safe-area 대응, fadeIn/slideUp 애니메이션 (`app/globals.css`).
+
+### PWA 동작 조건
+
+Service Worker는 `app/_components/system/`에서 수동 등록하며, **개발 모드와 Capacitor 빌드
+(`CAPACITOR_BUILD=true`)에서는 비활성**입니다 (`next.config.ts`). API 응답은 NetworkFirst(5분),
+정적 리소스는 CacheFirst로 캐싱합니다.
+
 ## 테스트
 
 ### 단위 테스트 (Vitest)
@@ -193,12 +246,23 @@ npx cap open android     # Android Studio 열기
 
 - **iOS 개발** — Mac에서 `./run-ios.sh` 한 번으로 빌드→sync→시뮬레이터 실행. 상세: [docs/ios-dev-guide.md](docs/ios-dev-guide.md)
 - **스토어 릴리스** — [IOS_RELEASE_CHECKLIST.md](IOS_RELEASE_CHECKLIST.md)의 체크리스트를 따릅니다.
-- 네이티브에서는 `CapacitorHttp`·`CapacitorCookies` 플러그인으로 쿠키 기반 인증을 유지합니다.
+- 네이티브에서는 `CapacitorHttp`·`CapacitorCookies` 플러그인으로 쿠키 기반 인증을 유지하고, OAuth 복귀는 `kr.zerotime.app://` 커스텀 스킴을 사용합니다.
 
 ## 배포
 
-- **웹** — Vercel이 브랜치 push를 감지해 환경별로 자동 배포합니다 (`develop` → dev.zerotime.kr, `main` → zerotime.kr).
+- **웹** — Vercel이 브랜치 push를 감지해 환경별로 자동 배포합니다 ([서비스 환경](#서비스-환경) 표 참조).
 - **네이티브** — 릴리스 체크리스트에 따라 수동으로 App Store / Play Store에 제출합니다.
+
+## 자주 겪는 문제
+
+| 증상 | 원인·해결 |
+|---|---|
+| 환경 변수를 바꿨는데 반영 안 됨 | 정적 export는 빌드 타임에 값을 고정 — dev 서버 재시작 또는 재빌드 |
+| 색상이 dev에선 보이는데 배포에서 사라짐 | Tailwind safelist 패턴 밖의 동적 클래스 — [스타일링](#스타일링) 참조 |
+| Service Worker가 로컬에서 동작 안 함 | 개발 모드에서는 의도적으로 비활성 (`next.config.ts`) — 확인은 프로덕션 빌드로 |
+| API 요청이 CORS로 막힘 | 백엔드 `.env`의 `CORS_ORIGINS`에 `http://localhost:3000` 포함 여부 확인 |
+| 832px 근처에서 레이아웃이 이상함 | `md` breakpoint가 기본값(768px)이 아니라 832px임을 감안하고 디버깅 |
+| 비주얼 테스트가 계속 실패 | UI를 의도적으로 바꿨다면 `--update-snapshots`로 기준 이미지 갱신 후 함께 커밋 |
 
 ## 기여
 

@@ -2,52 +2,51 @@
 
 ## run-ios.sh
 
-iOS 시뮬레이터에서 앱을 실행하기 위한 스크립트입니다. API 환경을 선택하고 자동으로 빌드/동기화/실행합니다.
+iOS 시뮬레이터·실기기에서 앱을 실행하기 위한 스크립트입니다 (macOS 전용).
+API 환경을 선택하면 빌드/동기화/실행까지 자동으로 진행합니다.
 
 ### 사용 방법
 
 ```bash
-./run-ios.sh
+./run-ios.sh              # 환경을 메뉴로 선택
+./run-ios.sh dev          # 인자로 지정 — local | dev | beta | prod
 ```
 
 ### 실행 과정
 
 1. **API 환경 선택**
-   - `1` - 로컬 개발 서버 (http://localhost:8080)
-   - `2` - 개발 서버 (https://dev-api.zerotime.kr)
-   - `3` - 프로덕션 서버 (https://api.zerotime.kr)
+   - `local` - 로컬 백엔드 (Mac의 LAN IP 자동 감지 — 실기기에서도 접속 가능)
+   - `dev` - 개발 서버 (https://dev-api.zerotime.kr)
+   - `beta` - 베타 서버 (https://beta-api.zerotime.kr)
+   - `prod` - 프로덕션 서버 (https://api.zerotime.kr)
 
 2. **자동 실행 단계**
-   - `.env.local` 파일의 `NEXT_PUBLIC_API_BASE_URL_NATIVE` 업데이트
-   - Next.js 프로젝트 빌드 (`npm run build`)
+   - Next.js 빌드 — 선택한 API URL을 `NEXT_PUBLIC_API_BASE_URL_NATIVE`로
+     **빌드 시점에 주입** (`.env.local`은 수정하지 않음)
    - Capacitor 동기화 (`npx cap sync ios`)
    - Xcode 프로젝트 열기
-   - iOS 시뮬레이터 실행 (iPhone 17 Pro)
+   - iOS 시뮬레이터 실행 (기본: iPhone 17 Pro)
 
 3. **Xcode에서 빌드**
    - Xcode가 열리면 `⌘+R`을 눌러 앱 실행
 
 ### 환경별 사용 시나리오
 
-#### 로컬 개발 (옵션 1)
-- 백엔드 API를 로컬에서 실행 중일 때
+#### local
+- 백엔드 API를 이 Mac에서 실행 중일 때 (`../zerotime-back/run-dev.sh`)
 - 최신 API 변경사항을 즉시 테스트
-- 네트워크 연결 불필요
+- LAN IP를 주입하므로 같은 네트워크의 실기기에서도 접속 가능
 
-#### 개발 서버 (옵션 2)
-- 팀과 공유된 개발 서버 사용
-- 최신 개발 기능 테스트
-- 네트워크 연결 필요
+#### dev / beta
+- 팀과 공유된 서버로 기능 테스트 (dev: 최신 개발, beta: 배포 후보 검증)
 
-#### 프로덕션 서버 (옵션 3)
-- 실제 운영 환경 테스트
-- 최종 배포 전 검증
-- 네트워크 연결 필요
+#### prod
+- 실제 운영 환경 테스트, 최종 배포 전 검증
 
 ### 주의사항
 
-- 환경을 변경할 때마다 스크립트를 다시 실행해야 합니다
-- `.env.local` 파일이 자동으로 업데이트됩니다
+- 환경을 변경하려면 스크립트를 다시 실행합니다 (앱에 박히는 URL이 빌드 시점에 결정되므로)
+- `.env.local`은 건드리지 않습니다 — 웹 개발(`./run-dev.sh`)과 서로 간섭 없음
 - 빌드 시간이 소요됩니다 (약 1-2분)
 
 ### 문제 해결
@@ -56,10 +55,18 @@ iOS 시뮬레이터에서 앱을 실행하기 위한 스크립트입니다. API 
 ```bash
 xcrun simctl list devices | grep iPhone
 ```
-위 명령어로 사용 가능한 시뮬레이터 확인 후 스크립트의 136번 줄 수정
+사용 가능한 기기 확인 후 `SIM_DEVICE` 환경변수로 지정:
+```bash
+SIM_DEVICE="iPhone 16" ./run-ios.sh dev
+```
 
 **Xcode 프로젝트를 찾을 수 없음:**
 ```bash
 npx cap sync ios
 ```
 Capacitor 프로젝트를 먼저 동기화
+
+## 웹 개발은 run-dev.sh
+
+웹만 개발할 때는 `./run-dev.sh` — 크로스 플랫폼(macOS/Linux)이며 iOS 단계 없이
+`next dev`(localhost:3000)만 띄웁니다. 하네스의 `./dev.sh front`가 이 스크립트를 사용합니다.

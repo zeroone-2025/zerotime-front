@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FiSettings } from 'react-icons/fi';
 
+import ClubSwitcher from '@/(main)/chinba/_components/team/ClubSwitcher';
 import GroupFilterBar from '@/(main)/teams/_components/GroupFilterBar';
 import TeamSegmentTabs, { type TeamSegment } from '@/(main)/teams/_components/TeamSegmentTabs';
 import UpgradeModal from '@/(main)/teams/_components/UpgradeModal';
@@ -138,7 +139,12 @@ export default function TeamDetailView() {
   );
 
   return (
-    <FullPageModal isOpen={true} onClose={goBack} title={team.name} headerRight={settingsButton}>
+    <FullPageModal
+      isOpen={true}
+      onClose={goBack}
+      title={<ClubSwitcher currentTeamId={teamId} currentName={team.name} />}
+      headerRight={settingsButton}
+    >
       {/* Segment Tabs */}
       <div className="shrink-0">
         <TeamSegmentTabs activeTab={activeTab} onTabChange={handleTabChange} />

@@ -82,4 +82,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+// 개발 모드에서는 withPWA로 감싸지 않는다 — PWA는 dev에서 어차피 disable이지만,
+// 래퍼가 config에 webpack 키를 남겨 Turbopack dev가 "webpack 설정 감지" 경고를 낸다.
+// 프로덕션 빌드(next build --webpack)에서만 PWA 플러그인이 실제로 동작한다.
+export default process.env.NODE_ENV === "development"
+  ? nextConfig
+  : withPWA(nextConfig);

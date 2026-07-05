@@ -27,7 +27,7 @@
 ## 실행·빌드·테스트
 
 ```bash
-npm run dev              # 개발 서버 :3000 (--webpack — Turbopack 아님)
+npm run dev              # 개발 서버 :3000 (Turbopack — build는 PWA 플러그인 때문에 webpack 유지)
 npm run build            # 정적 export → out/
 npm run lint             # ESLint
 npm run test:run         # Vitest 유닛 테스트 1회 실행 (app/**/*.test.ts(x), e2e/ 제외)

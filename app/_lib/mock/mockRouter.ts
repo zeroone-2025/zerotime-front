@@ -50,7 +50,18 @@ export function resolveMock(method: string, url: string, body?: unknown): MockRe
     return ok({ user: persona.profile, subscriptions: [] });
   }
   if (m === 'get' && path.endsWith('/users/me/subscriptions')) return ok([]);
+  if (m === 'get' && path.endsWith('/users/me/keywords')) return ok([]);
+  if (m === 'get' && path.endsWith('/users/me/keyword-notices')) return ok([]);
+  if (m === 'patch' && path.endsWith('/users/me')) {
+    return ok({ ...persona.profile, ...(isObject(body) ? body : {}) });
+  }
   if (m === 'get' && path.endsWith('/users/me')) return ok(persona.profile);
+
+  // --- 전역 프로바이더(사이드바·알림 배지)가 로그인 시 부르는 호출 — 백엔드 없이 빈 응답 ---
+  // (getMyKeywords·getMyChinbaEvents·getAllDepartments 등이 목업 밖으로 새어 실 백엔드에
+  //  요청 → dev 에러를 유발하던 것을 여기서 막는다. 모두 배열 응답이라 [] 로 충분.)
+  if (m === 'get' && path.endsWith('/chinba/my-events')) return ok([]);
+  if (m === 'get' && path.endsWith('/departments')) return ok([]);
 
   // --- 팀(친바 클럽) ---
   const teamsIdx = path.indexOf('/chinba/teams');

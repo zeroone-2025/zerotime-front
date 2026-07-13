@@ -3,10 +3,15 @@
 import { useState, useMemo, useEffect } from 'react';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { LuPlus, LuClock, LuCalendar, LuTrash2 } from 'react-icons/lu';
+import { LuPlus, LuClock, LuCalendar, LuTrash2, LuPencil } from 'react-icons/lu';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
-import { useActivities, useCreateActivity, useDeleteActivity } from '@/_lib/hooks/useActivities';
+import {
+  useActivities,
+  useCreateActivity,
+  useUpdateActivity,
+  useDeleteActivity,
+} from '@/_lib/hooks/useActivities';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
 import { getRoleBadgeLabel, buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
 import type { TeamRole, Activity, ActivityCreateRequest } from '@/_types/team';
@@ -33,9 +38,11 @@ export default function ActivityTab({
   const { data, isLoading } = useActivities(teamId);
   const { data: groupsData } = useGroups(teamId);
   const createMutation = useCreateActivity(teamId);
+  const updateMutation = useUpdateActivity(teamId);
   const deleteMutation = useDeleteActivity(teamId);
 
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ActivityCreateRequest>({
     title: '',
     activity_date: new Date().toISOString().slice(0, 10),
@@ -46,6 +53,8 @@ export default function ActivityTab({
   const isGroupSelected = selectedGroupId !== null && selectedGroupId !== undefined;
   const canRecord = hasRole && isGroupSelected;
   const canDelete = hasRole;
+  const canEdit = hasRole;
+  const isEditing = editingId !== null;
 
   const { data: groupSetsData } = useGroupSets(teamId);
   const groupSets = groupSetsData?.group_sets ?? [];
@@ -70,6 +79,7 @@ export default function ActivityTab({
   // 조 선택 해제 시 폼 닫기
   useEffect(() => {
     setShowForm(false);
+    setEditingId(null);
   }, [selectedGroupId]);
 
   // 일정 완료 처리에서 넘어온 경우: 활동 기록 폼을 완료된 일정 정보로 미리 채워 자동 오픈.
@@ -80,6 +90,7 @@ export default function ActivityTab({
 
     if (hasRole) {
       const recordDate = searchParams.get('recordDate');
+      setEditingId(null);
       setFormData({
         title: recordTitle,
         activity_date: recordDate || new Date().toISOString().slice(0, 10),
@@ -108,16 +119,52 @@ export default function ActivityTab({
     });
   }, [allActivities, selectedGroupIds, selectedGroupId]);
 
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({ title: '', activity_date: new Date().toISOString().slice(0, 10) });
+    setFormScores([]);
+  };
+
+  const handleEdit = (activity: Activity) => {
+    setEditingId(activity.id);
+    setFormData({
+      title: activity.title,
+      activity_date: activity.activity_date,
+      start_time: activity.start_time ?? undefined,
+      end_time: activity.end_time ?? undefined,
+      description: activity.description ?? undefined,
+      highlight: activity.highlight ?? undefined,
+    });
+    // 화면에 보이지 않는 조의 점수도 유지해야 하므로 전체 점수를 그대로 담는다
+    // (수정 요청의 scores는 기존 점수를 통째로 대체한다)
+    setFormScores(activity.scores.map((s) => ({ group_id: s.group_id, score: s.score })));
+    setShowForm(true);
+  };
+
   const handleSubmit = async () => {
     if (!formData.title.trim()) return;
     try {
-      await createMutation.mutateAsync({
-        ...formData,
-        scores: formScores.length > 0 ? formScores : undefined,
-      });
-      setShowForm(false);
-      setFormData({ title: '', activity_date: new Date().toISOString().slice(0, 10) });
-      setFormScores([]);
+      if (editingId !== null) {
+        await updateMutation.mutateAsync({
+          activityId: editingId,
+          data: {
+            ...formData,
+            // 비워둔 항목은 빈 문자열로 보내야 서버에서 지워진다 (undefined는 기존 값 유지)
+            description: formData.description ?? '',
+            highlight: formData.highlight ?? '',
+            start_time: formData.start_time ?? '',
+            end_time: formData.end_time ?? '',
+            scores: formScores,
+          },
+        });
+      } else {
+        await createMutation.mutateAsync({
+          ...formData,
+          scores: formScores.length > 0 ? formScores : undefined,
+        });
+      }
+      closeForm();
     } catch {
       // error handled by mutation
     }
@@ -127,6 +174,7 @@ export default function ActivityTab({
     if (!confirm('활동 기록을 삭제하시겠습니까?')) return;
     try {
       await deleteMutation.mutateAsync(activityId);
+      if (editingId === activityId) closeForm();
     } catch {
       // error handled by mutation
     }
@@ -160,9 +208,12 @@ export default function ActivityTab({
         </p>
       )}
 
-      {/* Create Form */}
+      {/* Create / Edit Form */}
       {showForm && (
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <p className="text-xs font-medium text-gray-500">
+            {isEditing ? '활동 기록 수정' : '활동 기록하기'}
+          </p>
           <input
             type="text"
             placeholder="활동 제목"
@@ -247,20 +298,25 @@ export default function ActivityTab({
 
           <div className="flex gap-2 pt-1">
             <button
-              onClick={() => {
-                setShowForm(false);
-                setFormScores([]);
-              }}
+              onClick={closeForm}
               className="flex-1 rounded-lg bg-gray-200 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-300"
             >
               취소
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!formData.title.trim() || createMutation.isPending}
+              disabled={
+                !formData.title.trim() || createMutation.isPending || updateMutation.isPending
+              }
               className="flex-1 rounded-lg bg-gray-900 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
             >
-              {createMutation.isPending ? '기록 중...' : '기록하기'}
+              {isEditing
+                ? updateMutation.isPending
+                  ? '수정 중...'
+                  : '수정하기'
+                : createMutation.isPending
+                  ? '기록 중...'
+                  : '기록하기'}
             </button>
           </div>
         </div>
@@ -283,7 +339,10 @@ export default function ActivityTab({
             <ActivityCard
               key={activity.id}
               activity={activity}
+              canEdit={canEdit}
               canDelete={canDelete}
+              isEditing={editingId === activity.id}
+              onEdit={handleEdit}
               onDelete={handleDelete}
             />
           ))}
@@ -296,11 +355,17 @@ export default function ActivityTab({
 
 function ActivityCard({
   activity,
+  canEdit,
   canDelete,
+  isEditing,
+  onEdit,
   onDelete,
 }: {
   activity: Activity;
+  canEdit: boolean;
   canDelete: boolean;
+  isEditing: boolean;
+  onEdit: (activity: Activity) => void;
   onDelete: (id: number) => void;
 }) {
   const timeStr =
@@ -309,7 +374,11 @@ function ActivityCard({
       : activity.start_time ?? '';
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-4 transition-shadow hover:shadow-sm">
+    <div
+      className={`rounded-xl border bg-white p-4 transition-shadow hover:shadow-sm ${
+        isEditing ? 'border-gray-400' : 'border-gray-100'
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-800 truncate">{activity.title}</h3>
@@ -326,15 +395,27 @@ function ActivityCard({
             )}
           </div>
         </div>
-        {canDelete && (
-          <button
-            onClick={() => onDelete(activity.id)}
-            className="ml-2 rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-400"
-            aria-label="삭제"
-          >
-            <LuTrash2 size={14} />
-          </button>
-        )}
+        <div className="ml-2 flex shrink-0 items-center gap-0.5">
+          {canEdit && (
+            <button
+              onClick={() => onEdit(activity)}
+              className="rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              aria-label="수정"
+              title="수정"
+            >
+              <LuPencil size={14} />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => onDelete(activity.id)}
+              className="rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-400"
+              aria-label="삭제"
+            >
+              <LuTrash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Highlight */}

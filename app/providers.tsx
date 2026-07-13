@@ -25,11 +25,18 @@ export function useAuthInitialized() {
  */
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
+  // DEV 목업 모드에서는 어댑터 설치 완료 전까지 자식 렌더를 막아, 인증 게이트 없는 쿼리
+  // (통계 배너 등)가 설치 전에 실 백엔드로 새는 레이스를 없앤다. 비목업/프로덕션은 항상 true
+  // (조건이 process.env 리터럴로 폴딩되어 프로덕션에선 !(false) = true).
+  const [mockReady, setMockReady] = useState(
+    !(process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_MOCK_AUTH === 'true'),
+  );
 
   useEffect(() => {
     // 이미 초기화되었으면 스킵
     if (isAuthReady()) {
       setIsInitialized(true);
+      setMockReady(true);
       return;
     }
 
@@ -62,6 +69,8 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
           installMockLayer();
         } catch (err) {
           console.error('[MockAuth] 목업 레이어 설치 실패:', err);
+        } finally {
+          setMockReady(true); // 설치가 끝나야(성공/실패 무관) 자식 렌더 허용
         }
       }
 
@@ -141,7 +150,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthInitContext.Provider value={isInitialized}>
-      {children}
+      {mockReady ? children : null}
     </AuthInitContext.Provider>
   );
 }

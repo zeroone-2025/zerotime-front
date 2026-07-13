@@ -67,10 +67,20 @@ export function resolveMock(method: string, url: string, body?: unknown): MockRe
   const teamsIdx = path.indexOf('/chinba/teams');
   if (teamsIdx !== -1) {
     const rest = path.slice(teamsIdx + '/chinba/teams'.length); // '' | '/1' | '/1/members' ...
-    return resolveTeams(m, rest, persona, body);
+    const teamResult = resolveTeams(m, rest, persona, body);
+    if (teamResult) return teamResult; // 미매칭 팀 하위경로는 아래 일반 폴백으로
   }
 
-  return null;
+  // --- 일반 폴백 ---
+  // 페르소나가 활성인 동안에는 목업 안 된 요청도 실 백엔드로 절대 새지 않게 한다.
+  // (미매칭 요청이 백엔드로 가면 목업 토큰이 거부되어 401 "Could not validate credentials"가
+  //  뜬다.) 앱의 인증 GET은 대부분 목록이라 [], 쓰기는 성공 응답으로 처리한다. 어떤
+  //  엔드포인트가 폴백을 탔는지는 콘솔 경고로 남겨, 필요하면 위에 정식 목업을 추가한다.
+  if (typeof console !== 'undefined') {
+    console.warn('[MockAuth] 목업되지 않은 엔드포인트 → 빈 응답 처리:', m, path);
+  }
+  if (m === 'get') return ok([]);
+  return ok({ message: 'ok' });
 }
 
 function resolveTeams(

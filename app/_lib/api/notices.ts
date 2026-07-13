@@ -43,6 +43,22 @@ export const fetchNoticesInfinite = async (
     return response.data;
 };
 
+// 공지사항 제목 검색 (커서 기반, 전체 게시판 대상 — 구독·필터 무관)
+export const searchNotices = async (
+    query: string,
+    cursor: string | null = null,
+    limit: number = 20,
+) => {
+    const response = await api.get<NoticeListResponse>('/notices/search', {
+        params: {
+            q: query,
+            cursor: cursor ?? undefined,
+            limit,
+        },
+    });
+    return response.data;
+};
+
 // 수동 크롤링 트리거
 export const triggerCrawl = async () => {
     return api.post('/notices/crawl');

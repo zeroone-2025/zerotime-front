@@ -95,9 +95,8 @@ export default function CategoryFilter({ activeFilter, onFilterChange, isLoggedI
       </div>
 
       {/* 검색창: 휴대폰=필터 아랫줄(전체 폭), 태블릿·노트북(md 832px↑)=같은 줄 오른쪽.
-          md:mr-1(4px)로 오른쪽 끝을 공지 카드 목록(NoticeList의 md:p-5=20px)과 정렬 —
-          이 바는 px-4(16px)라 그대로 두면 검색창이 4px 더 튀어나온다. */}
-      <div className="relative w-full md:mr-1 md:w-64 md:shrink-0">
+          md:mr-4(16px)로 오른쪽 끝에서 안쪽으로 띄운다 (공지 카드 목록 끝보다 살짝 들여씀). */}
+      <div className="relative w-full md:mr-4 md:w-64 md:shrink-0">
         <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
         <input
           type="text"

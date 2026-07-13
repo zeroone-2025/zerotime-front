@@ -49,24 +49,43 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // 1. 세션 복구 시작
-    const authPromise = initializeAuth().then(() => {
-      console.log('[Auth] Session recovery complete');
-    }).catch(err => {
-      console.error('[Auth] Session recovery failed:', err);
-    });
+    const boot = async () => {
+      // DEV 전용: 세션 복구(첫 /auth/refresh) 전에 목업 어댑터를 설치해야 새로고침 시
+      // 페르소나가 복구된다. 조건은 반드시 process.env 리터럴로 인라인해야 webpack이
+      // 프로덕션에서 이 분기(와 동적 import 청크)를 통째로 제거한다 — 함수로 감싸면 안 됨.
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        process.env.NEXT_PUBLIC_MOCK_AUTH === 'true'
+      ) {
+        try {
+          const { installMockLayer } = await import('@/_lib/mock/installMock');
+          installMockLayer();
+        } catch (err) {
+          console.error('[MockAuth] 목업 레이어 설치 실패:', err);
+        }
+      }
 
-    // 2. 안전장치: 5초 후에는 무조건 Splash 닫기 (네이티브 앱 전용)
-    const timeoutPromise = new Promise(resolve => setTimeout(() => {
-      console.log('[Auth] Initialization timeout (5s)');
-      resolve(null);
-    }, 5000));
+      // 1. 세션 복구 시작
+      const authPromise = initializeAuth().then(() => {
+        console.log('[Auth] Session recovery complete');
+      }).catch(err => {
+        console.error('[Auth] Session recovery failed:', err);
+      });
 
-    // 어느 쪽이먼저든 끝나면 UI 표시 및 스플래시 숨기기
-    Promise.race([authPromise, timeoutPromise]).finally(() => {
-      setIsInitialized(true);
-      hideSplash();
-    });
+      // 2. 안전장치: 5초 후에는 무조건 Splash 닫기 (네이티브 앱 전용)
+      const timeoutPromise = new Promise(resolve => setTimeout(() => {
+        console.log('[Auth] Initialization timeout (5s)');
+        resolve(null);
+      }, 5000));
+
+      // 어느 쪽이먼저든 끝나면 UI 표시 및 스플래시 숨기기
+      Promise.race([authPromise, timeoutPromise]).finally(() => {
+        setIsInitialized(true);
+        hideSplash();
+      });
+    };
+
+    boot();
   }, []);
 
   // Deep Link 리스너 (OAuth 콜백 처리)

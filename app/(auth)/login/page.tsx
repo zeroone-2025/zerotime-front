@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, type ComponentType } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LoginButtonGroup from '@/_components/auth/LoginButtonGroup';
 import Logo from '@/_components/ui/Logo';
@@ -19,8 +19,26 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const { isAuthLoaded, isLoggedIn } = useUser();
   const [recentProviderLabel, setRecentProviderLabel] = useState<string | null>(null);
+  const [MockForm, setMockForm] = useState<ComponentType<{ redirectTo?: string }> | null>(null);
   const redirectTo = searchParams.get('redirect_to');
   const safeRedirectTo = redirectTo?.startsWith('/') ? redirectTo : undefined;
+
+  // DEV 전용 목업 로그인 폼: 조건을 process.env 리터럴로 인라인해야 webpack이 프로덕션에서
+  // 이 동적 import(와 MockLoginForm 청크·픽스처)를 통째로 제거한다 — 함수로 감싸면 안 됨.
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      process.env.NEXT_PUBLIC_MOCK_AUTH === 'true'
+    ) {
+      let active = true;
+      import('./_components/MockLoginForm').then((m) => {
+        if (active) setMockForm(() => m.default);
+      });
+      return () => {
+        active = false;
+      };
+    }
+  }, []);
 
   useEffect(() => {
     if (!isAuthLoaded) return;
@@ -80,6 +98,7 @@ function LoginPageContent() {
             >
               로그인 없이 둘러보기
             </button>
+            {MockForm && <MockForm redirectTo={safeRedirectTo} />}
           </div>
         </div>
       </div>

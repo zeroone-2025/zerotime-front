@@ -62,6 +62,13 @@ export function resolveMock(method: string, url: string, body?: unknown): MockRe
   //  요청 → dev 에러를 유발하던 것을 여기서 막는다. 모두 배열 응답이라 [] 로 충분.)
   if (m === 'get' && path.endsWith('/chinba/my-events')) return ok([]);
   if (m === 'get' && path.endsWith('/departments')) return ok([]);
+  // 통계 배너 — 객체 응답이라 폴백([]/null)으로 넘기면 total_* 접근이 깨진다. 정식 shape로.
+  if (m === 'get' && path.endsWith('/stats/teams')) {
+    return ok({ total_teams: 128, updated_at: '2026-01-01T00:00:00Z' });
+  }
+  if (m === 'get' && path.endsWith('/stats/users')) {
+    return ok({ total_users: 2048, school: '전북대학교', updated_at: '2026-01-01T00:00:00Z' });
+  }
 
   // --- 팀(친바 클럽) ---
   const teamsIdx = path.indexOf('/chinba/teams');
@@ -74,12 +81,14 @@ export function resolveMock(method: string, url: string, body?: unknown): MockRe
   // --- 일반 폴백 ---
   // 페르소나가 활성인 동안에는 목업 안 된 요청도 실 백엔드로 절대 새지 않게 한다.
   // (미매칭 요청이 백엔드로 가면 목업 토큰이 거부되어 401 "Could not validate credentials"가
-  //  뜬다.) 앱의 인증 GET은 대부분 목록이라 [], 쓰기는 성공 응답으로 처리한다. 어떤
-  //  엔드포인트가 폴백을 탔는지는 콘솔 경고로 남겨, 필요하면 위에 정식 목업을 추가한다.
+  //  뜬다.) 어떤 엔드포인트가 폴백을 탔는지는 콘솔 경고로 남겨, 필요하면 위에 정식 목업을 추가한다.
   if (typeof console !== 'undefined') {
-    console.warn('[MockAuth] 목업되지 않은 엔드포인트 → 빈 응답 처리:', m, path);
+    console.warn('[MockAuth] 목업되지 않은 엔드포인트 → 폴백 응답:', m, path);
   }
-  if (m === 'get') return ok([]);
+  // GET 폴백은 null(빈 배열 아님) — 이 코드베이스는 `{data && data.필드}` 가드가 흔해
+  // []는 truthy라 크래시하지만 null은 가드를 안전하게 건너뛴다. 알려진 목록은 위에서 이미
+  // []로 명시 목업했으므로 폴백이 목록을 가로채지 않는다. 쓰기는 성공 응답으로 처리.
+  if (m === 'get') return { status: 200, data: null };
   return ok({ message: 'ok' });
 }
 

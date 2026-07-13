@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { resolveMock } from './mockRouter';
 
 // 목업 라우터 회귀 가드 — 페르소나 활성 시 어떤 요청도 실 백엔드로 새지 않아야 한다.
@@ -27,8 +28,15 @@ describe('resolveMock', () => {
     expect(r?.status).toBe(200);
   });
 
-  it('목업 안 된 GET은 빈 배열 폴백', () => {
-    expect(resolveMock('get', '/unknown/endpoint')?.data).toEqual([]);
+  it('통계 배너는 객체 shape로 목업(폴백에 안 걸림)', () => {
+    expect((resolveMock('get', '/stats/teams')?.data as { total_teams: number }).total_teams).toBe(128);
+    expect((resolveMock('get', '/stats/users')?.data as { total_users: number }).total_users).toBe(2048);
+  });
+
+  it('목업 안 된 GET 폴백은 null(빈 배열 아님) — 가드 패턴 크래시 방지', () => {
+    const r = resolveMock('get', '/unknown/endpoint');
+    expect(r?.status).toBe(200);
+    expect(r?.data).toBeNull();
   });
 
   it('미매칭 팀 하위경로도 폴백으로 흡수', () => {

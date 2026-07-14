@@ -55,8 +55,8 @@ case "$choice" in
         ENV_NAME="로컬"
         ;;
     2|dev)  API_URL="https://dev-api.zerotime.kr";  ENV_NAME="개발" ;;
-    3|beta) API_URL="https://beta-api.zerotime.kr"; ENV_NAME="베타" ;;
-    4|prod) API_URL="https://api.zerotime.kr";      ENV_NAME="프로덕션" ;;
+    3|beta) API_URL="https://beta-api.zerotime.kr"; ENV_NAME="베타"; RELEASE_PLANE="beta" ;;
+    4|prod) API_URL="https://api.zerotime.kr";      ENV_NAME="프로덕션"; RELEASE_PLANE="prod" ;;
     *)
         echo -e "${RED}✗ 잘못된 선택입니다: ${choice} (local | dev | beta | prod)${NC}"
         exit 1
@@ -78,7 +78,16 @@ fi
 
 # 3. Next.js 빌드 — NATIVE URL은 여기서만 주입 (.env.local의 값보다 우선한다)
 echo -e "\n${YELLOW}Next.js 빌드 중... (API: ${API_URL})${NC}"
-NEXT_PUBLIC_API_BASE_URL_NATIVE="$API_URL" npm run build
+if [ -n "${RELEASE_PLANE:-}" ]; then
+    CAPACITOR_BUILD=true \
+    NEXT_PUBLIC_API_BASE_URL_NATIVE="$API_URL" \
+    NEXT_PUBLIC_MOBILE_RELEASE_PLANE="$RELEASE_PLANE" \
+    NEXT_PUBLIC_MOBILE_RELEASE_PLATFORM="ios" \
+    NEXT_PUBLIC_MOBILE_RELEASE_BUNDLE_ID="kr.zerotime.app" \
+    npm run build
+else
+    NEXT_PUBLIC_API_BASE_URL_NATIVE="$API_URL" npm run build
+fi
 echo -e "${GREEN}✓ 빌드 완료${NC}"
 
 # 4. Capacitor 동기화

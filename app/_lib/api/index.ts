@@ -19,6 +19,9 @@ export * from './user';
 // Board groups
 export * from './boardGroups';
 
+// Boards
+export * from './boards';
+
 // Departments
 export * from './departments';
 

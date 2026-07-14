@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+
 import { useQueryClient } from '@tanstack/react-query';
-import { BOARD_LIST, GUEST_FILTER_KEY, GUEST_DEFAULT_BOARDS } from '@/_lib/constants/boards';
-import { getUserInit, getUserSubscriptions, updateUserSubscriptions } from '@/_lib/api';
-import { useAuthInitialized } from '@/providers';
+
+import { getUserInit, getUserSubscriptions, updateUserSubscriptions, getBoards } from '@/_lib/api';
 import { checkHasToken } from '@/_lib/api/auth';
+import { GUEST_FILTER_KEY, GUEST_DEFAULT_BOARDS } from '@/_lib/constants/boards';
+import { useAuthInitialized } from '@/providers';
 
 const USER_STORAGE_KEY = 'my_subscribed_categories'; // 로그인 사용자 캐시 키
 
@@ -143,9 +145,10 @@ export function useSelectedCategories() {
     await updateSelectedCategories(newSelection);
   };
 
-  // 전체 선택
+  // 전체 선택 (현재 로그인 사용자의 학교 게시판 전체 — 미지정 시 전체 학교)
   const selectAll = async () => {
-    await updateSelectedCategories(BOARD_LIST.map((board) => board.id));
+    const boards = await getBoards();
+    await updateSelectedCategories(boards.map((board) => board.board_code));
   };
 
   // 전체 해제

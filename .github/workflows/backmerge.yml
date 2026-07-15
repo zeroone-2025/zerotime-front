@@ -1,0 +1,55 @@
+name: Backmerge (main → beta → develop)
+
+# 배포 당일 promote(develop→beta→main) 전에 수동 실행한다.
+# main에만 반영된 hotfix·패치를 beta·develop에 역병합해 환경 간 드리프트를 없앤다.
+# 주의: beta에는 ruleset(PR 필수 — main·beta 대상, admin은 bypass)이 걸려 있어
+# 기본 GITHUB_TOKEN push는 GH013으로 거부된다. repo secret BACKMERGE_TOKEN에
+# bypass 가능한 admin의 PAT(contents write)를 등록해야 beta push가 통과한다.
+# 배포 자체는 Vercel git 연동(webhook)이라 push 주체와 무관하게 나간다.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: backmerge
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  backmerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (전체 이력)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.BACKMERGE_TOKEN || github.token }}
+
+      - name: Git 사용자 설정
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: main → beta 역병합
+        run: |
+          git checkout beta
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "beta에 main이 이미 포함되어 있어 건너뜁니다."
+          else
+            git merge --no-ff origin/main -m "merge: main → beta 역병합 (배포 전 동기화)" \
+              || { echo "::error::main → beta 머지 충돌 — 로컬에서 수동 해결 후 push 필요"; exit 1; }
+            git push origin beta
+          fi
+
+      - name: beta → develop 역병합
+        run: |
+          git checkout develop
+          if git merge-base --is-ancestor beta HEAD; then
+            echo "develop에 beta가 이미 포함되어 있어 건너뜁니다."
+          else
+            git merge --no-ff beta -m "merge: beta → develop 역병합 (배포 전 동기화)" \
+              || { echo "::error::beta → develop 머지 충돌 — 로컬에서 수동 해결 후 push 필요"; exit 1; }
+            git push origin develop
+          fi

@@ -53,7 +53,7 @@ test.describe('홈 페이지 - 게스트', () => {
 
   test('공지사항 목록 영역이 존재한다', async ({ asGuest }) => {
     await asGuest.goto('/');
-    const listArea = asGuest.locator('.relative > .h-full.overflow-y-auto');
+    const listArea = asGuest.locator('.relative.flex-1 > .h-full.overflow-y-auto');
     await expect(listArea).toBeVisible({ timeout: 10_000 });
   });
 });
@@ -124,7 +124,7 @@ test.describe('홈 페이지 - 데스크톱 뷰', () => {
 test.describe('홈 페이지 - 로고 탭', () => {
   test('로고 버튼이 존재하고 탭 가능하다', async ({ asGuest }) => {
     await asGuest.goto('/');
-    const logoBtn = asGuest.getByRole('button', { name: /맨 위로 이동/ });
+    const logoBtn = asGuest.getByRole('button', { name: '맨 위로 이동 및 새로고침' });
     await expect(logoBtn).toBeVisible();
     await expect(logoBtn).toBeEnabled();
   });
@@ -140,7 +140,7 @@ test.describe('홈 페이지 - 로고 탭', () => {
       });
     });
 
-    const logoBtn = asGuest.getByRole('button', { name: /맨 위로 이동/ });
+    const logoBtn = asGuest.getByRole('button', { name: '맨 위로 이동 및 새로고침' });
     await logoBtn.click();
 
     const fired = await asGuest.evaluate(
@@ -163,7 +163,7 @@ test.describe('홈 페이지 - 로고 탭', () => {
       { timeout: 10_000 }
     );
 
-    await asLoggedInUser.getByRole('button', { name: /맨 위로 이동/ }).click();
+    await asLoggedInUser.getByRole('button', { name: '맨 위로 이동 및 새로고침' }).click();
 
     await refetchPromise;
   });
@@ -183,7 +183,7 @@ test.describe('홈 페이지 - 로고 탭', () => {
       { timeout: 10_000 }
     );
 
-    await asLoggedInUser.getByRole('button', { name: /맨 위로 이동/ }).click();
+    await asLoggedInUser.getByRole('button', { name: '맨 위로 이동 및 새로고침' }).click();
 
     await refetchPromise;
   });

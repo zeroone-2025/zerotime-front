@@ -177,6 +177,28 @@ export interface GroupSetCreateRequest {
   name: string
 }
 
+// ==================== Event Category Types ====================
+
+export interface EventCategory {
+  id: number
+  name: string
+  display_order: number
+}
+
+export interface EventCategoriesListResponse {
+  categories: EventCategory[]
+}
+
+export interface EventCategoryCreateRequest {
+  name: string
+}
+
+/** 이벤트·활동 응답에 임베드되는 축약형 */
+export interface EventCategoryRef {
+  id: number
+  name: string
+}
+
 // ==================== Subscription Types ====================
 
 export interface TierInfo {
@@ -224,6 +246,7 @@ export interface TeamEvent {
   status: string
   team_id: number
   target_groups: { id: number; name: string }[]
+  category: EventCategoryRef | null
   total_participants: number
   submitted_count: number
   created_at: string
@@ -233,6 +256,7 @@ export interface TeamEventCreateRequest {
   title: string
   dates: string[]
   target_group_ids?: number[]
+  category_id?: number
 }
 
 export interface TeamEventListResponse {
@@ -251,6 +275,7 @@ export interface TeamEventDetail {
   creator_nickname: string | null
   team_id: number
   target_groups: { id: number; name: string }[]
+  category: EventCategoryRef | null
   participants: {
     user_id: number
     nickname: string | null
@@ -311,6 +336,7 @@ export interface Activity {
   start_time: string | null
   end_time: string | null
   photo_urls: string[] | null
+  category: EventCategoryRef | null
   recorder: ActivityRecorder
   scores: ActivityScore[]
   created_at: string
@@ -325,6 +351,7 @@ export interface ActivityCreateRequest {
   end_time?: string
   photo_urls?: string[]
   scores?: { group_id: number; score: number }[]
+  category_id?: number | null
 }
 
 export interface ActivityUpdateRequest {
@@ -336,6 +363,7 @@ export interface ActivityUpdateRequest {
   end_time?: string
   photo_urls?: string[]
   scores?: { group_id: number; score: number }[]
+  category_id?: number | null
 }
 
 export interface ActivityListResponse {

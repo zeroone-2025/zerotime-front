@@ -12,7 +12,7 @@ import type { ActivityCreateRequest, ActivityUpdateRequest } from '@/_types/team
 
 export function useActivities(
   teamId: number | undefined,
-  params?: { group_id?: number; month?: string; skip?: number; limit?: number },
+  params?: { group_id?: number; month?: string; category_id?: number; skip?: number; limit?: number },
 ) {
   return useQuery({
     queryKey: ['teams', teamId, 'activities', params],

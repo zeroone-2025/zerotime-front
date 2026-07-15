@@ -21,8 +21,9 @@ export default function ClubSwitcher({ currentTeamId, currentName }: ClubSwitche
   const teams = data?.teams ?? [];
 
   // 전환할 다른 동아리가 없으면 이름만 표시 (드롭다운 미노출)
+  // 제목 태그·스타일은 FullPageModal 헤더가 소유한다 — 여기서 h1을 쓰면 h1 중첩이 된다
   if (teams.length <= 1) {
-    return <h1 className="text-base font-bold text-gray-800">{currentName}</h1>;
+    return <span className="truncate">{currentName}</span>;
   }
 
   const handleSelect = (id: number) => {

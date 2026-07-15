@@ -167,6 +167,7 @@ export default function ChinbaDetailClient() {
         const recordParams = new URLSearchParams();
         if (event?.title) recordParams.set('recordTitle', event.title);
         if (event?.dates?.[0]) recordParams.set('recordDate', String(event.dates[0]).slice(0, 10));
+        if (event?.category) recordParams.set('recordCategoryId', String(event.category.id));
         const suffix = recordParams.toString();
         router.replace(suffix ? `${dest}${dest.includes('?') ? '&' : '?'}${suffix}` : dest);
         return;

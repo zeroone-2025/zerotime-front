@@ -28,6 +28,7 @@ import {
 import type { TeamRole } from '@/_types/team';
 import InviteSection from '@/(main)/teams/_components/InviteSection';
 import MemberList from '@/(main)/teams/_components/MemberList';
+import EventCategorySection from '@/(main)/chinba/_components/team/categories/EventCategorySection';
 import GroupSettingsSection from '@/(main)/chinba/_components/team/groups/GroupSettingsSection';
 import SubscriptionSection from '@/(main)/chinba/_components/team/SubscriptionSection';
 
@@ -300,6 +301,12 @@ export default function TeamSettingsView() {
 
         {/* Section 4: 그룹/조 관리 */}
         <GroupSettingsSection
+          teamId={teamId}
+          canManage={canEditTeam(myRole)}
+        />
+
+        {/* 일정 카테고리 관리 */}
+        <EventCategorySection
           teamId={teamId}
           canManage={canEditTeam(myRole)}
         />

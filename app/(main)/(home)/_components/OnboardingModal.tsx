@@ -452,9 +452,13 @@ export default function OnboardingModal({
   const buildStudentBoardCodes = () => {
     let boardCodes: string[] = [...GUEST_DEFAULT_BOARDS];
     if (formData.dept_code) {
-      const preset = MAJOR_PRESETS.find(
-        (p) => p.label === formData.dept_name || p.id === formData.dept_code.replace('dept_', ''),
-      );
+      // MAJOR_PRESETS는 전북대 학과만 큐레이션돼 있음 — 학교 체크 없이 라벨만
+      // 비교하면 다른 학교의 동명 학과(예: 경북대 소프트웨어학과)가 오매칭된다.
+      const preset = formData.school === '전북대'
+        ? MAJOR_PRESETS.find(
+            (p) => p.label === formData.dept_name || p.id === formData.dept_code.replace('dept_', ''),
+          )
+        : undefined;
       if (preset) {
         boardCodes = preset.categories;
       } else {

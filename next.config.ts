@@ -5,6 +5,10 @@ import {
   MOBILE_RELEASE_ARTIFACT,
   MOBILE_RELEASE_BUILD_ENV,
 } from "./app/_lib/native/mobileRelease";
+import {
+  NATIVE_LOCAL_DEV_BUILD_ENV,
+  nativeLocalDevApiOriginFromEnvironment,
+} from "./app/_lib/native/nativeLocalDev";
 
 const isCapacitorBuild = process.env.CAPACITOR_BUILD === "true";
 const playwrightPort = process.env.PLAYWRIGHT_PORT;
@@ -12,7 +16,17 @@ if (playwrightPort && !/^[0-9]{2,5}$/.test(playwrightPort)) {
   throw new Error('PLAYWRIGHT_PORT must be a decimal TCP port.');
 }
 const playwrightDistDir = playwrightPort ? `.next/playwright-${playwrightPort}` : undefined;
-const mobileReleaseManifest = isCapacitorBuild
+// 로컬 개발 빌드(nativeLocalDev.ts)는 릴리스 매니페스트 없이 로컬 http origin으로만
+// 빌드된다 — origin이 로컬이 아니거나 매니페스트 env와 겹치면 여기서 빌드가 실패한다.
+const nativeLocalDevOrigin = isCapacitorBuild
+  ? nativeLocalDevApiOriginFromEnvironment({
+      [NATIVE_LOCAL_DEV_BUILD_ENV.flag]: process.env.NEXT_PUBLIC_NATIVE_LOCAL_DEV,
+      [NATIVE_LOCAL_DEV_BUILD_ENV.apiOrigin]: process.env.NEXT_PUBLIC_API_BASE_URL_WEB,
+      [NATIVE_LOCAL_DEV_BUILD_ENV.releaseArtifact]: process.env.NEXT_PUBLIC_MOBILE_RELEASE_ARTIFACT,
+      [NATIVE_LOCAL_DEV_BUILD_ENV.releasePlane]: process.env.NEXT_PUBLIC_MOBILE_RELEASE_PLANE,
+    })
+  : null;
+const mobileReleaseManifest = isCapacitorBuild && nativeLocalDevOrigin === null
   ? createMobileReleaseBuildManifest({
       plane: process.env.NEXT_PUBLIC_MOBILE_RELEASE_PLANE,
       frontendGitSha: process.env.NEXT_PUBLIC_MOBILE_RELEASE_FRONTEND_GIT_SHA,
@@ -51,6 +65,12 @@ const mobileReleaseEnv = mobileReleaseManifest
     }
   : {
       [MOBILE_RELEASE_BUILD_ENV.artifact]: "",
+      ...(nativeLocalDevOrigin !== null
+        ? {
+            [NATIVE_LOCAL_DEV_BUILD_ENV.flag]: "true",
+            [NATIVE_LOCAL_DEV_BUILD_ENV.apiOrigin]: nativeLocalDevOrigin,
+          }
+        : {}),
     };
 
 const withPWA = withPWAInit({

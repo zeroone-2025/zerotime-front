@@ -25,14 +25,14 @@
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		5037DA782F2F558700E01EAF /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		5037DA7F2F2F558800E01EAF /* NativeNotificationCoordinatorPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeNotificationCoordinatorPlugin.swift; sourceTree = "<group>"; };
+		5037DA812F2F558800E01EAF /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		5037DA7F2F2F558800E01EAF /* NativeNotificationCoordinatorPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeNotificationCoordinatorPlugin.swift; sourceTree = "<group>"; };
-		5037DA812F2F558800E01EAF /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -174,6 +174,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
 /* Begin PBXShellScriptBuildPhase section */
 		5037DA832F2F558800E01EAF /* Stage GoogleService-Info.plist */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -194,7 +195,6 @@
 			shellScript = "CONFIG=\"${SRCROOT}/App/GoogleService-Info.plist\"\nDESTINATION=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nif [ -f \"$CONFIG\" ]; then\n  cp \"$CONFIG\" \"$DESTINATION\"\nelif [ \"${CONFIGURATION}\" = \"Release\" ]; then\n  echo \"error: Missing GoogleService-Info.plist for the Release archive.\"\n  exit 1\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
-
 
 /* Begin PBXSourcesBuildPhase section */
 		504EC3001FED79650016851F /* Sources */ = {
@@ -341,13 +341,13 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5ZR495UQN7;
 				INFOPLIST_FILE = App/Info.plist;
-				APS_ENVIRONMENT = development;
-				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -366,25 +366,25 @@
 		504EC3181FED79650016851F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5ZR495UQN7;
 				INFOPLIST_FILE = App/Info.plist;
-				APS_ENVIRONMENT = production;
-				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
-				MOBILE_RELEASE_CONTRACT = "mobile-release.v1";
-				MOBILE_RELEASE_CONTRACT_SHA256 = 0f736c8e90c5ba1ea68370e327f2f405fba5a83e4807c3bc7691aaa8c0711d84;
-				MOBILE_RELEASE_PLATFORM = ios;
-				MOBILE_RELEASE_BUNDLE_ID = kr.zerotime.app;
-				MOBILE_RELEASE_APP_VERSION = "$(MARKETING_VERSION)";
-				MOBILE_RELEASE_BUILD_NUMBER = "$(CURRENT_PROJECT_VERSION)";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				MOBILE_RELEASE_APP_VERSION = "$(MARKETING_VERSION)";
+				MOBILE_RELEASE_BUILD_NUMBER = "$(CURRENT_PROJECT_VERSION)";
+				MOBILE_RELEASE_BUNDLE_ID = kr.zerotime.app;
+				MOBILE_RELEASE_CONTRACT = "mobile-release.v1";
+				MOBILE_RELEASE_CONTRACT_SHA256 = 0f736c8e90c5ba1ea68370e327f2f405fba5a83e4807c3bc7691aaa8c0711d84;
+				MOBILE_RELEASE_PLATFORM = ios;
 				PRODUCT_BUNDLE_IDENTIFIER = kr.zerotime.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
@@ -422,6 +422,7 @@
 			relativePath = "CapApp-SPM";
 		};
 /* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		5037DA7E2F2F558800E01EAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -432,7 +433,6 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
-
 
 /* Begin XCSwiftPackageProductDependency section */
 		4D22ABE82AF431CB00220026 /* CapApp-SPM */ = {

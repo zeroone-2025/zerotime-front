@@ -40,7 +40,7 @@ public final class NativeNotificationCoordinatorPlugin: CAPPlugin, CAPBridgedPlu
     ]
 
     private static let coordinator = NativeNotificationCoordinator()
-    private static let credentialStore = KeychainCredentialStore()
+    fileprivate static let credentialStore = KeychainCredentialStore()
     private static weak var livePlugin: NativeNotificationCoordinatorPlugin?
 
     override public func load() {
@@ -373,8 +373,13 @@ public final class NativeNotificationCoordinatorPlugin: CAPPlugin, CAPBridgedPlu
         DispatchQueue.main.async { call.reject(message) }
     }
 
-    private static func hasExactlyKeys(_ values: [String: Any], _ expected: [String]) -> Bool {
-        Set(values.keys) == Set(expected)
+    private static func hasExactlyKeys(_ values: [AnyHashable: Any], _ expected: [String]) -> Bool {
+        var keys = Set<String>()
+        for key in values.keys {
+            guard let key = key as? String else { return false }
+            keys.insert(key)
+        }
+        return keys == Set(expected)
     }
 
     fileprivate static func isUUID(_ value: String) -> Bool {
@@ -2562,8 +2567,8 @@ private final class NativeNotificationCoordinator {
             current = state ?? current
             let ownerlessCredentialPhase = current.mutationReason == nil
                 && (current.mutationPhase == .unbound || current.mutationPhase == .readyForRebind)
-            let hasOwnerlessSessionCredentials = ownerlessCredentialPhase
-                && (try NativeNotificationCoordinatorPlugin.credentialStore.hasRefreshOrSessionCredentials())
+            let hasOwnerlessSessionCredentials = try ownerlessCredentialPhase
+                && NativeNotificationCoordinatorPlugin.credentialStore.hasRefreshOrSessionCredentials()
             let preservesCredentialRebindProvenance = current.mutationReason == nil
                 && (
                     current.mutationPhase == .bound
@@ -2671,8 +2676,8 @@ private final class NativeNotificationCoordinator {
             && (failed.mutationPhase == .unbound || failed.mutationPhase == .readyForRebind)
         let hasOwnerlessSessionCredentials: Bool
         do {
-            hasOwnerlessSessionCredentials = ownerlessCredentialPhase
-                && (try NativeNotificationCoordinatorPlugin.credentialStore.hasRefreshOrSessionCredentials())
+            hasOwnerlessSessionCredentials = try ownerlessCredentialPhase
+                && NativeNotificationCoordinatorPlugin.credentialStore.hasRefreshOrSessionCredentials()
         } catch {
             return false
         }
@@ -3557,8 +3562,9 @@ private final class NativeNotificationCoordinator {
     }
 
     private func compensateAmbiguousRequestLocked(_ requestIdentifier: String) async {
-        if !await Self.removeRequestsAndVerify([requestIdentifier]) {
+        guard await Self.removeRequestsAndVerify([requestIdentifier]) else {
             markPurgeFailureLocked()
+            return
         }
     }
 
@@ -3569,8 +3575,8 @@ private final class NativeNotificationCoordinator {
             && (next.mutationPhase == .unbound || next.mutationPhase == .readyForRebind)
         let hasOwnerlessSessionCredentials: Bool
         do {
-            hasOwnerlessSessionCredentials = ownerlessCredentialPhase
-                && (try NativeNotificationCoordinatorPlugin.credentialStore.hasRefreshOrSessionCredentials())
+            hasOwnerlessSessionCredentials = try ownerlessCredentialPhase
+                && NativeNotificationCoordinatorPlugin.credentialStore.hasRefreshOrSessionCredentials()
         } catch {
             failClosedLocked()
             return

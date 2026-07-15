@@ -6,6 +6,7 @@ import { FiUsers } from 'react-icons/fi';
 
 interface UserStatsBannerProps {
     isLoggedIn: boolean;
+    school?: string;
     onSignupClick?: () => void;
 }
 
@@ -130,8 +131,8 @@ function AnimatedCount({ value }: { value: number }) {
     );
 }
 
-export default function UserStatsBanner({ isLoggedIn, onSignupClick }: UserStatsBannerProps) {
-    const { data: stats, isLoading } = useUserStats();
+export default function UserStatsBanner({ isLoggedIn, school, onSignupClick }: UserStatsBannerProps) {
+    const { data: stats, isLoading } = useUserStats(school);
 
     if (isLoading || !stats) return null;
 
@@ -145,7 +146,7 @@ export default function UserStatsBanner({ isLoggedIn, onSignupClick }: UserStats
                     <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
                     <div>
                         <p className="text-sm text-gray-700">
-                            벌써 <AnimatedCount value={stats.total_users} />의 전북대 학생이 제로타임을 쓰고 있어요
+                            벌써 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생이 제로타임을 쓰고 있어요
                         </p>
                         <p className="text-xs font-semibold text-blue-600 mt-1.5">
                             나만 놓치고 있을 수도? →
@@ -161,7 +162,7 @@ export default function UserStatsBanner({ isLoggedIn, onSignupClick }: UserStats
             <div className="flex items-start gap-3">
                 <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
                 <p className="text-sm text-gray-700">
-                    제로타임은 <AnimatedCount value={stats.total_users} />의 전북대 학생과 함께하고 있어요
+                    제로타임은 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생과 함께하고 있어요
                 </p>
             </div>
         </div>

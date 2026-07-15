@@ -25,6 +25,7 @@ import ScrollToTop from '@/_components/ui/ScrollToTop';
 import PullToRefreshIndicator from '@/_components/ui/PullToRefreshIndicator';
 import UserStatsBanner from '@/_components/ui/UserStatsBanner';
 import GuestSchoolSelector from '@/_components/ui/GuestSchoolSelector';
+import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
 
 // Dayjs 설정
 dayjs.extend(relativeTime);
@@ -48,6 +49,7 @@ function HomeContent() {
 
   // Custom Hooks
   const { isLoggedIn, isAuthLoaded, refetch: refetchUser, user } = useUser();
+  const { guestSchool } = useGuestSchool();
   const {
     selectedCategories,
     updateSelectedCategories,
@@ -266,7 +268,7 @@ function HomeContent() {
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} onShowToast={showToast} />
 
       {/* User Stats Banner */}
-      <UserStatsBanner isLoggedIn={isLoggedIn} onSignupClick={() => router.push('/login')} />
+      <UserStatsBanner isLoggedIn={isLoggedIn} school={user?.school || guestSchool} onSignupClick={() => router.push('/login')} />
 
       {/* 게스트 전용 학교 선택 — 로그인 사용자는 프로필 수정에서 학교를 바꾼다 */}
       {!isLoggedIn && <GuestSchoolSelector />}

@@ -4,7 +4,12 @@ import { usePathname } from 'next/navigation';
 
 import BottomTabBar from './_components/BottomTabBar';
 
-const BOTTOM_TAB_PATHS = new Set(['/chinba', '/chinba/team', '/chinba/my']);
+const BOTTOM_TAB_PATHS = new Set([
+  '/chinba',
+  '/chinba/team',
+  '/chinba/team/detail',
+  '/chinba/my',
+]);
 
 export default function ChinbaLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

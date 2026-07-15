@@ -2,10 +2,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LuPlus, LuClock, LuCalendar, LuTrash2 } from 'react-icons/lu';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useActivities, useCreateActivity, useDeleteActivity } from '@/_lib/hooks/useActivities';
+import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
 import { getRoleBadgeLabel, buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
 import type { TeamRole, Activity, ActivityCreateRequest } from '@/_types/team';
@@ -15,6 +17,7 @@ interface ActivityTabProps {
   myRole: TeamRole;
   selectedSetId?: number | null;
   selectedGroupId?: number | null;
+  selectedCategoryId?: number | null;
   terminology?: 'team' | 'club';
 }
 
@@ -23,10 +26,19 @@ export default function ActivityTab({
   myRole,
   selectedSetId,
   selectedGroupId,
+  selectedCategoryId,
   terminology = 'team',
 }: ActivityTabProps) {
-  const { data, isLoading } = useActivities(teamId);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const { data, isLoading } = useActivities(teamId, {
+    category_id: selectedCategoryId ?? undefined,
+  });
   const { data: groupsData } = useGroups(teamId);
+  const { data: categoriesData } = useEventCategories(teamId);
+  const categories = categoriesData?.categories ?? [];
   const createMutation = useCreateActivity(teamId);
   const deleteMutation = useDeleteActivity(teamId);
 
@@ -67,6 +79,37 @@ export default function ActivityTab({
     setShowForm(false);
   }, [selectedGroupId]);
 
+  // 일정 완료 처리에서 넘어온 경우: 활동 기록 폼을 완료된 일정 정보로 미리 채워 자동 오픈.
+  // (URL의 recordTitle/recordDate 파라미터를 1회 소비하고 즉시 제거해 재오픈 방지)
+  useEffect(() => {
+    const recordTitle = searchParams.get('recordTitle');
+    if (recordTitle === null) return;
+
+    if (hasRole) {
+      const recordDate = searchParams.get('recordDate');
+      const recordCategoryIdRaw = searchParams.get('recordCategoryId');
+      const recordCategoryId =
+        recordCategoryIdRaw && Number.isFinite(Number(recordCategoryIdRaw))
+          ? Number(recordCategoryIdRaw)
+          : undefined;
+      setFormData({
+        title: recordTitle,
+        activity_date: recordDate || new Date().toISOString().slice(0, 10),
+        category_id: recordCategoryId,
+      });
+      setFormScores([]);
+      setShowForm(true);
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('recordTitle');
+    params.delete('recordDate');
+    params.delete('recordCategoryId');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   // 활동 필터링
   const allActivities = data?.activities ?? [];
   const activities = useMemo(() => {
@@ -81,10 +124,18 @@ export default function ActivityTab({
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) return;
+    // 삭제된 카테고리 id가 폼에 남아있으면 해제로 정리 (목록 로딩 완료 시에만 검증)
+    const submitCategoryId =
+      categoriesData === undefined
+        ? formData.category_id ?? undefined
+        : formData.category_id != null && categories.some((c) => c.id === formData.category_id)
+          ? formData.category_id
+          : undefined;
     try {
       await createMutation.mutateAsync({
         ...formData,
         scores: formScores.length > 0 ? formScores : undefined,
+        category_id: submitCategoryId,
       });
       setShowForm(false);
       setFormData({ title: '', activity_date: new Date().toISOString().slice(0, 10) });
@@ -178,6 +229,34 @@ export default function ActivityTab({
             onChange={(e) => setFormData({ ...formData, highlight: e.target.value || undefined })}
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
           />
+
+          {/* Category */}
+          {categories.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500">카테고리 (선택)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map((category) => {
+                  const isSelected = formData.category_id === category.id;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, category_id: isSelected ? undefined : category.id })
+                      }
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        isSelected
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Group Scores */}
           {visibleGroups.length > 0 && (
@@ -283,7 +362,14 @@ function ActivityCard({
     <div className="rounded-xl border border-gray-100 bg-white p-4 transition-shadow hover:shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-800 truncate">{activity.title}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold text-gray-800 truncate">{activity.title}</h3>
+            {activity.category && (
+              <span className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                #{activity.category.name}
+              </span>
+            )}
+          </div>
           <div className="mt-1 flex items-center gap-3 text-xs text-gray-400">
             <span className="flex items-center gap-1">
               <LuCalendar size={12} />

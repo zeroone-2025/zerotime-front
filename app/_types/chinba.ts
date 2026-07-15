@@ -27,6 +27,7 @@ export interface ChinbaEventDetail {
   status: 'active' | 'completed' | 'expired';
   creator_id: number;
   creator_nickname: string | null;
+  category: { id: number; name: string } | null;
   participants: ChinbaParticipantInfo[];
   heatmap: ChinbaHeatmapSlot[];
   recommended_times: ChinbaRecommendedTime[];

@@ -1,8 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { IconType } from 'react-icons';
 import { FiPlus, FiCalendar, FiUsers, FiLayers } from 'react-icons/fi';
@@ -21,6 +21,7 @@ interface MannajaTabProps {
   inviteCode: string | null;
   selectedSetId?: number | null;
   selectedGroupId?: number | null;
+  selectedCategoryId?: number | null;
   terminology?: 'team' | 'club';
 }
 
@@ -31,11 +32,23 @@ export default function MannajaTab({
   inviteCode,
   selectedSetId,
   selectedGroupId,
+  selectedCategoryId,
   terminology = 'team',
 }: MannajaTabProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data, isLoading } = useTeamEvents(teamId);
   const { data: groupSetsData } = useGroupSets(teamId);
+
+  // 이벤트 상세로 이동하면서, 완료 처리 후 돌아올 "기록(뭐했니)" 탭 경로를 넘긴다.
+  // 현재 위치(pathname)를 그대로 쓰므로 /teams/detail·/chinba/team/detail 어디서든 동작.
+  const openEvent = useCallback(
+    (eventId: string) => {
+      const returnTo = encodeURIComponent(`${pathname}?id=${teamId}&tab=mwoheni`);
+      router.push(`/chinba/event?id=${eventId}&returnTo=${returnTo}`);
+    },
+    [router, pathname, teamId],
+  );
 
   const canCreate = myRole === 'captain' || myRole === 'executive';
   const groupSets = groupSetsData?.group_sets ?? [];
@@ -52,8 +65,12 @@ export default function MannajaTab({
   // 이벤트 필터링
   const allEvents = data?.events ?? [];
   const events = useMemo(() => {
-    if (!selectedGroupIds && !selectedGroupId) return allEvents;
-    return allEvents.filter((event) => {
+    let list = allEvents;
+    if (selectedCategoryId) {
+      list = list.filter((event) => event.category?.id === selectedCategoryId);
+    }
+    if (!selectedGroupIds && !selectedGroupId) return list;
+    return list.filter((event) => {
       if (event.target_groups.length === 0) return false;
       if (selectedGroupId) {
         return event.target_groups.some((g) => g.id === selectedGroupId);
@@ -63,7 +80,7 @@ export default function MannajaTab({
       }
       return true;
     });
-  }, [allEvents, selectedGroupIds, selectedGroupId]);
+  }, [allEvents, selectedGroupIds, selectedGroupId, selectedCategoryId]);
 
   // 팀 전체 / 조별 이벤트 분리
   const { teamWideEvents, groupEvents } = useMemo(() => {
@@ -110,6 +127,7 @@ export default function MannajaTab({
             const params = new URLSearchParams({ id: String(teamId) });
             if (selectedSetId) params.set('setId', String(selectedSetId));
             if (selectedGroupId) params.set('groupId', String(selectedGroupId));
+            if (selectedCategoryId) params.set('categoryId', String(selectedCategoryId));
             router.push(`/chinba/team/event-create?${params.toString()}`);
           }}
           className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-4 text-sm font-medium text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-500 active:scale-[0.98]"
@@ -131,7 +149,7 @@ export default function MannajaTab({
                     key={event.event_id}
                     event={event}
                     groupSetNameMap={groupSetNameMap}
-                    onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+                    onClick={() => openEvent(event.event_id)}
                   />
                 ))
               ) : (
@@ -147,7 +165,7 @@ export default function MannajaTab({
                 key={event.event_id}
                 event={event}
                 groupSetNameMap={groupSetNameMap}
-                onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+                onClick={() => openEvent(event.event_id)}
               />
             ))
           ) : (
@@ -179,7 +197,7 @@ export default function MannajaTab({
             key={event.event_id}
             event={event}
             groupSetNameMap={groupSetNameMap}
-            onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+            onClick={() => openEvent(event.event_id)}
           />
         ))
       )}
@@ -223,6 +241,11 @@ function EventCard({ event, groupSetNameMap, onClick }: { event: TeamEvent; grou
 
       {/* Target groups - 항상 표시 */}
       <div className="flex flex-wrap gap-1 mb-2">
+        {event.category && (
+          <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-500">
+            #{event.category.name}
+          </span>
+        )}
         {event.target_groups.length > 0 ? (
           event.target_groups.map((g) => (
             <span

@@ -50,3 +50,9 @@ next-env.d.ts
 /public/sw.js.map
 /public/workbox-*.js
 /public/swe-worker-*.js.omc/
+
+# AI 에이전트 worktree (git-conventions 참조)
+.worktrees/
+
+# 에이전트 세션 도구 상태
+.sisyphus/

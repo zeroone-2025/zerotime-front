@@ -12,7 +12,7 @@ import {
 
 export function useRankings(
   teamId: number | undefined,
-  params?: { period?: string; group_set_id?: number },
+  params?: { period?: string; group_set_id?: number; category_id?: number },
 ) {
   return useQuery({
     queryKey: ['teams', teamId, 'rankings', params],
@@ -43,7 +43,7 @@ export function useGroupDetail(
   })
 }
 
-export function useMyRanking(teamId: number | undefined, params?: { group_set_id?: number }) {
+export function useMyRanking(teamId: number | undefined, params?: { group_set_id?: number; category_id?: number }) {
   return useQuery({
     queryKey: ['teams', teamId, 'rankings', 'me', params],
     queryFn: () => getMyRanking(teamId!, params),

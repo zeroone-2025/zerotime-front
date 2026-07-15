@@ -13,7 +13,7 @@ export async function createActivity(teamId: number, data: ActivityCreateRequest
 
 export async function getActivities(
   teamId: number,
-  params?: { group_id?: number; month?: string; skip?: number; limit?: number },
+  params?: { group_id?: number; month?: string; category_id?: number; skip?: number; limit?: number },
 ): Promise<ActivityListResponse> {
   const res = await api.get(`/chinba/teams/${teamId}/activities`, { params })
   return res.data

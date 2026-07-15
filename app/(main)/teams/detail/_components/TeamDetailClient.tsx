@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FiSettings } from 'react-icons/fi';
 import { LuChevronLeft } from 'react-icons/lu';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
 import { useTeamDetail } from '@/_lib/hooks/useTeam';
 
+import CategoryFilterBar from '../../_components/CategoryFilterBar';
 import GroupFilterBar from '../../_components/GroupFilterBar';
 import TeamSegmentTabs, { type TeamSegment } from '../../_components/TeamSegmentTabs';
 import UpgradeModal from '../../_components/UpgradeModal';
@@ -34,10 +36,25 @@ export default function TeamDetailClient() {
   const [freeNoticeSeen, setFreeNoticeSeen] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
   const groupSets = groupSetsData?.group_sets ?? [];
   // 세트 1개일 때 자동 선택
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
+
+  const { data: categoriesData } = useEventCategories(teamId);
+  const categories = categoriesData?.categories ?? [];
+
+  // 선택 중이던 카테고리가 삭제되면 필터 자동 해제 (로딩 중 오리셋 방지 위해 데이터 존재 가드)
+  useEffect(() => {
+    if (
+      selectedCategoryId != null &&
+      categoriesData &&
+      !categoriesData.categories.some((c) => c.id === selectedCategoryId)
+    ) {
+      setSelectedCategoryId(null);
+    }
+  }, [categoriesData, selectedCategoryId]);
 
   // 뭐했니/잡아봐 탭: 무료 이벤트 기간 — 안내 팝업 1회 노출 후 진입 허용
   const isPaidTab = (tab: TeamSegment) => tab === 'mwoheni' || tab === 'jabahbwa';
@@ -76,15 +93,15 @@ export default function TeamDetailClient() {
 
   const renderTabContent = () => {
     if (activeTab === 'mannaja') {
-      return <MannajaTab teamId={teamId!} myRole={team.my_role} memberCount={team.member_count} inviteCode={team.invite_code} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} />;
+      return <MannajaTab teamId={teamId!} myRole={team.my_role} memberCount={team.member_count} inviteCode={team.invite_code} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} selectedCategoryId={selectedCategoryId} />;
     }
 
     if (activeTab === 'mwoheni') {
-      return <ActivityTab teamId={teamId!} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} />;
+      return <ActivityTab teamId={teamId!} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} selectedCategoryId={selectedCategoryId} />;
     }
 
     if (activeTab === 'jabahbwa') {
-      return <JababwaTab teamId={teamId!} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} />;
+      return <JababwaTab teamId={teamId!} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} selectedCategoryId={selectedCategoryId} />;
     }
 
     return null;
@@ -121,15 +138,22 @@ export default function TeamDetailClient() {
         <TeamSegmentTabs activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
 
-      {/* Group Filter */}
-      {groupSets.length > 0 && (
-        <div className="shrink-0 px-4 pt-3">
-          <GroupFilterBar
-            groupSets={groupSets}
-            selectedSetId={effectiveSetId}
-            selectedGroupId={selectedGroupId}
-            onSetChange={setSelectedSetId}
-            onGroupChange={setSelectedGroupId}
+      {/* Group / Category Filter */}
+      {(groupSets.length > 0 || categories.length > 0) && (
+        <div className="shrink-0 px-4 pt-3 space-y-2">
+          {groupSets.length > 0 && (
+            <GroupFilterBar
+              groupSets={groupSets}
+              selectedSetId={effectiveSetId}
+              selectedGroupId={selectedGroupId}
+              onSetChange={setSelectedSetId}
+              onGroupChange={setSelectedGroupId}
+            />
+          )}
+          <CategoryFilterBar
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onChange={setSelectedCategoryId}
           />
         </div>
       )}

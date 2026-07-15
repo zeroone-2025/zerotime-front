@@ -15,11 +15,10 @@ import {
   writeBoardGroupsCache,
 } from '@/_lib/api';
 import type { BoardCategory, BoardInfo } from '@/_lib/api/boards';
-import { CATEGORY_ORDER, GUEST_DEFAULT_BOARDS } from '@/_lib/constants/boards';
+import { CATEGORY_ORDER, getDefaultBoardCodes } from '@/_lib/constants/boards';
 import { useBoardsBySchool } from '@/_lib/hooks/useBoards';
+import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
 import { useUser } from '@/_lib/hooks/useUser';
-
-const DEFAULT_SCHOOL = '전북대';
 
 interface BoardFilterContentProps {
   selectedBoards: string[];
@@ -63,7 +62,8 @@ export default function BoardFilterContent({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { isLoggedIn, isAuthLoaded, user } = useUser();
   const isGuest = !isLoggedIn;
-  const school = user?.school || DEFAULT_SCHOOL;
+  const { guestSchool } = useGuestSchool();
+  const school = user?.school || guestSchool;
   const { data: boardList = [], isLoading: isBoardsLoading } = useBoardsBySchool(school);
 
   // 초기화
@@ -153,7 +153,7 @@ export default function BoardFilterContent({
   // 초기화하기
   const handleReset = () => {
     if (isGuest) {
-      setTempSelection(new Set(GUEST_DEFAULT_BOARDS));
+      setTempSelection(new Set(getDefaultBoardCodes(boardList)));
     } else {
       setTempSelection(new Set());
     }

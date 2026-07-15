@@ -24,6 +24,7 @@ import KeywordSettingsBar from '@/_components/ui/KeywordSettingsBar';
 import ScrollToTop from '@/_components/ui/ScrollToTop';
 import PullToRefreshIndicator from '@/_components/ui/PullToRefreshIndicator';
 import UserStatsBanner from '@/_components/ui/UserStatsBanner';
+import GuestSchoolSelector from '@/_components/ui/GuestSchoolSelector';
 
 // Dayjs 설정
 dayjs.extend(relativeTime);
@@ -266,6 +267,9 @@ function HomeContent() {
 
       {/* User Stats Banner */}
       <UserStatsBanner isLoggedIn={isLoggedIn} onSignupClick={() => router.push('/login')} />
+
+      {/* 게스트 전용 학교 선택 — 로그인 사용자는 프로필 수정에서 학교를 바꾼다 */}
+      {!isLoggedIn && <GuestSchoolSelector />}
 
         {/* 카테고리 필터 */}
         <div className="shrink-0" style={{ touchAction: 'none' }}>

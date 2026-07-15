@@ -7,7 +7,7 @@
  * 있었다. `GET /boards`가 school/category를 함께 반환하므로 이제 그쪽을
  * 근거로 삼는다 (app/_lib/hooks/useBoards.ts, app/_lib/api/boards.ts 참고).
  */
-import type { BoardCategory } from '@/_lib/api/boards';
+import type { BoardCategory, BoardInfo } from '@/_lib/api/boards';
 
 export type { BoardCategory };
 
@@ -15,6 +15,32 @@ export type { BoardCategory };
  * LocalStorage 저장 키 (Guest 사용자용)
  */
 export const GUEST_FILTER_KEY = 'JB_ALARM_GUEST_FILTER';
+
+/**
+ * GUEST_FILTER_KEY에 저장된 board_codes가 어느 학교 기준으로 계산됐는지 기록하는 키.
+ * useGuestSchool()의 학교와 다르면(마이그레이션 필요 신호) 기본값을 다시 계산한다.
+ */
+export const GUEST_FILTER_SCHOOL_KEY = 'JB_ALARM_GUEST_FILTER_SCHOOL';
+
+/**
+ * 게스트가 고른 "둘러보는 학교" 저장 키. 로그인 사용자는 안 쓴다(user.school이 기준).
+ */
+export const GUEST_SCHOOL_KEY = 'JB_ALARM_GUEST_SCHOOL';
+
+/**
+ * 게스트 학교 선택 드롭다운에 보여줄 학교 목록.
+ */
+export const GUEST_SCHOOL_OPTIONS = ['전북대', '전남대', '경북대', '충남대'] as const;
+
+export const DEFAULT_GUEST_SCHOOL = '전북대';
+
+/**
+ * 게시판 목록에서 기본 구독 대상(board.default_subscribe === true)만 board_code로 뽑는다.
+ * 정책(어떤 게시판이 기본값인지)은 백엔드가 결정하므로(`GET /boards`의 default_subscribe
+ * 필드) 프론트는 그 값을 그대로 필터링만 한다.
+ */
+export const getDefaultBoardCodes = (boards: BoardInfo[]): string[] =>
+  boards.filter((board) => board.default_subscribe).map((board) => board.board_code);
 
 /**
  * 카테고리 표시 순서
@@ -49,18 +75,11 @@ export const getColorClasses = (color: string) => {
 };
 
 /**
- * 게스트 필터 버전 (기본값 변경 시 증가)
- * 버전이 다르면 localStorage를 새 기본값으로 덮어씁니다.
- */
-export const GUEST_FILTER_VERSION = 2;
-
-/**
- * 게스트 기본 필터 게시판 목록
+ * 게스트 기본 필터 게시판 목록 — 전북대 하드코딩 폴백.
  *
- * 학교 선택 전(비로그인) 상태의 기본값이라 전북대 게시판으로 고정한다.
- * 온보딩에서 다른 학교를 선택해도 이 기본값이 그대로 섞여 들어가는 문제는
- * 별도 이슈 — OnboardingModal의 buildStudentBoardCodes()가 학교 무관하게
- * 이 상수를 베이스로 쓰고 있다.
+ * 정상 경로에서는 `getDefaultBoardCodes()`로 `GET /boards`의
+ * default_subscribe 값을 학교별로 동적으로 가져온다. 이 상수는 그 API
+ * 호출이 실패했을 때만 쓰는 최후 폴백이다 — 평소엔 안 쓰인다.
  */
 export const GUEST_DEFAULT_BOARDS = [
   'home_campus', 'home_student', 'home_lecture',

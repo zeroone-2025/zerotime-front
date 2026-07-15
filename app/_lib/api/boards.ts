@@ -7,6 +7,7 @@ export interface BoardInfo {
   name: string;
   school: string;
   category: BoardCategory;
+  default_subscribe: boolean;
 }
 
 /**

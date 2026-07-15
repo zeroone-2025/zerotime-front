@@ -16,17 +16,21 @@ interface JababwaTabProps {
   myRole: TeamRole;
   selectedSetId?: number | null;
   selectedGroupId?: number | null;
+  selectedCategoryId?: number | null;
 }
 
-export default function JababwaTab({ teamId, selectedSetId, selectedGroupId }: JababwaTabProps) {
+export default function JababwaTab({ teamId, selectedSetId, selectedGroupId, selectedCategoryId }: JababwaTabProps) {
+  const categoryParam = selectedCategoryId ?? undefined;
   const { data: rankingsData, isLoading: rankingsLoading } = useRankings(teamId, {
     period: 'semester',
     group_set_id: selectedSetId ?? undefined,
+    category_id: categoryParam,
   });
   const { data: myRanking, isLoading: myRankingLoading } = useMyRanking(teamId, {
     group_set_id: selectedSetId ?? undefined,
+    category_id: categoryParam,
   });
-  const { data: activitiesData } = useActivities(teamId, { limit: 5 });
+  const { data: activitiesData } = useActivities(teamId, { limit: 5, category_id: categoryParam });
   const { data: groupSetsData } = useGroupSets(teamId);
   const groupSetNameMap = useMemo(() => buildGroupSetNameMap(groupSetsData?.group_sets ?? []), [groupSetsData]);
 

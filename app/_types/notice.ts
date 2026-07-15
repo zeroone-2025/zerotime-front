@@ -19,6 +19,7 @@ export interface NoticeListResponse {
     items: Notice[];
     next_cursor: string | null;
     has_next: boolean;
+    total_count?: number | null; // 전체 결과 개수 (검색 응답에서만 채워짐)
 }
 
 // 공지사항 읽음 처리 응답

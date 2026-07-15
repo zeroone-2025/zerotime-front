@@ -1,6 +1,7 @@
 'use client';
 
-import { FiHome, FiChevronDown } from 'react-icons/fi';
+import { useEffect, useRef, useState } from 'react';
+import { FiShield, FiChevronDown, FiCheck } from 'react-icons/fi';
 
 import { GUEST_SCHOOL_OPTIONS } from '@/_lib/constants/boards';
 import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
@@ -16,31 +17,68 @@ const SCHOOL_FULL_NAME: Record<string, string> = {
  * 게스트(비로그인) 전용 학교 선택 드롭다운.
  * 로그인 사용자는 이 컴포넌트를 아예 렌더링하지 않는다 — 학교는
  * 프로필 수정 화면(UserInfoForm)에서만 바꾼다.
+ *
+ * 실제 학교 로고/엠블럼 이미지가 없어 FiShield 아이콘으로 대체 —
+ * 로고 파일이 생기면 학교별 이미지로 교체.
  */
 export default function GuestSchoolSelector() {
   const { guestSchool, setGuestSchool } = useGuestSchool();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (school: string) => {
+    setGuestSchool(school);
+    setIsOpen(false);
+  };
 
   return (
-    <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl border border-dashed border-gray-200 bg-white px-4 py-3">
-      <FiHome className="shrink-0 text-gray-500" size={16} />
-      <div className="relative flex-1">
-        <select
-          value={guestSchool}
-          onChange={(e) => setGuestSchool(e.target.value)}
-          className="w-full appearance-none bg-transparent pr-6 text-sm font-semibold text-gray-800 outline-none"
-          aria-label="둘러볼 학교 선택"
-        >
-          {GUEST_SCHOOL_OPTIONS.map((school) => (
-            <option key={school} value={school}>
-              {SCHOOL_FULL_NAME[school] ?? school}
-            </option>
-          ))}
-        </select>
+    <div className="relative mx-4 mb-3 w-fit" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm"
+        aria-label="둘러볼 학교 선택"
+        aria-expanded={isOpen}
+      >
+        <FiShield className="shrink-0 text-blue-900" size={18} />
+        <span className="text-sm font-semibold text-gray-800">
+          {SCHOOL_FULL_NAME[guestSchool] ?? guestSchool}
+        </span>
         <FiChevronDown
-          className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-gray-400"
+          className={`shrink-0 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           size={14}
         />
-      </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-full z-10 mt-2 w-full min-w-[10rem] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+          {GUEST_SCHOOL_OPTIONS.map((school) => (
+            <button
+              key={school}
+              type="button"
+              onClick={() => handleSelect(school)}
+              className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50"
+            >
+              <span
+                className={school === guestSchool ? 'font-semibold text-gray-900' : 'text-gray-600'}
+              >
+                {SCHOOL_FULL_NAME[school] ?? school}
+              </span>
+              {school === guestSchool && <FiCheck className="text-blue-900" size={14} />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

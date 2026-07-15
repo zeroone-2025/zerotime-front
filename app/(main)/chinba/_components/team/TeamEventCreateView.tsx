@@ -2,13 +2,16 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FiXCircle } from 'react-icons/fi';
+import { FiPlus, FiXCircle } from 'react-icons/fi';
 
 import Button from '@/_components/ui/Button';
 import FullPageModal from '@/_components/layout/FullPageModal';
-import { useSmartBack } from '@/_lib/hooks/useSmartBack';
+import { useCreateEventCategory, useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
+import { useSmartBack } from '@/_lib/hooks/useSmartBack';
+import { useTeamDetail } from '@/_lib/hooks/useTeam';
 import { useCreateTeamEvent } from '@/_lib/hooks/useTeamEvents';
+import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import DateSelector from '@/(main)/chinba/create/_components/DateSelector';
 
 export default function TeamEventCreateView() {
@@ -17,11 +20,20 @@ export default function TeamEventCreateView() {
   const teamId = Number(searchParams.get('id'));
   const preSetId = searchParams.get('setId') ? Number(searchParams.get('setId')) : null;
   const preGroupId = searchParams.get('groupId') ? Number(searchParams.get('groupId')) : null;
+  const preCategoryIdRaw = searchParams.get('categoryId');
+  const preCategoryId =
+    preCategoryIdRaw && Number.isFinite(Number(preCategoryIdRaw)) ? Number(preCategoryIdRaw) : null;
   const goBack = useSmartBack(`/chinba/team/detail?id=${teamId}&tab=mannaja`);
 
   const { data: groupsData } = useGroups(teamId);
   const { data: groupSetsData } = useGroupSets(teamId);
+  const { data: team } = useTeamDetail(teamId || undefined);
+  const { data: categoriesData } = useEventCategories(teamId || undefined);
   const createEvent = useCreateTeamEvent(teamId);
+  const createCategory = useCreateEventCategory(teamId);
+
+  const categories = categoriesData?.categories ?? [];
+  const canManageCategory = team ? canEditTeam(team.my_role) : false;
 
   const allGroups = groupsData?.groups ?? [];
   const groupSets = groupSetsData?.group_sets ?? [];
@@ -45,6 +57,10 @@ export default function TeamEventCreateView() {
   const [title, setTitle] = useState('');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(preCategoryId);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddName, setQuickAddName] = useState('');
+  const [quickAddError, setQuickAddError] = useState<string | null>(null);
   const [preselected, setPreselected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,6 +83,20 @@ export default function TeamEventCreateView() {
     );
   };
 
+  const handleQuickAdd = async () => {
+    const name = quickAddName.trim();
+    if (!name) return;
+    try {
+      const created = await createCategory.mutateAsync({ name });
+      setSelectedCategoryId(created.id);
+      setQuickAddName('');
+      setShowQuickAdd(false);
+      setQuickAddError(null);
+    } catch (err: any) {
+      setQuickAddError(err.response?.data?.detail || '카테고리 추가에 실패했습니다');
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setError(null);
@@ -76,6 +106,7 @@ export default function TeamEventCreateView() {
         title: title.trim(),
         dates: selectedDates,
         target_group_ids: selectedGroupIds.length > 0 ? selectedGroupIds : undefined,
+        category_id: selectedCategoryId ?? undefined,
       });
       router.replace(`/chinba/team/detail?id=${teamId}&tab=mannaja`);
     } catch (err: any) {
@@ -139,6 +170,85 @@ export default function TeamEventCreateView() {
                 선택하지 않으면 전체 동아리 대상으로 생성됩니다
               </p>
             )}
+          </div>
+        )}
+
+        {/* Category */}
+        {(categories.length > 0 || canManageCategory) && (
+          <div className="mb-6">
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              카테고리 <span className="text-xs font-normal text-gray-400">(선택)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => {
+                const isSelected = selectedCategoryId === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(isSelected ? null : category.id)}
+                    className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                      isSelected
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                );
+              })}
+              {canManageCategory && !showQuickAdd && (
+                <button
+                  type="button"
+                  onClick={() => setShowQuickAdd(true)}
+                  className="flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-400 transition-colors hover:border-gray-400 hover:text-gray-500"
+                >
+                  <FiPlus size={14} />
+                  카테고리 추가
+                </button>
+              )}
+            </div>
+            {showQuickAdd && (
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={quickAddName}
+                  maxLength={30}
+                  autoFocus
+                  placeholder="카테고리 이름"
+                  onChange={(e) => setQuickAddName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleQuickAdd();
+                    if (e.key === 'Escape') {
+                      setShowQuickAdd(false);
+                      setQuickAddName('');
+                      setQuickAddError(null);
+                    }
+                  }}
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-gray-900"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowQuickAdd(false);
+                    setQuickAddName('');
+                    setQuickAddError(null);
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleQuickAdd}
+                  disabled={createCategory.isPending || !quickAddName.trim()}
+                  className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
+                >
+                  추가
+                </button>
+              </div>
+            )}
+            {quickAddError && <p className="mt-1 text-xs text-red-500">{quickAddError}</p>}
           </div>
         )}
 

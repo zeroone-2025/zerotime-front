@@ -370,7 +370,7 @@ async function verifyNativeCoordinatorContract() {
     [
       "iOS native coordinator",
       iosCoordinator,
-      "572f0aefec7b90c468f232500d534b711c136570095f19bd2a727e94b82c2730",
+      "cb9d106aeca38a43948890f58c841ee0ae855941f30493e489371997378c8345",
     ],
   ]) {
     const actualDigest = createHash("sha256").update(source).digest("hex");

@@ -327,3 +327,11 @@ private final class NativeLaunchGateViewController: UIViewController {
         statusLabel.text = "ZeroTime notification privacy check failed."
     }
 }
+
+/// 앱 타깃에 정의된 커스텀 플러그인은 packageClassList(cap sync가 npm 플러그인만으로
+/// 재생성)에 없으므로 브리지에 직접 등록한다 — Android의 MainActivity.registerPlugin과 대응.
+final class ZeroTimeBridgeViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(NativeNotificationCoordinatorPlugin())
+    }
+}

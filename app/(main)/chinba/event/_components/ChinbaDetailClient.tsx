@@ -10,18 +10,9 @@ import FullPageModal from '@/_components/layout/FullPageModal';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
 import { useUser } from '@/_lib/hooks/useUser';
 import { useChinbaEventDetail, useDeleteChinbaEvent, useCompleteChinbaEvent } from '@/_lib/hooks/useChinba';
+import { formatDateRanges } from '@/_lib/utils/dateRange';
 import TeamScheduleTab from './TeamScheduleTab';
 import MyScheduleTab from './MyScheduleTab';
-
-const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
-
-function formatDateRange(dates: string[]): string {
-  if (dates.length === 0) return '';
-  return dates.map((d) => {
-    const dt = new Date(d);
-    return `${dt.getMonth() + 1}/${dt.getDate()}(${DAY_LABELS[dt.getDay()]})`;
-  }).join(', ');
-}
 
 export default function ChinbaDetailClient() {
   const searchParams = useSearchParams();
@@ -212,7 +203,7 @@ export default function ChinbaDetailClient() {
         {/* Event Detail Header */}
         <div className="shrink-0 px-4 pb-2 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] text-gray-500 truncate">{formatDateRange(event.dates)}</p>
+            <p className="text-[11px] text-gray-500 truncate">{formatDateRanges(event.dates)}</p>
 
             <div className="flex items-center gap-1 shrink-0">
               {isCreator && isActive && (

@@ -24,7 +24,6 @@ import KeywordSettingsBar from '@/_components/ui/KeywordSettingsBar';
 import ScrollToTop from '@/_components/ui/ScrollToTop';
 import PullToRefreshIndicator from '@/_components/ui/PullToRefreshIndicator';
 import UserStatsBanner from '@/_components/ui/UserStatsBanner';
-import GuestSchoolSelector from '@/_components/ui/GuestSchoolSelector';
 import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
 
 // Dayjs 설정
@@ -267,11 +266,8 @@ function HomeContent() {
     <>
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} onShowToast={showToast} />
 
-      {/* User Stats Banner */}
+      {/* User Stats Banner — 게스트일 땐 배너 우측에 학교 선택 드롭다운도 함께 렌더 (UserStatsBanner 내부) */}
       <UserStatsBanner isLoggedIn={isLoggedIn} school={user?.school || guestSchool} onSignupClick={() => router.push('/login')} />
-
-      {/* 게스트 전용 학교 선택 — 로그인 사용자는 프로필 수정에서 학교를 바꾼다 */}
-      {!isLoggedIn && <GuestSchoolSelector />}
 
         {/* 카테고리 필터 */}
         <div className="shrink-0" style={{ touchAction: 'none' }}>

@@ -42,7 +42,7 @@ export default function GuestSchoolSelector() {
   };
 
   return (
-    <div className="relative mx-4 mb-3 w-fit" ref={dropdownRef}>
+    <div className="relative w-fit shrink-0" ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -61,7 +61,7 @@ export default function GuestSchoolSelector() {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-10 mt-2 w-full min-w-[10rem] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+        <div className="absolute right-0 top-full z-10 mt-2 w-full min-w-40 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
           {GUEST_SCHOOL_OPTIONS.map((school) => (
             <button
               key={school}

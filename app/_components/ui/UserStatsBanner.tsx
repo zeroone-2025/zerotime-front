@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useUserStats } from '@/_lib/hooks/useUserStats';
 import { FiUsers } from 'react-icons/fi';
+import GuestSchoolSelector from '@/_components/ui/GuestSchoolSelector';
 
 interface UserStatsBannerProps {
     isLoggedIn: boolean;
@@ -138,13 +139,10 @@ export default function UserStatsBanner({ isLoggedIn, school, onSignupClick }: U
 
     if (!isLoggedIn) {
         return (
-            <button
-                onClick={onSignupClick}
-                className="mx-4 mb-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-left w-[calc(100%-2rem)] animate-slideDown"
-            >
-                <div className="flex items-start gap-3">
+            <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 w-[calc(100%-2rem)] animate-slideDown">
+                <button onClick={onSignupClick} className="flex items-start gap-3 text-left min-w-0 flex-1">
                     <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-sm text-gray-700">
                             벌써 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생이 제로타임을 쓰고 있어요
                         </p>
@@ -152,8 +150,9 @@ export default function UserStatsBanner({ isLoggedIn, school, onSignupClick }: U
                             나만 놓치고 있을 수도? →
                         </p>
                     </div>
-                </div>
-            </button>
+                </button>
+                <GuestSchoolSelector />
+            </div>
         );
     }
 

@@ -1,5 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 
+import { nativeLocalDevApiOrigin } from './nativeLocalDev';
+
 export const MOBILE_RELEASE_CONTRACT = 'mobile-release.v1';
 export const MOBILE_RELEASE_CONTRACT_SHA256 =
   '0f736c8e90c5ba1ea68370e327f2f405fba5a83e4807c3bc7691aaa8c0711d84';
@@ -181,9 +183,12 @@ export async function getOrCreateInstallationId(
 }
 
 /**
- * Returns false only for web. A Capacitor runtime reporting iOS or Android must
- * provide a matching, fully validated release manifest; it is never demoted to
- * cookie-backed web behavior.
+ * Returns false for web and for a native local development build. A Capacitor
+ * runtime reporting iOS or Android must provide a matching, fully validated
+ * release manifest — with one exception: a build carrying no release manifest
+ * and a validated local-only API origin (nativeLocalDev.ts, fail-closed) is
+ * demoted to cookie-backed web behavior instead of being admitted as a release
+ * runtime. A build carrying a release manifest is never demoted.
  */
 export function isValidatedNativeReleaseRuntime(): boolean {
   if (typeof window === 'undefined') {
@@ -196,6 +201,10 @@ export function isValidatedNativeReleaseRuntime(): boolean {
     if (platform === 'ios' || platform === 'android') {
       throw new Error('Capacitor platform/native-runtime detection disagreed.');
     }
+    return false;
+  }
+
+  if (nativeLocalDevApiOrigin() !== null) {
     return false;
   }
 

@@ -4,13 +4,15 @@
 # 역할: API 환경 선택 → 빌드(환경변수 주입) → cap sync → Xcode·시뮬레이터 실행
 #
 # 사용법:
-#   ./run-ios.sh              # 환경을 메뉴로 선택
-#   ./run-ios.sh local        # 인자로 지정 (local | beta | prod) — 자동화·재실행용
+#   ./run-ios.sh              # 개발 기본값 local로 바로 실행 (메뉴 없음)
+#   ./run-ios.sh beta         # 릴리스 검증용 인자 (local | beta | prod)
+#   ./run-ios.sh down         # 개발·테스트 종료 — 시뮬레이터 종료 (백엔드는 ../dev.sh down)
 #
 # 환경 3개 (dev-api는 앱에서 쓰지 않는다 — 웹 전용):
 #   local — 로컬 백엔드(../dev.sh back). 릴리스 매니페스트 없이 웹 동작으로 강등되는
 #           개발 전용 빌드 (app/_lib/native/nativeLocalDev.ts). 시뮬레이터 전용 —
-#           실기기는 ATS(http 차단) 때문에 불가, 실기기 테스트는 beta를 쓴다.
+#           실기기는 ATS(http 차단) 때문에 불가. 게스트 플로우 전용 — 로그인·푸시 등
+#           네이티브 인증이 필요한 기능은 동작하지 않는다 (검증은 beta에서).
 #   beta  — beta-api (TestFlight plane) / prod — api (App Store plane)
 #
 # API URL은 빌드 시점에 NEXT_PUBLIC_API_BASE_URL_NATIVE로 주입한다 —
@@ -36,32 +38,35 @@ fi
 
 SIM_DEVICE="${SIM_DEVICE:-iPhone 17 Pro}"
 
-# 1. API 환경 결정 — 인자 우선, 없으면 메뉴
-choice="${1:-}"
-if [ -z "$choice" ]; then
-    echo -e "${CYAN}API 환경을 선택하세요:${NC}\n"
-    echo -e "  ${GREEN}1)${NC} local — 로컬 백엔드 http://localhost:8080 (시뮬레이터 전용)"
-    echo -e "  ${GREEN}2)${NC} beta  — https://beta-api.zerotime.kr (TestFlight plane)"
-    echo -e "  ${GREEN}3)${NC} prod  — https://api.zerotime.kr (App Store plane)"
-    echo ""
-    read -p "선택 (1-3): " choice
-fi
+# 1. 모드 결정 — 무인자는 개발 기본값 local. beta/prod는 릴리스 검증용 인자.
+choice="${1:-local}"
 
 case "$choice" in
-    1|local)
+    down)
+        # 개발·테스트 종료 — 시뮬레이터만 정리한다. Xcode는 열린 작업이 있을 수 있어
+        # 건드리지 않고, 백엔드 컨테이너는 하네스 ../dev.sh down 몫.
+        echo -e "${YELLOW}iOS 시뮬레이터 종료 중...${NC}"
+        xcrun simctl shutdown all >/dev/null 2>&1 || true
+        osascript -e 'quit app "Simulator"' >/dev/null 2>&1 || true
+        echo -e "${GREEN}✓ 시뮬레이터 종료 완료${NC}"
+        echo -e "  백엔드 종료는 하네스 루트에서 ${CYAN}./dev.sh down${NC}, Xcode는 직접 닫으세요"
+        exit 0
+        ;;
+    local)
         API_URL="${LOCAL_API_ORIGIN:-http://localhost:8080}"
         ENV_NAME="로컬(시뮬레이터 전용)"; RELEASE_PLANE="local"
-        echo -e "${YELLOW}⚠ 로컬 개발 모드 — 웹 동작으로 강등된 개발 전용 빌드입니다 (푸시 등 네이티브 기능 비활성).${NC}"
-        echo -e "${YELLOW}  실기기는 ATS가 http를 차단하므로 시뮬레이터에서만 동작합니다 — 실기기 테스트는 beta를 쓰세요.${NC}"
+        echo -e "${YELLOW}⚠ 로컬 개발 모드 — 웹 동작으로 강등된 개발 전용 빌드입니다.${NC}"
+        echo -e "${YELLOW}  게스트 플로우 전용: 로그인·푸시 등 네이티브 인증 기능은 동작하지 않습니다 (검증은 beta).${NC}"
+        echo -e "${YELLOW}  실기기는 ATS가 http를 차단하므로 시뮬레이터에서만 동작합니다.${NC}"
         ;;
     dev)
         echo -e "${RED}✗ dev-api는 앱에서 쓰지 않습니다 (웹 전용) — 로컬 백엔드는 local, 실서버 테스트는 beta를 쓰세요${NC}"
         exit 1
         ;;
-    2|beta) API_URL="https://beta-api.zerotime.kr"; ENV_NAME="베타"; RELEASE_PLANE="beta" ;;
-    3|prod) API_URL="https://api.zerotime.kr";      ENV_NAME="프로덕션"; RELEASE_PLANE="prod" ;;
+    beta) API_URL="https://beta-api.zerotime.kr"; ENV_NAME="베타"; RELEASE_PLANE="beta" ;;
+    prod) API_URL="https://api.zerotime.kr";      ENV_NAME="프로덕션"; RELEASE_PLANE="prod" ;;
     *)
-        echo -e "${RED}✗ 잘못된 선택입니다: ${choice} (local | beta | prod)${NC}"
+        echo -e "${RED}✗ 잘못된 인자입니다: ${choice} (local | beta | prod | down)${NC}"
         exit 1
         ;;
 esac

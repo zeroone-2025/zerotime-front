@@ -21,7 +21,11 @@ describe('parseGroups', () => {
   it('sends POST /chinba/teams/:teamId/groups/parse', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: { parsed_groups: [], unmatched_names: [], unassigned_members: [] } })
     await parseGroups(1, { text: '1조\n조장: 홍길동' })
-    expect(api.post).toHaveBeenCalledWith('/chinba/teams/1/groups/parse', { text: '1조\n조장: 홍길동' })
+    expect(api.post).toHaveBeenCalledWith(
+      '/chinba/teams/1/groups/parse',
+      { text: '1조\n조장: 홍길동' },
+      { timeout: 30000 },
+    )
   })
 })
 
@@ -37,7 +41,7 @@ describe('getGroups', () => {
   it('sends GET /chinba/teams/:teamId/groups', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: { groups: [], unassigned_members: [] } })
     const result = await getGroups(1)
-    expect(api.get).toHaveBeenCalledWith('/chinba/teams/1/groups')
+    expect(api.get).toHaveBeenCalledWith('/chinba/teams/1/groups', { params: undefined })
     expect(result.groups).toEqual([])
   })
 })

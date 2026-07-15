@@ -73,7 +73,7 @@ export default function ChinbaHomePage() {
             </h1>
           )}
 
-          {stats && (
+          {typeof stats?.total_teams === 'number' && (
             <p className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
               {stats.total_teams.toLocaleString('ko-KR')}개의 동아리가 함께하고 있어요
             </p>

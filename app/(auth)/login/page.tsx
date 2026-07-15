@@ -6,7 +6,6 @@ import LoginButtonGroup from '@/_components/auth/LoginButtonGroup';
 import Logo from '@/_components/ui/Logo';
 import AuthPageShell from '@/_components/layout/AuthPageShell';
 import { useUser } from '@/_lib/hooks/useUser';
-import DevPersonaLoginButtons from './_components/DevPersonaLoginButtons';
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: 'Google',
@@ -81,7 +80,6 @@ function LoginPageContent() {
             >
               로그인 없이 둘러보기
             </button>
-            <DevPersonaLoginButtons redirectTo={safeRedirectTo} />
           </div>
         </div>
       </div>

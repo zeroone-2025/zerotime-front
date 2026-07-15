@@ -30,14 +30,6 @@ export const getGoogleLoginUrl = (redirectTo?: string) => getSocialLoginUrl('goo
 export const fetchGoogleLoginUrl = async (platform: string, redirectTo?: string) =>
     fetchSocialLoginUrl('google', platform, redirectTo);
 
-// dev 전용 페르소나 로그인 — 백엔드 DEV_PERSONA_LOGIN_ENABLED 환경에서만 열려 있다 (그 외 404)
-export type DevPersonaRole = 'captain' | 'executive' | 'member';
-
-export const devPersonaLogin = async (role: DevPersonaRole): Promise<string> => {
-    const response = await authApi.post<{ access_token: string }>('/auth/dev-login', { role });
-    return response.data.access_token;
-};
-
 // 인증 초기화 여부 확인
 export const isAuthReady = () => isAuthInitialized;
 

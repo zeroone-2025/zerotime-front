@@ -20,19 +20,11 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleURLTypes</key>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+	<key>UIBackgroundModes</key>
 	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>kr.zerotime.app</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>kr.zerotime.app</string>
-			</array>
-		</dict>
-		<dict/>
+		<string>remote-notification</string>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
@@ -63,5 +55,38 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>ZeroTimeNativeCoordinatorContract</key>
+	<string>native-notification-coordinator.v1</string>
+	<key>ZeroTimeReleaseManifest</key>
+	<dict>
+		<key>contract</key>
+		<string>$(MOBILE_RELEASE_CONTRACT)</string>
+		<key>contract_sha256</key>
+		<string>$(MOBILE_RELEASE_CONTRACT_SHA256)</string>
+		<key>plane</key>
+		<string>$(MOBILE_RELEASE_PLANE)</string>
+		<key>frontend_git_sha</key>
+		<string>$(MOBILE_RELEASE_FRONTEND_GIT_SHA)</string>
+		<key>backend_git_sha</key>
+		<string>$(MOBILE_RELEASE_BACKEND_GIT_SHA)</string>
+		<key>backend_image_digest</key>
+		<string>$(MOBILE_RELEASE_BACKEND_IMAGE_DIGEST)</string>
+		<key>backend_deployment_id</key>
+		<string>$(MOBILE_RELEASE_BACKEND_DEPLOYMENT_ID)</string>
+		<key>backend_deployed_at_utc</key>
+		<string>$(MOBILE_RELEASE_BACKEND_DEPLOYED_AT_UTC)</string>
+		<key>firebase_project_id</key>
+		<string>$(MOBILE_RELEASE_FIREBASE_PROJECT_ID)</string>
+		<key>api_origin</key>
+		<string>$(MOBILE_RELEASE_API_ORIGIN)</string>
+		<key>platform</key>
+		<string>ios</string>
+		<key>app_version</key>
+		<string>$(MARKETING_VERSION)</string>
+		<key>build_number</key>
+		<string>$(CURRENT_PROJECT_VERSION)</string>
+		<key>bundle_id</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	</dict>
 </dict>
 </plist>

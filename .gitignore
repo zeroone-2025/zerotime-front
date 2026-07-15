@@ -45,6 +45,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# verified-links 생성물 — 실제 서명 신원으로 빌드 시점에 생성한다 (커밋 금지, runbook 참조)
+/public/.well-known/
+
 # PWA auto-generated files
 /public/sw.js
 /public/sw.js.map

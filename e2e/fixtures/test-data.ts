@@ -162,6 +162,21 @@ export const MOCK_CHINBA_EVENTS = [
   },
 ];
 
+export const MOCK_TEAMS = {
+  teams: [
+    {
+      id: 1,
+      name: '테스트 동아리',
+      category: 'study',
+      member_count: 3,
+      my_role: 'captain' as const,
+      status: 'active' as const,
+      is_paid: false,
+      created_at: '2024-07-01T10:00:00',
+    },
+  ],
+};
+
 // 친바 이벤트 상세
 export const MOCK_CHINBA_EVENT_DETAIL = {
   event_id: 'evt-001',

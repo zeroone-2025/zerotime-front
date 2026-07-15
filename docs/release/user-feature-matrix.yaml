@@ -1,0 +1,210 @@
+matrix_version: mobile-release.v1
+purpose: >-
+  Static, code-derived release inventory of current end-user routes and native-platform
+  verification obligations. It is not an authorization policy, backend availability claim,
+  or completed test report.
+source_snapshot:
+  routing_root: app
+  static_export_constraint: next.config.ts
+  capacitor_identity_source: capacitor.config.ts
+  exclusions:
+    - >-
+      Administrator navigation is intentionally excluded. SidebarContent.tsx sends users
+      with admin/super_admin roles to the separately configured external admin URL; it is
+      not a current end-user app route in this matrix.
+    - >-
+      No automatic OS-notification route or feature is listed: v1 requires data-only push
+      and coordinator-controlled local display.
+route_inventory:
+  - route: /
+    feature: University notice feed, board/category filtering, search, read/favorite actions, and onboarding entry
+    code_evidence: app/(main)/(home)/page.tsx
+    auth_behavior: Guest feed is supported; read/favorite and keyword-specific actions check login state.
+  - route: /filter
+    feature: Notice-board subscription/filter selection and saved board groups
+    code_evidence: app/(main)/filter/page.tsx; app/(main)/filter/_components/BoardFilterContent.tsx
+    auth_behavior: Guest selections are supported; saved board groups are loaded only when logged in.
+  - route: /keywords
+    feature: Keyword notification preference management
+    code_evidence: app/(main)/keywords/page.tsx; app/(main)/keywords/_components/KeywordsModalContent.tsx
+    auth_behavior: Page redirects a guest to /; create/load operations require login.
+  - route: /notifications
+    feature: Keyword-notice inbox with refresh, read, and favorite actions
+    code_evidence: app/(main)/notifications/page.tsx; app/(main)/notifications/_components/NotificationsClient.tsx
+    auth_behavior: Guest UI prompts for login; notice operations are login-gated.
+  - route: /profile
+    feature: Profile view/edit and account deletion entry
+    code_evidence: app/(main)/profile/page.tsx; app/(main)/profile/_components/ProfileClient.tsx
+    auth_behavior: Guest is redirected to / after authentication state loads.
+  - route: /flow
+    feature: FLOW landing/user journey
+    code_evidence: app/(main)/flow/page.tsx
+    auth_behavior: Verify runtime API authorization separately; route presence alone is not a server-access grant.
+  - route: /flow/career
+    feature: FLOW career journey
+    code_evidence: app/(main)/flow/career/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /flow/companies
+    feature: Company exploration and logged-in interest expression
+    code_evidence: app/(main)/flow/companies/page.tsx; app/(main)/flow/companies/_components/InterestPanel.tsx
+    auth_behavior: Browsing has guest mode; interest expression prompts a guest to log in.
+  - route: /flow/profile
+    feature: FLOW profile
+    code_evidence: app/(main)/flow/profile/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /chinba
+    feature: Chinba team/event landing, team discovery, create, and invite-code entry
+    code_evidence: app/(main)/chinba/page.tsx
+    auth_behavior: Create/join navigation redirects a guest to login.
+  - route: /chinba/create
+    feature: Create a Chinba event
+    code_evidence: app/(main)/chinba/create/page.tsx; app/(main)/chinba/create/_components/ChinbaCreateClient.tsx
+    auth_behavior: Submission is login-gated and retains only a local draft until permitted.
+  - route: /chinba/event
+    query_parameters: id
+    feature: Chinba event detail, participant availability, timetable import, completion/deletion controls
+    code_evidence: app/(main)/chinba/event/page.tsx; app/(main)/chinba/event/_components/ChinbaDetailClient.tsx
+    auth_behavior: Detail renders from event data; participation save/import is login-gated.
+  - route: /chinba/my
+    feature: My Chinba history
+    code_evidence: app/(main)/chinba/my/page.tsx; app/(main)/chinba/_components/ChinbaHistoryClient.tsx
+    auth_behavior: Logged-in data load is conditional on authentication state.
+  - route: /chinba/team
+    feature: Chinba team list/selection
+    code_evidence: app/(main)/chinba/team/page.tsx; app/(main)/chinba/_components/team/TeamListView.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /chinba/team/create
+    feature: Create a Chinba team
+    code_evidence: app/(main)/chinba/team/create/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /chinba/team/detail
+    query_parameters: id
+    feature: Chinba team detail
+    code_evidence: app/(main)/chinba/team/detail/page.tsx; app/(main)/chinba/_components/team/TeamDetailView.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /chinba/team/event-create
+    query_parameters: team_id
+    feature: Create an event within a Chinba team
+    code_evidence: app/(main)/chinba/team/event-create/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /chinba/team/groups
+    query_parameters: team_id
+    feature: Chinba team group management
+    code_evidence: app/(main)/chinba/team/groups/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /chinba/team/join
+    feature: Join a Chinba team with an invite code
+    code_evidence: app/(main)/chinba/team/join/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /chinba/team/settings
+    query_parameters: team_id
+    feature: Chinba team settings
+    code_evidence: app/(main)/chinba/team/settings/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /teams
+    feature: Generic My Teams list
+    code_evidence: app/(main)/teams/page.tsx; app/(main)/teams/_components/TeamCard.tsx
+    auth_behavior: Page requests my-team data; verify backend authorization separately.
+  - route: /teams/create
+    feature: Create a generic team
+    code_evidence: app/(main)/teams/create/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /teams/detail
+    query_parameters: id
+    feature: Generic team detail
+    code_evidence: app/(main)/teams/detail/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /teams/join
+    feature: Join a generic team
+    code_evidence: app/(main)/teams/join/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /teams/settings
+    query_parameters: id
+    feature: Generic team settings
+    code_evidence: app/(main)/teams/settings/page.tsx
+    auth_behavior: Verify runtime API authorization separately.
+  - route: /login
+    feature: OAuth provider chooser and safe redirect handling
+    code_evidence: app/(auth)/login/page.tsx; app/_components/auth/LoginButtonGroup.tsx
+    auth_behavior: Public route.
+  - route: /auth/callback
+    feature: OAuth callback completion/error handling
+    code_evidence: app/(auth)/auth/callback/page.tsx
+    auth_behavior: Public callback route; backend callback validity remains authoritative.
+  - route: /onboarding
+    feature: New-user/onboarding data collection
+    code_evidence: app/(auth)/onboarding/page.tsx
+    auth_behavior: Unsaved completion requests login before persisting data.
+  - route: /invite
+    feature: Invite-link entry client
+    code_evidence: app/invite/page.tsx; app/invite/_components/InviteClient.tsx
+    auth_behavior: Verify link/token validation and backend authorization separately.
+oauth_ui_inventory:
+  source: app/_components/auth/LoginButtonGroup.tsx; app/_components/auth/SocialLoginButton.tsx; app/(auth)/login/page.tsx
+  contract_note: >-
+    This is a frontend provider/UI inventory. It does not assert that every provider is
+    enabled in the release-plane backend or that a reviewer credential is available.
+  providers:
+    - provider: google
+      label: Google
+      behavior: >-
+        Listed in PROVIDER_ORDER. LoginButtonGroup omits Google when isInAppBrowser() is
+        true; GoogleLoginButton has a separate Capacitor in-app-browser/deep-link flow.
+    - provider: apple
+      label: Apple
+      behavior: Listed in PROVIDER_ORDER and SocialLoginButton provider configuration.
+    - provider: naver
+      label: 네이버
+      behavior: Listed in PROVIDER_ORDER and SocialLoginButton provider configuration.
+    - provider: kakao
+      label: 카카오
+      behavior: Listed in PROVIDER_ORDER and SocialLoginButton provider configuration; callback has an email-required error path.
+os_verification_matrix:
+  policy: >-
+    These are human execution rows, not completed results. Record exact device/OS/tool
+    versions and observations in evidence.schema.json. Do not claim a minimum-OS push E2E:
+    it is explicitly outside mobile-release.v1 scope.
+  code_evidence:
+    ios_minimum: ios/App/App.xcodeproj/project.pbxproj sets IPHONEOS_DEPLOYMENT_TARGET = 15.0.
+    android_minimum: android/variables.gradle sets minSdkVersion = 24.
+    android_current_build_target: android/variables.gradle sets compileSdkVersion = 36 and targetSdkVersion = 36.
+    native_shell: capacitor.config.ts identifies app ID kr.zerotime.app and static webDir out.
+  rows:
+    - platform: iOS
+      cohort: minimum supported OS
+      required_os: iOS 15.0
+      device_selection: A real supported iPhone/iPad running the lowest supported iOS available to the operator.
+      human_checks:
+        - Install the signed candidate and launch the static Capacitor shell.
+        - Exercise home, login entry/callback return, profile deletion entry, and one guest-visible route.
+        - Record device model, exact OS, build identity, and observed route results.
+      excluded_check: Do not report minimum-OS push end-to-end as a v1 release result.
+    - platform: iOS
+      cohort: current release OS
+      required_os: >-
+        The exact latest generally available iOS version supported by the release-day Xcode/App Store path;
+        write the exact version into evidence rather than assuming it from this document.
+      device_selection: A real supported iPhone/iPad on that exact current OS.
+      human_checks:
+        - Repeat the signed-candidate shell, OAuth return, deletion-entry, and route smoke checks.
+        - Run applicable data-only coordinator and pause-point evidence; this is not automatic OS notification testing.
+      excluded_check: Do not substitute simulator-only evidence for the real-device row.
+    - platform: Android
+      cohort: minimum supported OS
+      required_os: Android API 24 (Android 7.0)
+      device_selection: A real Android device or managed physical lab device at API 24 when available.
+      human_checks:
+        - Install the signed flavor that matches the recorded package identity.
+        - Exercise home, login entry/callback return, profile deletion entry, and one guest-visible route.
+        - Record model, exact API/OS, signing identity reference, and results.
+      excluded_check: Do not report minimum-OS push end-to-end as a v1 release result.
+    - platform: Android
+      cohort: current release OS/build target
+      required_os: >-
+        Exact current Android release/API selected by the operator at release time; source builds and targets API 36,
+        but compile/target SDK does not prove a device OS test.
+      device_selection: A real device on the selected current OS/API.
+      human_checks:
+        - Repeat signed-candidate shell, OAuth return, deletion-entry, and route smoke checks.
+        - Run applicable data-only coordinator and pause-point evidence on the real device.
+      excluded_check: Do not infer current-OS verification from a successful Gradle build.

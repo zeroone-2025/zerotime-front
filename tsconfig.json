@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,7 +24,9 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./app/*"]
+      "@/*": [
+        "./app/*"
+      ]
     }
   },
   "include": [
@@ -29,7 +35,43 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next/playwright-3101/types/**/*.ts",
+    ".next/playwright-3101/dev/types/**/*.ts",
+    ".next/playwright-3102/types/**/*.ts",
+    ".next/playwright-3102/dev/types/**/*.ts",
+    ".next/playwright-3103/types/**/*.ts",
+    ".next/playwright-3103/dev/types/**/*.ts",
+    ".next/playwright-3104/types/**/*.ts",
+    ".next/playwright-3104/dev/types/**/*.ts",
+    ".next/playwright-3105/types/**/*.ts",
+    ".next/playwright-3105/dev/types/**/*.ts",
+    ".next/playwright-3106/types/**/*.ts",
+    ".next/playwright-3106/dev/types/**/*.ts",
+    ".next/playwright-3107/types/**/*.ts",
+    ".next/playwright-3107/dev/types/**/*.ts",
+    ".next/playwright-3111/types/**/*.ts",
+    ".next/playwright-3111/dev/types/**/*.ts",
+    ".next/playwright-3112/types/**/*.ts",
+    ".next/playwright-3112/dev/types/**/*.ts",
+    ".next/playwright-3113/types/**/*.ts",
+    ".next/playwright-3113/dev/types/**/*.ts",
+    ".next/playwright-3114/types/**/*.ts",
+    ".next/playwright-3114/dev/types/**/*.ts",
+    ".next/playwright-3115/types/**/*.ts",
+    ".next/playwright-3115/dev/types/**/*.ts",
+    ".next/playwright-3116/types/**/*.ts",
+    ".next/playwright-3116/dev/types/**/*.ts",
+    ".next/playwright-3118/types/**/*.ts",
+    ".next/playwright-3118/dev/types/**/*.ts",
+    ".next/playwright-3119/types/**/*.ts",
+    ".next/playwright-3119/dev/types/**/*.ts",
+    ".next/playwright-3120/types/**/*.ts",
+    ".next/playwright-3120/dev/types/**/*.ts",
+    ".next/playwright-3121/types/**/*.ts",
+    ".next/playwright-3121/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

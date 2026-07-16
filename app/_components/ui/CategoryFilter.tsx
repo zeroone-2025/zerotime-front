@@ -9,6 +9,7 @@ interface CategoryFilterProps {
   onShowToast: (message: string, type?: 'success' | 'error' | 'info') => void; // 토스트 메시지 표시
   searchValue: string; // 검색어 입력값
   onSearchChange: (value: string) => void; // 검색어 변경 콜백
+  onSearchSubmit: () => void; // 검색 실행 콜백 (엔터 시)
 }
 
 // 전체 필터 목록 (Guest/User 공통)
@@ -22,7 +23,7 @@ const ALL_FILTERS = [
 // 로그인 필요 필터 목록
 const LOGIN_REQUIRED_FILTERS = ['UNREAD', 'KEYWORD', 'FAVORITE'];
 
-export default function CategoryFilter({ activeFilter, onFilterChange, isLoggedIn, onSettingsClick, onShowToast, searchValue, onSearchChange }: CategoryFilterProps) {
+export default function CategoryFilter({ activeFilter, onFilterChange, isLoggedIn, onSettingsClick, onShowToast, searchValue, onSearchChange, onSearchSubmit }: CategoryFilterProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
@@ -102,7 +103,15 @@ export default function CategoryFilter({ activeFilter, onFilterChange, isLoggedI
           type="text"
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="공지 제목 검색"
+          onKeyDown={(e) => {
+            // 엔터로만 검색 실행 (타자마다 검색하지 않는다)
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onSearchSubmit();
+            }
+          }}
+          enterKeyHint="search"
+          placeholder="공지 제목 검색 (엔터로 검색)"
           aria-label="공지 제목 검색"
           className="w-full rounded-full border border-gray-200 bg-white py-2 pl-9 pr-9 text-sm text-gray-700 placeholder-gray-400 shadow-sm focus:border-gray-400 focus:outline-none"
         />

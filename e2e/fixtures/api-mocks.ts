@@ -17,6 +17,7 @@ import {
   MOCK_CHINBA_EVENTS,
   MOCK_CHINBA_EVENT_DETAIL,
   MOCK_CHINBA_MY_PARTICIPATION,
+  MOCK_TEAMS,
   MOCK_BOARD_GROUPS,
   MOCK_DEPARTMENTS,
   MOCK_USER_STATS,
@@ -247,13 +248,17 @@ export async function mockAuthenticatedAPIs(page: Page, options?: {
     json(route, { message: 'ok' })
   ));
 
+  await page.route('**/chinba/teams', apiOnly((route) => {
+    if (route.request().method() === 'GET') return json(route, MOCK_TEAMS);
+    return route.continue();
+  }));
   // Chinba - my events
   await page.route('**/chinba/my-events', apiOnly((route) =>
     json(route, MOCK_CHINBA_EVENTS)
   ));
 
   // Chinba - event detail & actions
-  await page.route('**/chinba/events/*', apiOnly((route) => {
+  await page.route('**/chinba/events/**', apiOnly((route) => {
     const method = route.request().method();
     const url = route.request().url();
 

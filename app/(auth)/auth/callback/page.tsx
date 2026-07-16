@@ -4,8 +4,9 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import { getUserProfile } from '@/_lib/api';
+import { authApi, getUserProfile } from '@/_lib/api';
 import { setAccessToken } from '@/_lib/auth/tokenStore';
+import { createIdempotencyKey, MOBILE_RELEASE_CONTRACT } from '@/_lib/native/mobileRelease';
 import { useUserStore } from '@/_lib/store/useUserStore';
 
 function AuthCallbackContent() {
@@ -19,11 +20,11 @@ function AuthCallbackContent() {
     if (processedRef.current) return;
     processedRef.current = true;
 
-    const accessToken = searchParams.get('access_token');
     const error = searchParams.get('error');
     const redirectTo = searchParams.get('redirect_to');
-    const safeRedirect = redirectTo?.startsWith('/') ? redirectTo : null;
+    const safeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
     const shouldResumeOnboarding = safeRedirect?.includes('resume_onboarding=true') ?? false;
+    const shouldPreserveDeletionRedirect = safeRedirect === '/account-deletion/';
 
     // 사용자가 로그인을 취소한 경우
     if (error === 'access_denied') {
@@ -52,62 +53,57 @@ function AuthCallbackContent() {
       return;
     }
 
-    if (accessToken) {
-      const processLogin = async () => {
-        try {
-          // 1. 백엔드에서 전달받은 JWT를 메모리에 저장
-          setAccessToken(accessToken);
-          setStatus('로그인 성공! 사용자 정보를 확인하는 중...');
-
-          // 2. 사용자 정보 조회
-          const userProfile = await getUserProfile();
-
-          // 3. Zustand Store 업데이트 (리다이렉트 전 즉시 반영)
-          setUser(userProfile);
-
-          // 로그인 후 온보딩 재개 플로우: 항상 온보딩 페이지로 복귀
-          if (shouldResumeOnboarding) {
-            setStatus('온보딩으로 이동하는 중...');
-            setTimeout(() => {
-              router.replace('/onboarding?resume_onboarding=true');
-            }, 300);
-            return;
-          }
-
-          // 4. dept_code 확인
-          if (!userProfile.dept_code) {
-            // 신규 사용자: 항상 온보딩 페이지로 이동 (safeRedirect 무시)
-            setStatus('환영합니다! 온보딩 정보를 입력해주세요.');
-            setTimeout(() => {
-              router.replace('/onboarding?login=success');
-            }, 500);
-          } else {
-            // 기존 사용자: 바로 홈으로
-            setStatus('로그인 성공! 홈으로 이동합니다.');
-            setTimeout(() => {
-              router.replace(safeRedirect || '/?login=success');
-            }, 500);
-          }
-        } catch (error) {
-          console.error('Login failed:', error);
-          setStatus('로그인 실패. 다시 시도해주세요.');
-
-          // 실패 시 홈으로 이동
-          setTimeout(() => {
-            router.replace(safeRedirect || '/');
-          }, 2000);
+    const processLogin = async () => {
+      try {
+        const refreshedAccessToken = (await authApi.post<{ access_token: string }>(
+          '/auth/refresh',
+          {},
+          {
+            headers: {
+              'X-ZeroTime-Contract': MOBILE_RELEASE_CONTRACT,
+              'Idempotency-Key': createIdempotencyKey(),
+            },
+          },
+        )).data.access_token;
+        if (!refreshedAccessToken) {
+          throw new Error('MISSING_ACCESS_TOKEN');
         }
-      };
 
-      processLogin();
-    } else {
-      console.error('No access_token parameter found in URL');
-      setStatus('잘못된 접근입니다. 홈으로 이동합니다.');
+        setAccessToken(refreshedAccessToken);
+        setStatus('로그인 성공! 사용자 정보를 확인하는 중...');
 
-      setTimeout(() => {
-        router.replace(safeRedirect || '/');
-      }, 2000);
-    }
+        const userProfile = await getUserProfile();
+        setUser(userProfile);
+
+        if (shouldResumeOnboarding) {
+          setStatus('온보딩으로 이동하는 중...');
+          setTimeout(() => {
+            router.replace('/onboarding?resume_onboarding=true');
+          }, 300);
+          return;
+        }
+
+        if (!userProfile.dept_code && !shouldPreserveDeletionRedirect) {
+          setStatus('환영합니다! 온보딩 정보를 입력해주세요.');
+          setTimeout(() => {
+            router.replace('/onboarding?login=success');
+          }, 500);
+        } else {
+          setStatus('로그인 성공! 홈으로 이동합니다.');
+          setTimeout(() => {
+            router.replace(safeRedirect || '/?login=success');
+          }, 500);
+        }
+      } catch {
+        setStatus('로그인 실패. 다시 시도해주세요.');
+
+        setTimeout(() => {
+          router.replace(safeRedirect || '/');
+        }, 2000);
+      }
+    };
+
+    void processLogin();
   }, [searchParams, router, setUser]);
 
   return (

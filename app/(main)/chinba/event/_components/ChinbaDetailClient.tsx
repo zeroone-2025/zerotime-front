@@ -158,6 +158,20 @@ export default function ChinbaDetailClient() {
   const handleComplete = async () => {
     try {
       await completeMutation.mutateAsync(eventId);
+      setShowCompleteModal(false);
+      // 완료 처리 후, 넘어온 경로(팀 상세 '기록' 탭)로 이동하면서
+      // 완료된 일정 정보(제목/날짜)를 넘겨 '활동 기록하기' 폼이 자동으로 열리게 한다.
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo) {
+        const dest = decodeURIComponent(returnTo);
+        const recordParams = new URLSearchParams();
+        if (event?.title) recordParams.set('recordTitle', event.title);
+        if (event?.dates?.[0]) recordParams.set('recordDate', String(event.dates[0]).slice(0, 10));
+        if (event?.category) recordParams.set('recordCategoryId', String(event.category.id));
+        const suffix = recordParams.toString();
+        router.replace(suffix ? `${dest}${dest.includes('?') ? '&' : '?'}${suffix}` : dest);
+        return;
+      }
     } catch {
       alert('완료 처리에 실패했습니다');
     }

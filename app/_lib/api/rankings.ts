@@ -10,7 +10,7 @@ import api from './client'
 
 export async function getRankings(
   teamId: number,
-  params?: { period?: string; group_set_id?: number },
+  params?: { period?: string; group_set_id?: number; category_id?: number },
 ): Promise<RankingsResponse> {
   const res = await api.get(`/chinba/teams/${teamId}/rankings`, { params })
   return res.data
@@ -32,7 +32,7 @@ export async function getGroupDetail(
   return res.data
 }
 
-export async function getMyRanking(teamId: number, params?: { group_set_id?: number }): Promise<MyRanking> {
+export async function getMyRanking(teamId: number, params?: { group_set_id?: number; category_id?: number }): Promise<MyRanking> {
   const res = await api.get(`/chinba/teams/${teamId}/rankings/me`, { params })
   return res.data
 }

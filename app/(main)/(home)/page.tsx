@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef, Suspense, useCallback } from 'rea
 import { useRouter } from 'next/navigation';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
-import { fetchNoticesInfinite, Notice } from '@/_lib/api';
+import { fetchNoticesInfinite, searchNotices, Notice } from '@/_lib/api';
 import { smoothScrollToTop } from '@/_lib/utils/scroll';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
@@ -39,6 +39,19 @@ function HomeContent() {
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
   // 초기 마운트 시 visibilitychange 무시를 위한 ref
   const isInitialMount = useRef(true);
+
+  // 검색 상태: 입력값(searchInput)은 타이핑을 담고, 실제 검색은 엔터로 제출한
+  // submittedSearch에 대해서만 수행한다 (타자마다 검색하지 않는다).
+  const [searchInput, setSearchInput] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState('');
+  const handleSearchSubmit = useCallback(() => {
+    setSubmittedSearch(searchInput.trim());
+  }, [searchInput]);
+  // 입력을 완전히 비우면(X 버튼 등) 검색도 해제한다.
+  useEffect(() => {
+    if (searchInput === '') setSubmittedSearch('');
+  }, [searchInput]);
+  const isSearching = submittedSearch.length > 0;
 
   // 클라이언트 마운트 체크
   useEffect(() => {
@@ -116,6 +129,29 @@ function HomeContent() {
     refetchOnReconnect: false,
   });
 
+  // 검색 무한 스크롤 쿼리 (엔터로 제출됐을 때만 활성)
+  // 범위: 교내공지(home_campus) 항상 포함 + 구독 게시판(selectedBoards). 백엔드가 최근 5년으로 제한.
+  const {
+    data: searchPages,
+    fetchNextPage: fetchNextSearchPage,
+    hasNextPage: hasNextSearchPage,
+    isFetchingNextPage: isFetchingNextSearchPage,
+    isLoading: isSearchLoading,
+  } = useInfiniteQuery({
+    queryKey: ['notices', 'search', submittedSearch, selectedBoardsParam],
+    queryFn: ({ pageParam }) => searchNotices(submittedSearch, pageParam, 20, selectedBoards),
+    getNextPageParam: (lastPage) => lastPage.next_cursor,
+    initialPageParam: null as string | null,
+    enabled: isQueryReady && isSearching,
+    staleTime: 60_000,
+  });
+
+  const searchResults = useMemo<Notice[]>(() => {
+    const pages = searchPages?.pages;
+    if (!Array.isArray(pages)) return [];
+    return pages.flatMap((page) => (Array.isArray(page?.items) ? page.items : []));
+  }, [searchPages]);
+
   const handleLogoTap = useCallback(async () => {
     smoothScrollToTop(scrollContainerRef.current ?? null);
     if (filter === 'KEYWORD') {
@@ -151,6 +187,16 @@ function HomeContent() {
     filter
   );
 
+  // 검색 중이면 검색 결과를, 아니면 기존 필터 결과를 표시하고
+  // 무한 스크롤 제어(다음 페이지 로드)도 활성 쿼리 쪽으로 전환한다
+  const displayNotices = isSearching ? searchResults : filteredNotices;
+  // 검색 전체 결과 개수 (첫 페이지 응답의 total_count)
+  const searchTotalCount = isSearching ? (searchPages?.pages?.[0]?.total_count ?? null) : null;
+  const activeHasNextPage = isSearching ? hasNextSearchPage : hasNextPage;
+  const activeIsFetchingNextPage = isSearching ? isFetchingNextSearchPage : isFetchingNextPage;
+  const activeFetchNextPage = isSearching ? fetchNextSearchPage : fetchNextPage;
+  const activeIsLoading = isSearching ? isSearchLoading : isLoading;
+
   // Intersection Observer로 스크롤 끝 감지
   const { ref: loadMoreRef, inView } = useInView({
     root: scrollRoot,
@@ -158,16 +204,16 @@ function HomeContent() {
     threshold: 0,
   });
 
-  // 스크롤이 끝에 가까워지면 다음 페이지 로드
+  // 스크롤이 끝에 가까워지면 다음 페이지 로드 (검색 중엔 검색 쿼리 기준)
   useEffect(() => {
-    if (filter === 'KEYWORD') return;
-    if (isLoading) return;
+    if (!isSearching && filter === 'KEYWORD') return;
+    if (activeIsLoading) return;
     if (!inView) return;
-    if (!hasNextPage) return;
-    if (isFetchingNextPage) return;
-    fetchNextPage();
+    if (!activeHasNextPage) return;
+    if (activeIsFetchingNextPage) return;
+    activeFetchNextPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, isLoading, inView, hasNextPage, isFetchingNextPage]);
+  }, [isSearching, filter, activeIsLoading, inView, activeHasNextPage, activeIsFetchingNextPage]);
 
   // 즐겨찾기 탭 진입 시 최신 목록으로 갱신
   useEffect(() => {
@@ -275,11 +321,14 @@ function HomeContent() {
             isLoggedIn={isLoggedIn}
             onSettingsClick={() => router.push('/filter')}
             onShowToast={showToast}
+            searchValue={searchInput}
+            onSearchChange={setSearchInput}
+            onSearchSubmit={handleSearchSubmit}
           />
         </div>
 
-      {/* 키워드 필터일 때만 키워드 설정 바 표시 */}
-      {filter === 'KEYWORD' && (
+      {/* 키워드 필터일 때만 키워드 설정 바 표시 (검색 중엔 숨김) */}
+      {filter === 'KEYWORD' && !isSearching && (
         <KeywordSettingsBar
           keywordCount={keywordCount ?? 0}
           onSettingsClick={() => router.push('/keywords')}
@@ -313,49 +362,63 @@ function HomeContent() {
             overscrollBehavior: 'contain',
           }}
         >
+          {/* 검색 결과 개수 표시 (결과가 1건 이상일 때만 — 0건은 아래 빈 상태가 안내) */}
+          {isSearching && !activeIsLoading && searchTotalCount !== null && searchTotalCount > 0 && (
+            <div className="flex min-h-10 items-center justify-start px-4 py-2 text-sm text-gray-500">
+              <span>
+                <span className="font-semibold text-gray-800">&apos;{submittedSearch}&apos;</span> 검색 결과{' '}
+                <span className="font-semibold text-gray-800">{searchTotalCount.toLocaleString()}</span>건
+              </span>
+            </div>
+          )}
+
           <NoticeList
-            loading={isLoading || isCategoriesLoading}
-            selectedCategories={selectedBoardsForList}
-            filteredNotices={filteredNotices}
-            showKeywordPrefix={filter === 'KEYWORD' || filter === 'ALL'}
+            loading={activeIsLoading || isCategoriesLoading}
+            selectedCategories={isSearching ? selectedBoards : selectedBoardsForList}
+            filteredNotices={displayNotices}
+            showKeywordPrefix={isSearching || filter === 'KEYWORD' || filter === 'ALL'}
             onMarkAsRead={handleMarkAsRead}
             onToggleFavorite={handleToggleFavorite}
-            isInFavoriteTab={filter === 'FAVORITE'}
+            isInFavoriteTab={!isSearching && filter === 'FAVORITE'}
             isLoggedIn={isLoggedIn}
             onOpenBoardFilter={() => router.push('/filter')}
             onShowToast={showToast}
             emptyMessage={
-              filter === 'KEYWORD'
-                ? (keywordCount === 0
-                  ? '키워드를 등록하면 관련 공지가 모여요'
-                  : '아직 키워드에 맞는 공지사항이 없어요')
-                : filter === 'UNREAD'
-                  ? '모든 공지사항을 다 읽었어요'
-                  : '표시할 공지사항이 없어요'
+              isSearching
+                ? `'${submittedSearch}'에 대한 검색 결과가 없어요`
+                : filter === 'KEYWORD'
+                  ? (keywordCount === 0
+                    ? '키워드를 등록하면 관련 공지가 모여요'
+                    : '아직 키워드에 맞는 공지사항이 없어요')
+                  : filter === 'UNREAD'
+                    ? '모든 공지사항을 다 읽었어요'
+                    : '표시할 공지사항이 없어요'
             }
             emptyDescription={
-              filter === 'KEYWORD'
-                ? (keywordCount === 0
-                  ? '키워드를 추가해 주세요'
-                  : '새 공지가 올라오면 여기에 표시돼요')
-                : undefined
+              isSearching
+                ? '다른 검색어로 시도해 보세요'
+                : filter === 'KEYWORD'
+                  ? (keywordCount === 0
+                    ? '키워드를 추가해 주세요'
+                    : '새 공지가 올라오면 여기에 표시돼요')
+                  : undefined
             }
           />
 
-          {/* 무한 스크롤 */}
-          {filter !== 'KEYWORD' && (
+          {/* 무한 스크롤 (검색 중엔 검색 결과 기준, 키워드 탭은 무한스크롤 없음) */}
+          {(isSearching || filter !== 'KEYWORD') && (
             <>
-              {hasNextPage && (
+              {activeHasNextPage && (
                 <div
                   ref={loadMoreRef}
                   className="py-4 text-center cursor-pointer text-gray-400 text-sm hover:text-gray-600 active:scale-95 transition-transform"
                   onClick={() => {
-                    if (!isFetchingNextPage) {
-                      fetchNextPage();
+                    if (!activeIsFetchingNextPage) {
+                      activeFetchNextPage();
                     }
                   }}
                 >
-                  {isFetchingNextPage ? (
+                  {activeIsFetchingNextPage ? (
                     <div className="flex justify-center items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
                       <span>불러오는 중...</span>
@@ -366,9 +429,9 @@ function HomeContent() {
                 </div>
               )}
 
-              {!hasNextPage && filteredNotices.length > 0 && (
+              {!activeHasNextPage && displayNotices.length > 0 && (
                 <div className="py-8 text-center text-sm text-gray-400">
-                  모든 공지사항을 불러왔어요
+                  {isSearching ? '검색 결과를 모두 불러왔어요' : '모든 공지사항을 불러왔어요'}
                 </div>
               )}
             </>

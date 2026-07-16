@@ -2,6 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Release gate: reconcile this manifest with docs/release/privacy-store-crosswalk.yaml and the final archive's Firebase/Capacitor privacy manifests. Do not infer collected data or tracking from this source file. -->
     <key>NSPrivacyTracking</key>
     <false/>
     <key>NSPrivacyCollectedDataTypes</key>

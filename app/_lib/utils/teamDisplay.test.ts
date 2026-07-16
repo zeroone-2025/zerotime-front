@@ -54,11 +54,11 @@ describe('getRoleBadgeColor', () => {
 
 describe('formatInviteUrl', () => {
   it('formats invite code into full URL', () => {
-    expect(formatInviteUrl('abc12345')).toBe('https://chinba.app/invite?code=abc12345');
+    expect(formatInviteUrl('abc12345')).toBe(`${window.location.origin}/invite?code=abc12345`);
   });
 
   it('handles empty string', () => {
-    expect(formatInviteUrl('')).toBe('https://chinba.app/invite?code=');
+    expect(formatInviteUrl('')).toBe(`${window.location.origin}/invite?code=`);
   });
 });
 

@@ -1,4 +1,46 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.util.Locale
+
 apply plugin: 'com.android.application'
+
+def releaseFlavors = ['beta', 'prod']
+def releaseManifestFields = [
+        contract:                 'MOBILE_RELEASE_CONTRACT',
+        contract_sha256:          'MOBILE_RELEASE_CONTRACT_SHA256',
+        plane:                    'MOBILE_RELEASE_PLANE',
+        frontend_git_sha:         'MOBILE_RELEASE_FRONTEND_GIT_SHA',
+        backend_git_sha:          'MOBILE_RELEASE_BACKEND_GIT_SHA',
+        backend_image_digest:     'MOBILE_RELEASE_BACKEND_IMAGE_DIGEST',
+        backend_deployment_id:    'MOBILE_RELEASE_BACKEND_DEPLOYMENT_ID',
+        backend_deployed_at_utc:  'MOBILE_RELEASE_BACKEND_DEPLOYED_AT_UTC',
+        firebase_project_id:      'MOBILE_RELEASE_FIREBASE_PROJECT_ID',
+        firebase_app_id:          'MOBILE_RELEASE_FIREBASE_APP_ID',
+        api_origin:               'MOBILE_RELEASE_API_ORIGIN',
+        platform:                 'MOBILE_RELEASE_PLATFORM',
+        app_version:              'MOBILE_RELEASE_APP_VERSION',
+        build_number:             'MOBILE_RELEASE_BUILD_NUMBER',
+        bundle_id:                'MOBILE_RELEASE_BUNDLE_ID',
+]
+def releaseProvenanceFiles = releaseFlavors.collectEntries { flavor ->
+    [(flavor): file("src/${flavor}/release/release-provenance.json")]
+}
+def loadReleaseProvenance = { String flavor ->
+    File provenance = releaseProvenanceFiles[flavor]
+    if (!provenance.isFile()) {
+        return [:]
+    }
+    def parsed = new JsonSlurper().parse(provenance)
+    return parsed instanceof Map ? parsed : [:]
+}
+def betaProvenance = loadReleaseProvenance('beta')
+def prodProvenance = loadReleaseProvenance('prod')
+def quoteBuildConfig = { Object value -> JsonOutput.toJson(value instanceof String ? value : '') }
+def configureNativeReleaseFields = { flavor, Map provenance ->
+    releaseManifestFields.each { key, fieldName ->
+        flavor.buildConfigField 'String', fieldName, quoteBuildConfig(provenance[key])
+    }
+}
 
 android {
     namespace = "kr.zerotime.app"
@@ -11,10 +53,11 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+    }
+    buildFeatures {
+        buildConfig true
     }
     buildTypes {
         release {
@@ -30,16 +73,30 @@ android {
             applicationIdSuffix ".dev"
             versionNameSuffix "-dev"
             resValue "string", "app_name", "제로타임 Dev"
+            buildConfigField "String", "PUSH_ENVIRONMENT", '"dev"'
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
+            configureNativeReleaseFields(delegate, [api_origin: 'https://dev-api.zerotime.kr'])
+        }
+        beta {
+            dimension "environment"
+            versionNameSuffix "-beta"
+            resValue "string", "app_name", "제로타임 Beta"
+            buildConfigField "String", "PUSH_ENVIRONMENT", '"beta"'
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+            configureNativeReleaseFields(delegate, betaProvenance)
         }
         prod {
             dimension "environment"
             resValue "string", "app_name", "제로타임"
+            buildConfigField "String", "PUSH_ENVIRONMENT", '"prod"'
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+            configureNativeReleaseFields(delegate, prodProvenance)
         }
     }
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
 }
@@ -54,15 +111,127 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation "com.google.firebase:firebase-messaging:$firebaseMessagingVersion"
 }
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
+/*
+ * Dev uses only its explicit dev source-set configuration. beta/prod use only their exact
+ * release source-set configuration; generic/root fallbacks are deliberately rejected.
+ */
+def devGoogleServicesConfig = [
+        file('src/dev/debug/google-services.json'),
+        file('src/dev/google-services.json'),
+].find { it.isFile() }
+def releaseGoogleServicesConfigs = releaseFlavors.collect {
+    file("src/${it}/release/google-services.json")
+}
+if (devGoogleServicesConfig != null || releaseGoogleServicesConfigs.any { it.isFile() }) {
+    apply plugin: 'com.google.gms.google-services'
+}
+
+def requiredProvenanceKeys = releaseManifestFields.keySet() as Set
+def releaseGoogleServiceFallbacks = { String flavor ->
+    [
+            file("src/${flavor}/google-services.json"),
+            file('src/release/google-services.json'),
+            file('google-services.json'),
+    ]
+}
+def requireString = { Map provenance, String key, String variantName ->
+    def value = provenance[key]
+    if (!(value instanceof String) || value.length() == 0 || value.trim() != value) {
+        throw new GradleException("Release provenance for ${variantName} has an invalid ${key}.")
     }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    return value
+}
+def validateReleaseProvenance = { variant ->
+    String flavor = variant.flavorName
+    String variantName = variant.name
+    File provenanceFile = releaseProvenanceFiles[flavor]
+    File googleServices = file("src/${flavor}/release/google-services.json")
+    if (provenanceFile == null || !provenanceFile.isFile()) {
+        throw new GradleException("Missing immutable release provenance for ${variantName}: src/${flavor}/release/release-provenance.json")
+    }
+    if (!googleServices.isFile()) {
+        throw new GradleException("Missing google-services.json for ${variantName}: src/${flavor}/release/google-services.json")
+    }
+    def fallbacks = releaseGoogleServiceFallbacks(flavor).findAll { it.isFile() }
+    if (!fallbacks.isEmpty()) {
+        throw new GradleException("${variantName} rejects generic Firebase configuration: ${fallbacks*.path.join(', ')}")
+    }
+
+    def provenance = new JsonSlurper().parse(provenanceFile)
+    if (!(provenance instanceof Map) || (provenance.keySet() as Set) != requiredProvenanceKeys) {
+        throw new GradleException("Release provenance for ${variantName} must contain exactly ${requiredProvenanceKeys.sort()}.")
+    }
+    requiredProvenanceKeys.each { key -> requireString(provenance, key, variantName) }
+
+    if (provenance.contract != 'mobile-release.v1'
+            || provenance.plane != flavor
+            || provenance.platform != 'android'
+            || provenance.bundle_id != 'kr.zerotime.app'
+            || provenance.api_origin != (flavor == 'beta' ? 'https://beta-api.zerotime.kr' : 'https://api.zerotime.kr')
+            || !(provenance.contract_sha256 ==~ /^[0-9a-f]{64}$/)
+            || !(provenance.frontend_git_sha ==~ /^[0-9a-f]{40}$/)
+            || !(provenance.backend_git_sha ==~ /^[0-9a-f]{40}$/)
+            || !(provenance.backend_image_digest ==~ /^sha256:[0-9a-f]{64}$/)
+            || !(provenance.backend_deployment_id ==~ /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/)
+            || !(provenance.backend_deployed_at_utc ==~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/)
+            || !(provenance.firebase_project_id ==~ /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/)
+            || !(provenance.firebase_app_id ==~ /^1:[0-9]+:android:[0-9a-f]+$/)
+            || !(provenance.app_version ==~ /^(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)){1,2}(?:[-+][0-9A-Za-z.-]+)?$/)
+            || !(provenance.build_number ==~ /^[1-9]\d*$/)) {
+        throw new GradleException("Release provenance tuple is invalid for ${variantName}.")
+    }
+    if (provenance.app_version != variant.versionName || provenance.build_number != String.valueOf(variant.versionCode)) {
+        throw new GradleException("Release provenance app version/build does not match ${variantName}.")
+    }
+
+    def google = new JsonSlurper().parse(googleServices)
+    if (google?.project_info?.project_id != provenance.firebase_project_id) {
+        throw new GradleException("Firebase project identity does not match provenance for ${variantName}.")
+    }
+    def matchingClient = (google.client ?: []).find { client ->
+        client?.client_info?.android_client_info?.package_name == variant.applicationId
+    }
+    if (matchingClient == null || matchingClient?.client_info?.mobilesdk_app_id != provenance.firebase_app_id) {
+        throw new GradleException("Firebase Android app identity does not match provenance for ${variantName}.")
+    }
+}
+
+afterEvaluate {
+    android.applicationVariants.all { variant ->
+        if (variant.buildType.name != 'release' || !releaseFlavors.contains(variant.flavorName)) {
+            return
+        }
+        String variantName = variant.name
+        String validationTaskName = "validate${variantName.capitalize()}ReleaseProvenance"
+        def validationTask = tasks.register(validationTaskName) {
+            group = 'verification'
+            description = "Validates exact Firebase identity and immutable release provenance for ${variantName}."
+            if (releaseProvenanceFiles[variant.flavorName].isFile()) {
+                inputs.file(releaseProvenanceFiles[variant.flavorName])
+            }
+            File releaseGoogleServices = file("src/${variant.flavorName}/release/google-services.json")
+            if (releaseGoogleServices.isFile()) {
+                inputs.file(releaseGoogleServices)
+            }
+            outputs.upToDateWhen { false }
+            doLast {
+                validateReleaseProvenance(variant)
+            }
+        }
+        tasks.configureEach { task ->
+            String lowerName = task.name.toLowerCase(Locale.ROOT)
+            String lowerVariant = variantName.toLowerCase(Locale.ROOT)
+            if (task.name != validationTaskName
+                    && lowerName.contains(lowerVariant)
+                    && (lowerName.startsWith('assemble') || lowerName.startsWith('bundle')
+                    || lowerName.startsWith('package') || lowerName.startsWith('publish'))) {
+                task.dependsOn(validationTask)
+            }
+        }
+    }
 }

@@ -7,7 +7,7 @@ import { LuChevronLeft } from 'react-icons/lu';
 interface FullPageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   mode?: 'inline' | 'overlay';
   showBackButton?: boolean;

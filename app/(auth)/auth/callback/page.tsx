@@ -24,7 +24,6 @@ function AuthCallbackContent() {
     const redirectTo = searchParams.get('redirect_to');
     const safeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
     const shouldResumeOnboarding = safeRedirect?.includes('resume_onboarding=true') ?? false;
-    const shouldPreserveDeletionRedirect = safeRedirect === '/account-deletion/';
 
     // 사용자가 로그인을 취소한 경우
     if (error === 'access_denied') {
@@ -83,7 +82,7 @@ function AuthCallbackContent() {
           return;
         }
 
-        if (!userProfile.dept_code && !shouldPreserveDeletionRedirect) {
+        if (!userProfile.dept_code) {
           setStatus('환영합니다! 온보딩 정보를 입력해주세요.');
           setTimeout(() => {
             router.replace('/onboarding?login=success');

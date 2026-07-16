@@ -115,11 +115,10 @@ export default function PrivacyPage() {
           사실로 보지 않습니다.
         </p>
         <p className="mt-3 text-sm leading-6 text-gray-700">
-          계정 삭제는 <a href="/account-deletion/" className="font-semibold text-blue-600 hover:underline">계정 삭제 페이지</a>에서
-          안내합니다. 삭제 요청이 서버에서 확인되면 로그인 세션과 알림 연결을 중단하고, 삭제 예정 상태는
-          요청일로부터 30일 뒤 최종 처리하는 절차를 준비하고 있습니다. 30일 안의 취소는 같은 제공업체를
-          통한 재인증과 서버 확인이 모두 필요합니다. 웹 정적 페이지가 재인증 조건을 충족하지 못하면 요청이나
-          취소를 완료된 것으로 표시하지 않습니다.
+          회원 탈퇴는 로그인 후 <a href="/profile/" className="font-semibold text-blue-600 hover:underline">프로필</a>에서
+          요청할 수 있습니다. 현재 탈퇴 요청은 계정 접근을 즉시 비활성화합니다. 계정과 연결된 개인정보의
+          최종 삭제·보관 및 복구 정책은 재설계 중이며, 확정 전에는 별도의 삭제 예정일이나 취소 절차를
+          보장하지 않습니다.
         </p>
         <p className="mt-3 text-sm leading-6 text-gray-700">
           계정 삭제 후에도 오프라인·종료된 기기의 운영체제 알림이나 제공업체 원본이 즉시 사라졌다고 주장하지
@@ -132,8 +131,8 @@ export default function PrivacyPage() {
       <section className="mt-8">
         <h2 className="text-xl font-bold">4. 이용자의 권리</h2>
         <p className="mt-4 text-sm leading-6 text-gray-700">
-          이용자는 자신의 정보에 대한 열람, 정정, 삭제, 처리 제한·철회 요청을 할 수 있으며 계정 삭제는 위
-          페이지를 이용합니다. 다만 공식 접수 담당자와 처리 기한은{' '}
+          이용자는 자신의 정보에 대한 열람, 정정, 삭제, 처리 제한·철회 요청을 할 수 있으며 회원 탈퇴는
+          로그인 후 프로필에서 요청합니다. 다만 공식 접수 담당자와 처리 기한은{' '}
           <strong>출시 전 운영 책임자 확정 필요</strong> 상태입니다. 운영 책임자 승인 전에는 이 문서가 법률상
           완결된 권리 행사 창구 또는 처리 기한을 보장한다고 주장하지 않습니다.
         </p>
@@ -158,7 +157,7 @@ export default function PrivacyPage() {
         </p>
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-blue-600">
           <a href="/terms/" className="hover:underline">이용약관</a>
-          <a href="/account-deletion/" className="hover:underline">계정 삭제</a>
+          <a href="/profile/" className="hover:underline">회원 탈퇴</a>
         </div>
       </section>
     </main>

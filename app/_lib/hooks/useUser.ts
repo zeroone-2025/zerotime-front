@@ -89,6 +89,12 @@ export function useUpdateUser() {
         mutationFn: (data: UserProfileUpdate) => updateUserProfile(data),
         onSuccess: (updatedUser) => {
             syncUserCaches(queryClient, setUser, updatedUser);
+            // 학교가 바뀌면 백엔드가 구독 게시판도 새 학교 기준으로 재계산한다
+            // (app/routers/users.py의 update_current_user 참고) — 캐시된 구독/공지
+            // 목록을 무효화해 다음 조회 시 새 학교 기준 데이터를 다시 받아오게 한다.
+            queryClient.invalidateQueries({ queryKey: ['user', 'init'] });
+            queryClient.invalidateQueries({ queryKey: ['user', 'subscriptions'] });
+            queryClient.invalidateQueries({ queryKey: ['notices', 'infinite'] });
         },
     });
 }

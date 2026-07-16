@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiEdit3, FiUser } from 'react-icons/fi';
-import { api, getAllDepartments, logoutUser, resetAuthState } from '@/_lib/api';
+import { api, deleteUserAccount, getAllDepartments, logoutUser, resetAuthState } from '@/_lib/api';
 import {
   DELETION_OPERATION_STORAGE_KEY,
   DELETION_STATUS_STORAGE_KEY,
@@ -136,6 +136,7 @@ export default function ProfileClient() {
   const clearUser = useUserStore((state) => state.clearUser);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [storedDeletionStatus, setStoredDeletionStatus] = useState<StoredDeletionStatus | null>(null);
   const [deletionStatus, setDeletionStatus] = useState<DeletionStatus | null>(null);
   const [deletionStatusError, setDeletionStatusError] = useState<string | null>(null);
@@ -414,13 +415,19 @@ export default function ProfileClient() {
     }
   };
 
-  const handleDeletionRequest = () => {
-    if (deletionJournalRecoveryRequired) {
-      setDeletionStatusError(DELETION_JOURNAL_RECOVERY_MESSAGE);
-      return;
+  const handleDeletionRequest = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteUserAccount();
+      await clearWebPersonalData();
+      setShowDeleteModal(false);
+      router.replace('/?deleted=success');
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      showToast('회원 탈퇴 처리 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsDeleting(false);
     }
-    setShowDeleteModal(false);
-    router.push('/account-deletion/');
   };
 
   const localCleanupMessage = deletionOperation?.phase === 'local_complete'
@@ -598,15 +605,15 @@ export default function ProfileClient() {
               </div>
             )}
             <p className="mb-2 text-xs leading-5 text-gray-500">
-              계정 삭제는 예약으로 접수되며, 서버 상태 응답으로 예정일까지 처리 상태를 확인할 수 있습니다.
+              회원 탈퇴 시 계정 접근이 즉시 비활성화됩니다.
             </p>
             <button
               type="button"
               onClick={() => setShowDeleteModal(true)}
-              disabled={deletionJournalRecoveryRequired}
-              className="text-xs text-red-700 underline underline-offset-2 transition-colors hover:text-red-800"
+              disabled={isDeleting || deletionJournalRecoveryRequired}
+              className="text-xs text-red-700 underline underline-offset-2 transition-colors hover:text-red-800 disabled:opacity-50"
             >
-              계정 삭제 예약하기
+              회원 탈퇴하기
             </button>
           </div>
 
@@ -614,15 +621,12 @@ export default function ProfileClient() {
             isOpen={showDeleteModal}
             onConfirm={handleDeletionRequest}
             onCancel={() => setShowDeleteModal(false)}
-            title="계정 삭제 예약"
-            confirmLabel="재인증 계속하기"
+            title="회원 탈퇴"
+            confirmLabel={isDeleting ? '처리 중...' : '탈퇴하기'}
             cancelLabel="취소"
             variant="danger"
           >
-            <p>계정 삭제 예약을 위한 제공업체 재인증 페이지로 이동하시겠습니까?</p>
-            <p className="mt-1 text-xs text-gray-500">
-              일반 로그인 세션만으로는 삭제 예약을 전송하지 않으며, 제공업체 재인증과 요청 전용 권한이 필요합니다.
-            </p>
+            <p>회원 탈퇴 시 계정 접근이 즉시 비활성화됩니다.</p>
           </ConfirmModal>
         </div>
       </div>

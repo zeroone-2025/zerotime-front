@@ -69,9 +69,9 @@ export default function TermsPage() {
           출시 전 운영 책임자 확정 필요 상태이며, 확정 전에는 해당 절차가 마련되었다고 주장하지 않습니다.
         </p>
         <p className="mt-3 text-sm leading-6 text-gray-700">
-          이용자는 <a href="/account-deletion/" className="font-semibold text-blue-600 hover:underline">계정 삭제 페이지</a>에서
-          삭제 절차를 확인할 수 있습니다. 삭제 요청의 성립과 30일 안 취소에는 제공업체 재인증과 서버 확인이
-          필요하며, 이를 충족하지 못한 웹 정적 페이지는 요청이나 취소를 완료된 것으로 표시하지 않습니다.
+          이용자는 로그인 후 <a href="/profile/" className="font-semibold text-blue-600 hover:underline">프로필</a>에서
+          회원 탈퇴를 요청할 수 있습니다. 현재 탈퇴 요청은 계정 접근을 즉시 비활성화하며, 개인정보의
+          최종 삭제·보관 및 복구 정책은 재설계 중입니다.
         </p>
       </section>
 
@@ -110,7 +110,7 @@ export default function TermsPage() {
         </p>
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-blue-600">
           <a href="/privacy/" className="hover:underline">개인정보처리방침</a>
-          <a href="/account-deletion/" className="hover:underline">계정 삭제</a>
+          <a href="/profile/" className="hover:underline">회원 탈퇴</a>
         </div>
       </section>
     </main>

@@ -7,7 +7,6 @@ import {
   FiSettings,
   FiBell,
   FiUsers,
-  FiZap,
   FiLogOut,
   FiHome,
   FiInstagram,
@@ -47,7 +46,6 @@ const SERVICE_ITEMS: ServiceItem[] = [
   { id: 'profile', label: '프로필', icon: FiUser, href: '/profile', matchPath: '/profile' },
   { id: 'jbnu-alarm', label: '전북대 알리미', icon: FiBell, matchPath: '/' },
   { id: 'chinba', label: '친해지길 바래', icon: FiUsers, matchPath: '/chinba' },
-  { id: 'flow', label: 'FLOW', icon: FiZap, href: '/flow', matchPath: '/flow' },
 ];
 
 function formatAdmissionYear(year: number | null | undefined): string | null {
@@ -336,9 +334,6 @@ export default function SidebarContent({
             </a>
             <a href="/terms/" className="hover:text-gray-700 hover:underline">
               이용약관
-            </a>
-            <a href="/account-deletion/" className="hover:text-gray-700 hover:underline">
-              계정 삭제
             </a>
           </nav>
           {/* Social Links */}

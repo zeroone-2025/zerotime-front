@@ -1,0 +1,20 @@
+# scripts/verify-mobile-release-contract.mjs가 이 파일들을 그대로 재해시해서
+# 커밋된 다이제스트와 대조한다 — Windows(core.autocrlf=true) 체크아웃 시 CRLF로
+# 변환되면 해시가 달라져 검증이 깨진다. 전부 LF로 고정.
+contracts/mobile-release-v1.openapi.yaml text eol=lf
+contracts/mobile-release-v1.sha256 text eol=lf
+app/_lib/native/mobileRelease.ts text eol=lf
+app/_lib/native/notificationCoordinator.ts text eol=lf
+app/_lib/native/nativeAuth.ts text eol=lf
+app/providers.tsx text eol=lf
+app/account-deletion/page.tsx text eol=lf
+app/(main)/profile/_components/ProfileClient.tsx text eol=lf
+android/app/src/main/java/kr/zerotime/app/MainActivity.java text eol=lf
+android/app/src/main/java/kr/zerotime/app/LaunchGateActivity.java text eol=lf
+android/app/src/main/java/kr/zerotime/app/NativeNotificationCoordinatorPlugin.java text eol=lf
+ios/App/App/NativeNotificationCoordinatorPlugin.swift text eol=lf
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved text eol=lf
+ios/App/App.xcodeproj/project.pbxproj text eol=lf
+ios/App/App/AppDelegate.swift text eol=lf
+docs/release/evidence.schema.json text eol=lf
+docs/release/native-notification-barrier.v1.md text eol=lf

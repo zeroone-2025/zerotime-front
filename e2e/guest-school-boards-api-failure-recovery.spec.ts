@@ -5,6 +5,12 @@ import { test, expect } from '@playwright/test';
  * 저장되지 않고(useSelectedCategories.ts), 장애가 풀린 뒤(새로고침) 정상
  * 복구되는지 확인한다. 목킹 없이 실제 로컬 백엔드를 쓰되, /boards 요청 1회만
  * page.route로 실패시켜 "일시적 API 장애"를 재현한다.
+ *
+ * ⚠️ 반드시 기본 포트(3000, 즉 PLAYWRIGHT_PORT 미지정)로 실행할 것 — 백엔드
+ * CORS_ORIGINS 기본값이 http://localhost:3000, http://127.0.0.1:3000만
+ * 허용한다. 다른 포트(예: PLAYWRIGHT_PORT=3100)로 돌리면 /boards 응답에
+ * Access-Control-Allow-Origin이 안 붙어 브라우저가 응답을 차단하고, 이 테스트가
+ * 코드와 무관하게 실패한다(게시판 목록 비어있음, GUEST_FILTER_SCHOOL_KEY 복구 안 됨 등).
  */
 
 const GUEST_FILTER_KEY = 'JB_ALARM_GUEST_FILTER';

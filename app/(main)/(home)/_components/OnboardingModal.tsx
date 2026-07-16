@@ -10,14 +10,16 @@ import FullPageModal from '@/_components/layout/FullPageModal';
 import Logo from '@/_components/ui/Logo';
 import {
   completeOnboarding,
+  getBoards,
   saveCareerContact,
   saveCareerEducations,
   saveCareerMentorQnA,
   saveCareerSkills,
   saveCareerWorks,
 } from '@/_lib/api';
-import { GUEST_DEFAULT_BOARDS } from '@/_lib/constants/boards';
+import { DEFAULT_GUEST_SCHOOL, GUEST_DEFAULT_BOARDS, getDefaultBoardCodes } from '@/_lib/constants/boards';
 import { MAJOR_PRESETS } from '@/_lib/constants/presets';
+import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
 import { clearPendingOnboarding, savePendingOnboarding, loadPendingOnboarding } from '@/_lib/onboarding/pendingSubmission';
 import type { PendingOnboardingSubmission } from '@/_lib/onboarding/pendingSubmission';
 import { useUserStore } from '@/_lib/store/useUserStore';
@@ -239,6 +241,7 @@ export default function OnboardingModal({
   const queryClient = useQueryClient();
   const setUser = useUserStore((state) => state.setUser);
   const currentUser = useUserStore((state) => state.user);
+  const { guestSchool } = useGuestSchool();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [userType, setUserType] = useState<UserType | null>(null);
@@ -449,8 +452,19 @@ export default function OnboardingModal({
     setStep(2);
   };
 
-  const buildStudentBoardCodes = () => {
-    let boardCodes: string[] = [...GUEST_DEFAULT_BOARDS];
+  // 학교의 본부 게시판을 기본 구독으로 계산 — 게스트 브라우징(useSelectedCategories)과
+  // 동일한 규칙(default_subscribe)을 써서, 온보딩도 학교별로 다른 기본값을 받는다.
+  const resolveDefaultBoardCodes = async (school: string): Promise<string[]> => {
+    try {
+      const boards = await getBoards(school);
+      return getDefaultBoardCodes(boards);
+    } catch (error) {
+      console.error('Failed to fetch default boards, falling back:', error);
+      return school === DEFAULT_GUEST_SCHOOL ? [...GUEST_DEFAULT_BOARDS] : [];
+    }
+  };
+
+  const buildStudentBoardCodes = async (): Promise<string[]> => {
     if (formData.dept_code) {
       // MAJOR_PRESETS는 전북대 학과만 큐레이션돼 있음 — 학교 체크 없이 라벨만
       // 비교하면 다른 학교의 동명 학과(예: 경북대 소프트웨어학과)가 오매칭된다.
@@ -460,12 +474,13 @@ export default function OnboardingModal({
           )
         : undefined;
       if (preset) {
-        boardCodes = preset.categories;
-      } else {
-        boardCodes.push(formData.dept_code);
+        return preset.categories;
       }
+      const boardCodes = await resolveDefaultBoardCodes(formData.school);
+      boardCodes.push(formData.dept_code);
+      return boardCodes;
     }
-    return boardCodes;
+    return resolveDefaultBoardCodes(formData.school);
   };
 
   const requestLoginForPendingSave = (pendingData: PendingOnboardingSubmission) => {
@@ -495,7 +510,7 @@ export default function OnboardingModal({
       }
     }
 
-    const boardCodes = buildStudentBoardCodes();
+    const boardCodes = await buildStudentBoardCodes();
     const onboardingPayload: OnboardingRequest = {
       user_type: toApiUserType(userType),
       school: formData.school.trim(),
@@ -537,10 +552,14 @@ export default function OnboardingModal({
         : '학교 정보 없이 시작할까요?\n나중에 설정에서 언제든지 변경할 수 있습니다.';
     if (!confirm(confirmMessage)) return;
 
+    // 학과 선택 전에 건너뛰므로 학교도 아직 안 골랐을 수 있음 — 그 경우 가입 전
+    // 게스트로 둘러보던 학교(guestSchool)를 기준으로 기본 게시판을 계산한다.
+    const boardCodes = await resolveDefaultBoardCodes(formData.school.trim() || guestSchool);
+
     const onboardingPayload: OnboardingRequest = {
       user_type: toApiUserType(userType),
       school: '',
-      board_codes: [...GUEST_DEFAULT_BOARDS],
+      board_codes: boardCodes,
     };
 
     if (!isLoggedIn) {
@@ -843,12 +862,13 @@ export default function OnboardingModal({
       return;
     }
 
+    const boardCodes = await resolveDefaultBoardCodes(formData.school.trim());
     const onboardingPayload: OnboardingRequest = {
       user_type: toApiUserType(userType),
       school: formData.school.trim(),
       dept_code: formData.dept_name.trim() || undefined,
       admission_year: formData.admission_year ? parseInt(formData.admission_year, 10) : undefined,
-      board_codes: [...GUEST_DEFAULT_BOARDS],
+      board_codes: boardCodes,
     };
 
     if (!isLoggedIn) {

@@ -77,16 +77,9 @@ export const getColorClasses = (color: string) => {
 /**
  * 게스트 기본 필터 게시판 목록 — 전북대 하드코딩 폴백.
  *
- * 정상 경로에서는 `getDefaultBoardCodes()`로 `GET /boards`의
- * default_subscribe 값을 학교별로 동적으로 가져온다. 이 상수는 그 API
- * 호출이 실패했을 때만 쓰는 최후 폴백이다 — 평소엔 안 쓰인다.
- *
- * TODO(후작업, 의도적으로 보류): `OnboardingModal.tsx`(buildStudentBoardCodes
- * 등 452/539/847행)는 아직 이 상수를 학교 무관하게 그대로 쓴다 — 신규
- * 가입 시 기본 구독이 여전히 전북대로 고정됨. 홈 화면 게스트 드롭다운
- * (2026-07)과 같은 근본 원인이지만 별개 화면(회원가입 플로우)이라 범위를
- * 분리해뒀다. 다음에 손볼 때는 `getDefaultBoardCodes()` + `guestSchool`
- * 조합으로 교체.
+ * 정상 경로(게스트 홈 화면, 온보딩)에서는 `getDefaultBoardCodes()`로
+ * `GET /boards`의 default_subscribe 값을 학교별로 동적으로 가져온다.
+ * 이 상수는 그 API 호출이 실패했을 때만 쓰는 최후 폴백이다 — 평소엔 안 쓰인다.
  */
 export const GUEST_DEFAULT_BOARDS = [
   'home_campus', 'home_student', 'home_lecture',

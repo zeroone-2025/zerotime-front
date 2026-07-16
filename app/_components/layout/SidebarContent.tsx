@@ -26,6 +26,7 @@ import { getLoginUrl } from '@/_lib/utils/requireLogin';
 import { ChinbaEventList } from '@/(main)/chinba/_components/ChinbaEventList';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import Logo from '@/_components/ui/Logo';
+import { getQueryClient } from '@/providers';
 
 interface SidebarContentProps {
   onNavigate: (path: string) => void;
@@ -64,6 +65,7 @@ export default function SidebarContent({
   const { user, isLoggedIn, isAuthLoaded, isLoading } = useUser();
   const clearUser = useUserStore((state) => state.clearUser);
   const [chinbaExpanded, setChinbaExpanded] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const {
     data: chinbaEvents,
     isLoading: isLoadingChinbaEvents,
@@ -78,6 +80,25 @@ export default function SidebarContent({
     const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://dev-office.zerotime.kr';
     window.location.href = `${adminUrl}/dashboard`;
   };
+  const handleLogout = async () => {
+    if (!confirm('로그아웃 하시겠습니까?')) return;
+
+    setIsLoggingOut(true);
+    try {
+      // logoutUser waits for the native privacy barrier and server acknowledgement
+      // before credentials or user-visible local state are purged.
+      await logoutUser();
+      localStorage.removeItem('my_subscribed_categories');
+      getQueryClient()?.clear();
+      clearUser();
+      window.location.assign('/?logout=success');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      onShowToast('로그아웃이 완료되지 않았습니다.', 'error');
+      setIsLoggingOut(false);
+    }
+  };
+
 
   const isItemActive = (item: ServiceItem) => {
     if (!item.matchPath) return false;
@@ -279,18 +300,13 @@ export default function SidebarContent({
       {isLoggedIn && (
         <div className="px-5 pb-3">
           <button
-            onClick={async () => {
-              if (!confirm('로그아웃 하시겠습니까?')) return;
-              await logoutUser();
-              localStorage.removeItem('my_subscribed_categories');
-              localStorage.removeItem('access_token');
-              clearUser();
-              window.location.href = '/?logout=success';
-            }}
-            className="flex items-center gap-2 text-sm font-medium text-gray-400 transition-colors hover:text-red-500"
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="flex items-center gap-2 text-sm font-medium text-gray-400 transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <FiLogOut size={16} />
-            로그아웃
+            {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
           </button>
         </div>
       )}
@@ -311,6 +327,20 @@ export default function SidebarContent({
               Powered by <span className="text-[#034286]">JEduTools</span>
             </p>
           </div>
+          <nav
+            aria-label="정책 및 계정 관리"
+            className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] font-medium text-gray-500"
+          >
+            <a href="/privacy/" className="hover:text-gray-700 hover:underline">
+              개인정보처리방침
+            </a>
+            <a href="/terms/" className="hover:text-gray-700 hover:underline">
+              이용약관
+            </a>
+            <a href="/account-deletion/" className="hover:text-gray-700 hover:underline">
+              계정 삭제
+            </a>
+          </nav>
           {/* Social Links */}
           <div className="flex items-center justify-center gap-4">
             <a

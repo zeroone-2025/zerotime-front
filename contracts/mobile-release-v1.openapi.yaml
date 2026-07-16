@@ -1,0 +1,1025 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
+info:
+  title: ZeroTime mobile release API
+  version: mobile-release.v1
+  description: |
+    Canonical contract for the mobile-release.v1 API. This document is the backend
+    source of truth; the frontend copy is vendored from it. `X-ZeroTime-Contract`
+    is required only on app-originated JSON v1 requests. Provider callbacks are
+    external browser/form ingress and must not send that header or an idempotency key.
+
+    Every response status and error code emitted by an operation is listed here.
+    An unlisted status, content type, field, or error code is a contract violation,
+    not an implementation-defined fallback. Error-code meanings and retry rules are
+    canonical in `mobile-release-v1/error-codes.yaml`.
+  contact:
+    name: ZeroTime backend owner
+servers:
+  - url: https://api.zerotime.kr
+    description: Production origin; beta uses its separately attested origin.
+tags:
+  - name: Native authentication
+  - name: Installations
+  - name: Account deletion
+  - name: Push display
+  - name: Release provenance
+x-mobile-release:
+  contract_header: X-ZeroTime-Contract
+  contract_value: mobile-release.v1
+  error_catalog: docs/contracts/mobile-release-v1/error-codes.yaml
+  response_rule: Every operation response is closed; undocumented responses fail contract verification.
+  data_only_push:
+    allowed_data_keys: [delivery_id, notice_id]
+    forbidden: [notification, title, body, subject, installation_id, token, binding_generation, token_generation, apns.alert, apns.sound, apns.badge, android.notification]
+    ios_transport: content-available only; no alert, sound, or badge
+    os_automatic_display: forbidden
+  native_notification_coordinator:
+    version: native-notification-coordinator.v1
+    authority: A single native serial coordinator owns receive, tap, display, credential publication, and account-mutation barriers; JavaScript cannot authorize or supply notification content.
+    epoch:
+      type: canonical uint64 decimal string
+      pattern: '^(0|[1-9][0-9]{0,19})$'
+      maximum: '18446744073709551615'
+    generations:
+      binding_generation: positive JavaScript-safe integer for every native binding and display authorization
+      token_generation:
+        installation_api: nonnegative JavaScript-safe integer; zero means no FCM token has been published
+        native_bound_session: positive JavaScript-safe integer; the coordinator remains closed while the API reports zero
+        display_authorization: positive JavaScript-safe integer
+    methods:
+      - getOrCreateInstallationId()
+      - initialize(coordinator_contract, release_manifest)
+      - bindSession(session_id, auth_version, binding_generation, token_generation, authorization_bearer)
+      - updateSessionGenerations(session_id, binding_generation, token_generation)
+      - beginDisplayAuthorization(delivery_id, notice_id)
+      - scheduleAuthorizedNotification(operation_id)
+      - abortDisplayAuthorization(operation_id, reason)
+      - beginTapAuthorization(delivery_id, notice_id, display_epoch)
+      - completeTapAuthorization(operation_id)
+      - abortTapAuthorization(operation_id, reason)
+      - beginAccountMutation(reason)
+      - finalizeAccountMutation(reason, display_epoch)
+    events:
+      - dataOnlyPush(delivery_id, notice_id)
+      - notificationTap(delivery_id, notice_id, display_epoch)
+      - fcmToken(token)
+    authorization:
+      owner: native coordinator
+      endpoint: /v1/push-deliveries/{delivery_id}/authorize-display
+      bearer: runtime-only; never persisted
+      javascript_receipt_or_title: forbidden
+      failure: Any network, status, schema, identity, epoch, generation, session, or gate mismatch aborts without display or open.
+    mutation_receipt:
+      required: [success, display_epoch, zero_counts]
+      zero_counts: [pending_count, delivered_count, foreground_banner_count, registry_count, inflight_count]
+      continuity: Finalize must match the active begin reason and exact display_epoch.
+  auth_identity: "The bearer subject is immutable account_subject; every native session carries auth_version and session_id. Request bodies never supply or select a subject."
+  deletion_saga:
+    account_states: [active, suspended, deletion_pending, finalizing, deletion_retry, deletion_failed, finalized]
+    request_terminal_states: [cancelled]
+    allowed_account_transitions:
+      - active|suspended -> deletion_pending
+      - deletion_pending -> captured pre_deletion_state (active|suspended) on successful cancel
+      - deletion_pending -> finalizing
+      - finalizing -> deletion_retry|deletion_failed|finalized
+      - deletion_retry -> finalizing
+    linearization:
+      request: atomically set deletion_pending, deadline=requested_at_utc+P30D, increment immutable auth_version, revoke all sessions/refresh families/installations, increment generations, cancel queued deliveries, then acknowledge.
+      finalizer_claim: "CAS pending AND deadline_at_utc<=now to finalizing; a cancel wins only when its CAS commits first."
+      submit_fence: "Deletion acknowledgement waits for shared installation submit fences: no external provider call starts after acknowledgement; a pre-ack call may arrive later but must fail display authorization."
+    hard_deny: deletion_pending, finalizing, deletion_retry, deletion_failed, and finalized deny general access, refresh, OAuth link/session issuance, admin PII access, installation mutation, and display authorization.
+    cancellation: "Only deletion_pending is cancelable with a fresh 10-minute purpose=cancel capability bound to subject, request, and current auth_version. Success records request_state=cancelled, restores the captured pre_deletion_state, increments auth_version, and requires full reauthentication. finalizing is irreversible."
+    finalization: "Finalized requires controlled-plane postconditions, provider/Apple outcome evidence, backup/log restore gates, and deletion-evidence classes; legal isolate is the only approved exception."
+paths:
+  /v1/native-auth/transactions:
+    post:
+      tags: [Native authentication]
+      operationId: createNativeAuthTransaction
+      summary: Start a native OAuth login transaction.
+      description: |
+        Creates a five-minute server transaction for a verified-link return. `state`,
+        `nonce`, and S256 challenge are stored only as hashes. The returned URL is
+        the only browser destination. The app keeps the raw state, nonce, and verifier
+        in non-backup secure transient storage; it never puts a bearer token in a URL.
+      parameters:
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NativeAuthTransactionRequest'}
+      responses:
+        '201':
+          description: Transaction created.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/NativeAuthTransactionResponse'}}}
+        '200':
+          description: Same idempotency key and identical body replay the unexpired transaction.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/NativeAuthTransactionResponse'}}}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '409': {$ref: '#/components/responses/IdempotencyConflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ConfigMismatch'}
+      x-idempotency:
+        required: true
+        retention: PT5M
+        replay: identical request returns the original transaction; a different body returns IDEMPOTENCY_CONFLICT.
+
+  /v1/native-auth/callback/google:
+    get: &googleCallback
+      tags: [Native authentication]
+      operationId: nativeAuthGoogleCallback
+      summary: Receive Google browser callback.
+      description: External provider ingress. No contract or idempotency header is accepted. A valid state is consumed once and produces an opaque exchange code.
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema: {type: string, minLength: 1}
+        - name: state
+          in: query
+          required: true
+          schema: {type: string, minLength: 1}
+        - name: error
+          in: query
+          required: false
+          schema: {type: string}
+        - name: error_description
+          in: query
+          required: false
+          schema: {type: string}
+      responses:
+        '302': {$ref: '#/components/responses/VerifiedNativeRedirect'}
+        '400': {$ref: '#/components/responses/OAuthCallbackInvalid'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ProviderUnavailable'}
+  /v1/native-auth/callback/naver:
+    get:
+      <<: *googleCallback
+      operationId: nativeAuthNaverCallback
+      summary: Receive Naver browser callback.
+  /v1/native-auth/callback/kakao:
+    get:
+      <<: *googleCallback
+      operationId: nativeAuthKakaoCallback
+      summary: Receive Kakao browser callback.
+  /v1/native-auth/callback/apple:
+    post:
+      tags: [Native authentication]
+      operationId: nativeAuthAppleCallback
+      summary: Receive Apple form-post callback.
+      description: |
+        External Apple ingress. Apple `response_mode=form_post` is mandatory. No
+        contract or idempotency header is accepted. The server validates transaction
+        state and Apple nonce/token data, exchanges the authorization code server-side,
+        and redirects only to the verified HTTPS callback URL.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema: {$ref: '#/components/schemas/AppleCallbackForm'}
+      responses:
+        '302': {$ref: '#/components/responses/VerifiedNativeRedirect'}
+        '400': {$ref: '#/components/responses/OAuthCallbackInvalid'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ProviderUnavailable'}
+
+  /v1/native-auth/exchange:
+    post:
+      tags: [Native authentication]
+      operationId: exchangeNativeAuthCode
+      summary: Consume an opaque native OAuth exchange code.
+      description: |
+        Atomically validates state and PKCE, then consumes the 60-second exchange code.
+        For an active account it creates or validates the installation binding and
+        returns a memory-only access token plus a rotating native refresh token.
+        A pending account receives only a purpose-limited deletion capability. Neither
+        response is ever redirected or written to web storage.
+      parameters:
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NativeExchangeRequest'}
+      responses:
+        '200':
+          description: Exchange consumed or its idempotent result replayed.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/NativeExchangeResponse'}}}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/PKCEInvalid'}
+        '409':
+          description: EXCHANGE_CODE_USED, INSTALLATION_BOUND_TO_OTHER_ACCOUNT, or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '410': {$ref: '#/components/responses/ExchangeCodeExpired'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ProviderUnavailable'}
+      x-idempotency:
+        required: true
+        retention: PT10M
+        replay: only the same key and body replay the sealed exchange result; any other consumption attempt returns EXCHANGE_CODE_USED.
+
+  /v1/native-auth/refresh:
+    post:
+      tags: [Native authentication]
+      operationId: refreshNativeSession
+      summary: Rotate a native refresh token.
+      description: A native refresh token is supplied only from Keychain/Keystore secure custody. Reuse with a different idempotency key revokes the refresh family and returns AUTH_SESSION_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NativeRefreshRequest'}
+      responses:
+        '200':
+          description: Refresh family rotated or same-key response replayed.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/ActiveNativeSession'}}}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/AuthSessionInvalid'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '409': {$ref: '#/components/responses/IdempotencyConflict'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ConfigMismatch'}
+      x-idempotency:
+        required: true
+        retention: PT10M
+        replay: same-key retry returns the same rotated token pair; a different key after rotation is refresh-token reuse.
+
+  /v1/native-auth/logout:
+    post:
+      tags: [Native authentication]
+      operationId: logoutNativeSession
+      summary: Acknowledge native logout and unlink an installation.
+      description: |
+        This response is the server logout linearization point. The service revokes the
+        native session/refresh family, increments binding generation, deactivates the
+        binding, and cancels non-submitted deliveries before returning. A client keeps
+        local admission closed until this acknowledgement and its local purge succeed.
+      security: [{nativeBearer: []}]
+      parameters:
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LogoutRequest'}
+      responses:
+        '200':
+          description: Logout acknowledged or identical request replayed.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/InstallationUnlinked'}}}
+        '401': {$ref: '#/components/responses/AuthRequired'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '409':
+          description: BINDING_GENERATION_MISMATCH or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/TemporaryUnavailable'}
+      x-idempotency: {required: true, retention: PT24H, replay: same acknowledgement}
+  /v1/native-auth/logout/reconcile:
+    post:
+      tags: [Native authentication]
+      operationId: reconcileNativeLogout
+      summary: Recover a committed native logout acknowledgement without a bearer.
+      description: |
+        App-originated receipt-only recovery for a crash after logout committed and before
+        local credential purge completed. The app supplies its already-approved secure
+        refresh token, the original installation binding, and the same Idempotency-Key
+        used for POST /v1/native-auth/logout. The token proves only its stored family;
+        the service neither rotates nor revives that family, issues no credentials, and
+        never executes unlink. Only the completed native_auth.logout SQL receipt for the
+        same subject, original logout body, and key is replayed. A valid proof bound to
+        the requested installation and generation with no completed/unexpired matching
+        acknowledgement returns LOGOUT_NOT_ACKNOWLEDGED; it proves only the absence of
+        that receipt and permits a local client to attempt ordinary refresh or logout.
+        Invalid, expired, or wrongly bound refresh proof returns the non-enumerating
+        AUTH_SESSION_INVALID result.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NativeLogoutReconciliationRequest'}
+      responses:
+        '200':
+          description: The canonical committed unlink acknowledgement.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/InstallationUnlinked'}}}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/AuthSessionInvalid'}
+        '409':
+          description: LOGOUT_NOT_ACKNOWLEDGED for a valid bound refresh proof without a completed receipt, or IDEMPOTENCY_CONFLICT when a receipt key is reused with another body.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/TemporaryUnavailable'}
+      x-idempotency:
+        required: true
+        retention: PT24H
+        replay: only the same key and original logout body replay the completed acknowledgement; this endpoint never creates a receipt or mutation.
+
+  /v1/installations/{installation_id}:
+    put:
+      tags: [Installations]
+      operationId: upsertInstallation
+      summary: Link or update the current account's installation and FCM token.
+      description: |
+        The authenticated subject is derived exclusively from the token. A new or
+        unbound installation is linked to that subject. An existing binding requires
+        the exact expected binding generation. An installation bound to another subject
+        cannot be claimed; its old-account logout acknowledgement is required first.
+      security: [{nativeBearer: []}]
+      parameters:
+        - $ref: '#/components/parameters/InstallationId'
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InstallationUpsertRequest'}
+      responses:
+        '201':
+          description: New installation record or binding created.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Installation'}}}
+        '200':
+          description: Existing current-subject installation updated or idempotently replayed.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Installation'}}}
+        '401': {$ref: '#/components/responses/AuthRequired'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '409':
+          description: INSTALLATION_BOUND_TO_OTHER_ACCOUNT, BINDING_GENERATION_MISMATCH, TOKEN_ALREADY_BOUND, INSTALLATION_CONFLICT, or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ConfigMismatch'}
+      x-idempotency: {required: true, retention: PT24H, replay: same installation representation}
+    delete:
+      tags: [Installations]
+      operationId: unlinkInstallation
+      summary: Unlink the current account from an installation.
+      description: Increments binding generation, removes the token/binding, and cancels unsubmitted delivery work in one transaction. It does not claim to remove an offline device's already displayed local notification.
+      security: [{nativeBearer: []}]
+      parameters:
+        - $ref: '#/components/parameters/InstallationId'
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InstallationUnlinkRequest'}
+      responses:
+        '200':
+          description: Unlink acknowledgement or identical replay.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/InstallationUnlinked'}}}
+        '401': {$ref: '#/components/responses/AuthRequired'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '404': {$ref: '#/components/responses/InstallationNotFound'}
+        '409':
+          description: BINDING_GENERATION_MISMATCH or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/TemporaryUnavailable'}
+      x-idempotency: {required: true, retention: PT24H, replay: same acknowledgement}
+
+  /v1/installations/{installation_id}/token:
+    patch:
+      tags: [Installations]
+      operationId: replaceInstallationToken
+      summary: Atomically replace an FCM registration token.
+      security: [{nativeBearer: []}]
+      parameters:
+        - $ref: '#/components/parameters/InstallationId'
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InstallationTokenPatchRequest'}
+      responses:
+        '200':
+          description: Token replaced; token_generation is incremented exactly once, or same-key response replayed.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Installation'}}}
+        '401': {$ref: '#/components/responses/AuthRequired'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '404': {$ref: '#/components/responses/InstallationNotFound'}
+        '409':
+          description: TOKEN_GENERATION_MISMATCH, TOKEN_ALREADY_BOUND, INSTALLATION_CONFLICT, or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '422': {$ref: '#/components/responses/InvalidPermissionState'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ConfigMismatch'}
+      x-idempotency: {required: true, retention: PT24H, replay: same installation representation}
+
+  /v1/installations/{installation_id}/permission:
+    patch:
+      tags: [Installations]
+      operationId: updateInstallationPermission
+      summary: Record the current OS notification permission state.
+      description: Permission changes do not trigger an OS prompt and do not schedule a notification. Delivery eligibility requires `granted`.
+      security: [{nativeBearer: []}]
+      parameters:
+        - $ref: '#/components/parameters/InstallationId'
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InstallationPermissionPatchRequest'}
+      responses:
+        '200':
+          description: Permission state acknowledged or same-key response replayed.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Installation'}}}
+        '401': {$ref: '#/components/responses/AuthRequired'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '404': {$ref: '#/components/responses/InstallationNotFound'}
+        '409':
+          description: BINDING_GENERATION_MISMATCH or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '422': {$ref: '#/components/responses/InvalidPermissionState'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/TemporaryUnavailable'}
+      x-idempotency: {required: true, retention: PT24H, replay: same installation representation}
+
+  /v1/account-deletion/reauth/transactions:
+    post:
+      tags: [Account deletion]
+      operationId: createDeletionReauthTransaction
+      summary: Start a provider reauthentication transaction for deletion request or cancellation.
+      description: |
+        `request` accepts an active native bearer. `cancel` accepts only the narrow
+        `X-Deletion-Status-Handle` from the pending request. The resulting browser
+        callback is handled by the provider-specific native callback path and the
+        common exchange endpoint returns a one-time, purpose-bound capability.
+      parameters:
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/DeletionStatusHandleOptional'
+      security:
+        - nativeBearer: []
+        - deletionStatusHandle: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DeletionReauthTransactionRequest'}
+      responses:
+        '201':
+          description: Reauthentication transaction created.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/NativeAuthTransactionResponse'}}}
+        '200':
+          description: Same idempotency key and identical body replay the unexpired transaction.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/NativeAuthTransactionResponse'}}}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/ReauthRequired'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '404': {$ref: '#/components/responses/DeletionRequestNotFound'}
+        '409': {$ref: '#/components/responses/IdempotencyConflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/ProviderUnavailable'}
+      x-idempotency: {required: true, retention: PT5M, replay: same transaction}
+
+  /v1/account-deletion/requests:
+    post:
+      tags: [Account deletion]
+      operationId: requestAccountDeletion
+      summary: Request the 30-day account deletion saga.
+      description: |
+        Requires either an active access token or a single-use `request` deletion
+        capability from reauthentication. The transaction sets `deletion_pending`,
+        sets `deadline_at_utc = requested_at_utc + P30D`, increments auth_version,
+        revokes sessions/refresh families, removes all installation bindings/tokens,
+        increments their generations, and cancels queued deliveries before responding.
+      parameters:
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      security:
+        - nativeBearer: []
+        - deletionCapability: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DeletionRequestInput'}
+      responses:
+        '201':
+          description: Deletion saga created and account-wide authorization fence acknowledged.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/DeletionRequest'}}}
+        '200':
+          description: Existing pending request for the same immutable subject; request is idempotent.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/DeletionRequest'}}}
+        '401': {$ref: '#/components/responses/AuthRequired'}
+        '403': {$ref: '#/components/responses/AccountAuthDenied'}
+        '409':
+          description: DELETION_CANCEL_CLOSED or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/DeletionFenceUnavailable'}
+      x-idempotency: {required: true, retention: until finalization, replay: original request receipt only}
+
+  /v1/account-deletion/requests/{request_id}/status:
+    get:
+      tags: [Account deletion]
+      operationId: getDeletionRequestStatus
+      summary: Read non-PII deletion state using its narrow status handle.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/DeletionStatusHandle'
+      security: [{deletionStatusHandle: []}]
+      responses:
+        '200':
+          description: State, deadline, cancellation availability, and retry guidance only.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/DeletionStatus'}}}
+        '404': {$ref: '#/components/responses/DeletionRequestNotFound'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/TemporaryUnavailable'}
+
+  /v1/account-deletion/requests/{request_id}/cancel:
+    post:
+      tags: [Account deletion]
+      operationId: cancelAccountDeletion
+      summary: Cancel a pending deletion before the finalizer claim cutoff.
+      description: Requires a 10-minute, single-use `cancel` capability in X-Deletion-Capability, bound to the request, immutable subject, and current auth_version. Success records request_state `cancelled`, restores the captured pre-deletion account state (`active` or `suspended`), increments auth_version, and requires full authentication; this endpoint issues no general session.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      security: [{deletionCapability: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DeletionCancelInput'}
+      responses:
+        '200':
+          description: Pending request cancelled or same-key acknowledgement replayed.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/DeletionCancelReceipt'}}}
+        '401': {$ref: '#/components/responses/CapabilityInvalid'}
+        '404': {$ref: '#/components/responses/DeletionRequestNotFound'}
+        '409':
+          description: DELETION_CANCEL_CLOSED or IDEMPOTENCY_CONFLICT.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+        '410': {$ref: '#/components/responses/CapabilityExpired'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/TemporaryUnavailable'}
+      x-idempotency: {required: true, retention: until finalization, replay: original cancellation acknowledgement only}
+
+  /v1/push-deliveries/{delivery_id}/authorize-display:
+    post:
+      tags: [Push display]
+      operationId: authorizePushDisplay
+      summary: Authorize one local display action for a data-only delivery.
+      description: |
+        This endpoint never schedules an OS notification. It authorizes one receive or
+        tap action for at most 30 seconds. Every non-200 result means the client drops
+        the payload and removes its deterministic local ID. A syntactically valid but
+        revoked, pending, deleted, old-subject, stale-session, stale-generation, or
+        permission-mismatched context deliberately maps to non-enumerating 404.
+      security: [{nativeBearer: []}]
+      parameters:
+        - $ref: '#/components/parameters/DeliveryId'
+        - $ref: '#/components/parameters/ContractHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DisplayAuthorizationRequest'}
+      responses:
+        '200':
+          description: One local display action is authorized. The authorization ID is opaque, action-scoped, non-reusable, and expires in 30 seconds.
+          headers: {X-ZeroTime-Contract: {$ref: '#/components/headers/ContractHeader'}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/DisplayAuthorization'}}}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/AuthRequired'}
+        '404': {$ref: '#/components/responses/DeliveryNotAuthorized'}
+        '410': {$ref: '#/components/responses/DeliveryExpired'}
+        '409': {$ref: '#/components/responses/IdempotencyConflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '426': {$ref: '#/components/responses/UnsupportedContract'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/TemporaryUnavailable'}
+      x-idempotency: {required: true, retention: PT30S, replay: same one-action authorization}
+
+  /health/release:
+    get:
+      tags: [Release provenance]
+      operationId: getReleaseHealth
+      summary: Read the non-secret backend provenance receipt.
+      description: This non-v1 release endpoint is not an app-originated mobile JSON API and does not require X-ZeroTime-Contract. A changed backend SHA, image digest, deployment ID, contract hash, Firebase tuple, revision range, or enabled feature invalidates affected RC evidence.
+      responses:
+        '200':
+          description: Deployment identity and compatible database range.
+          content: {application/json: {schema: {$ref: '#/components/schemas/ReleaseHealth'}}}
+        '503': {$ref: '#/components/responses/ConfigMismatch'}
+components:
+  securitySchemes:
+    nativeBearer: {type: http, scheme: bearer, bearerFormat: JWT}
+    deletionCapability: {type: apiKey, in: header, name: X-Deletion-Capability}
+    deletionStatusHandle: {type: apiKey, in: header, name: X-Deletion-Status-Handle}
+  parameters:
+    ContractHeader:
+      name: X-ZeroTime-Contract
+      in: header
+      required: true
+      schema: {type: string, const: mobile-release.v1}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Cryptographically random UUID; it is scoped to the operation and authenticated principal or transaction.
+      schema: {type: string, format: uuid}
+    InstallationId:
+      name: installation_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    RequestId:
+      name: request_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    DeliveryId:
+      name: delivery_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    DeletionStatusHandle:
+      name: X-Deletion-Status-Handle
+      in: header
+      required: true
+      schema: {type: string, minLength: 32, maxLength: 512}
+    DeletionStatusHandleOptional:
+      name: X-Deletion-Status-Handle
+      in: header
+      required: false
+      description: Required for purpose=cancel and forbidden for purpose=request.
+      schema: {type: string, minLength: 32, maxLength: 512}
+  headers:
+    ContractHeader:
+      required: true
+      schema: {type: string, const: mobile-release.v1}
+  responses:
+    InvalidRequest: {description: INVALID_REQUEST, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    ValidationError: {description: VALIDATION_ERROR, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    AuthRequired: {description: AUTH_REQUIRED, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    AuthSessionInvalid: {description: AUTH_SESSION_INVALID, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    AccountAuthDenied: {description: ACCOUNT_SUSPENDED, ACCOUNT_DELETION_PENDING, ACCOUNT_FINALIZING, ACCOUNT_DELETION_RETRY, ACCOUNT_DELETION_FAILED, or ACCOUNT_FINALIZED, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    ReauthRequired: {description: REAUTH_REQUIRED, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    PKCEInvalid: {description: PKCE_INVALID, STATE_MISMATCH, or NONCE_MISMATCH, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    CapabilityInvalid: {description: CAPABILITY_INVALID, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    CapabilityExpired: {description: CAPABILITY_EXPIRED, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    ExchangeCodeExpired: {description: EXCHANGE_CODE_EXPIRED, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    UnsupportedContract: {description: CONTRACT_VERSION_UNSUPPORTED, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    IdempotencyConflict: {description: IDEMPOTENCY_CONFLICT, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    InvalidPermissionState: {description: INVALID_PERMISSION_STATE, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    InstallationNotFound: {description: INSTALLATION_NOT_FOUND, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    DeletionRequestNotFound: {description: DELETION_REQUEST_NOT_FOUND, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    DeliveryNotAuthorized: {description: DELIVERY_NOT_AUTHORIZED; intentionally non-enumerating, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    DeliveryExpired: {description: DELIVERY_EXPIRED, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    RateLimited: {description: RATE_LIMITED, headers: {Retry-After: {required: true, schema: {type: integer, minimum: 1}}}, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    ConfigMismatch: {description: CONFIG_MISMATCH, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    TemporaryUnavailable: {description: TEMPORARY_UNAVAILABLE, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    ProviderUnavailable: {description: PROVIDER_UNAVAILABLE, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    DeletionFenceUnavailable: {description: DELETION_FENCE_UNAVAILABLE, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    OAuthCallbackInvalid: {description: OAUTH_CALLBACK_INVALID; no redirect is made for an unverified state, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    VerifiedNativeRedirect:
+      description: Redirect to exactly https://zerotime.kr/auth/native/callback/ with either code and original state, or error and original state for a verified provider denial. No token appears in the URL.
+      headers:
+        Location:
+          required: true
+          schema: {type: string, pattern: '^https://zerotime\\.kr/auth/native/callback/\\?(code|error)=.*&state=.*$'}
+  schemas:
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, retryable, request_id]
+          properties:
+            code:
+              type: string
+              enum: [INVALID_REQUEST, VALIDATION_ERROR, AUTH_REQUIRED, AUTH_SESSION_INVALID, LOGOUT_NOT_ACKNOWLEDGED, ACCOUNT_SUSPENDED, ACCOUNT_DELETION_PENDING, ACCOUNT_FINALIZING, ACCOUNT_DELETION_RETRY, ACCOUNT_DELETION_FAILED, ACCOUNT_FINALIZED, REAUTH_REQUIRED, CAPABILITY_INVALID, CAPABILITY_EXPIRED, STATE_MISMATCH, NONCE_MISMATCH, PKCE_INVALID, EXCHANGE_CODE_USED, EXCHANGE_CODE_EXPIRED, OAUTH_CALLBACK_INVALID, PROVIDER_DENIED, PROVIDER_UNAVAILABLE, INSTALLATION_NOT_FOUND, INSTALLATION_CONFLICT, INSTALLATION_BOUND_TO_OTHER_ACCOUNT, BINDING_GENERATION_MISMATCH, TOKEN_GENERATION_MISMATCH, TOKEN_ALREADY_BOUND, INVALID_PERMISSION_STATE, IDEMPOTENCY_CONFLICT, DELETION_REQUEST_NOT_FOUND, DELETION_CANCEL_CLOSED, DELIVERY_NOT_AUTHORIZED, DELIVERY_EXPIRED, NOTICE_NOT_FOUND, CONTRACT_VERSION_UNSUPPORTED, CONFIG_MISMATCH, DELETION_FENCE_UNAVAILABLE, RATE_LIMITED, TEMPORARY_UNAVAILABLE]
+            message: {type: string, maxLength: 256}
+            retryable: {type: boolean}
+            request_id: {type: string, format: uuid}
+    NativeAuthTransactionRequest:
+      type: object
+      additionalProperties: false
+      required: [provider, platform, state, nonce, code_challenge, code_challenge_method]
+      properties:
+        provider: {type: string, enum: [google, apple, naver, kakao]}
+        platform: {type: string, enum: [ios, android]}
+        state: {type: string, minLength: 43, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$'}
+        nonce: {type: string, minLength: 43, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$'}
+        code_challenge: {type: string, minLength: 43, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$'}
+        code_challenge_method: {type: string, const: S256}
+    DeletionReauthTransactionRequest:
+      type: object
+      additionalProperties: false
+      required: [provider, platform, state, nonce, code_challenge, code_challenge_method, purpose]
+      properties:
+        provider: {type: string, enum: [google, apple, naver, kakao]}
+        platform: {type: string, enum: [ios, android]}
+        state: {type: string, minLength: 43, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$'}
+        nonce: {type: string, minLength: 43, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$'}
+        code_challenge: {type: string, minLength: 43, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$'}
+        code_challenge_method: {type: string, const: S256}
+        purpose: {type: string, enum: [request, cancel]}
+    NativeAuthTransactionResponse:
+      type: object
+      additionalProperties: false
+      required: [transaction_id, provider, purpose, authorization_url, expires_at_utc]
+      properties:
+        transaction_id: {type: string, format: uuid}
+        provider: {type: string, enum: [google, apple, naver, kakao]}
+        purpose: {type: string, enum: [login, request, cancel]}
+        authorization_url: {type: string, format: uri}
+        expires_at_utc: {type: string, format: date-time}
+    AppleCallbackForm:
+      type: object
+      additionalProperties: true
+      required: [state]
+      properties:
+        code: {type: string}
+        id_token: {type: string}
+        user: {type: string}
+        state: {type: string}
+        error: {type: string}
+        error_description: {type: string}
+    NativeExchangeRequest:
+      type: object
+      additionalProperties: false
+      required: [exchange_code, state, code_verifier, installation_id]
+      properties:
+        exchange_code: {type: string, minLength: 32, maxLength: 512}
+        state: {type: string, minLength: 43, maxLength: 128}
+        code_verifier: {type: string, minLength: 43, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$'}
+        installation_id: {type: string, format: uuid}
+    NativeRefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token, installation_id, expected_binding_generation]
+      properties:
+        refresh_token: {type: string, minLength: 32, maxLength: 2048}
+        installation_id: {type: string, format: uuid}
+        expected_binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+    NativeLogoutReconciliationRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token, installation_id, expected_binding_generation]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 32
+          maxLength: 2048
+          writeOnly: true
+        installation_id: {type: string, format: uuid}
+        expected_binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+    ActiveNativeSession:
+      type: object
+      additionalProperties: false
+      required: [access_token, token_type, expires_at_utc, refresh_token, session_id, auth_version, installation]
+      properties:
+        access_token: {type: string, minLength: 32}
+        token_type: {type: string, const: Bearer}
+        expires_at_utc: {type: string, format: date-time}
+        refresh_token: {type: string, minLength: 32}
+        session_id: {type: string, format: uuid}
+        auth_version: {type: integer, minimum: 1}
+        installation: {$ref: '#/components/schemas/InstallationBinding'}
+    DeletionCapabilityResult:
+      type: object
+      additionalProperties: false
+      required: [result_type, deletion_capability, purpose, expires_at_utc, request_id]
+      properties:
+        result_type: {type: string, const: deletion_capability}
+        deletion_capability: {type: string, minLength: 32, maxLength: 2048}
+        purpose: {type: string, enum: [request, cancel]}
+        expires_at_utc: {type: string, format: date-time}
+        request_id: {type: string, format: uuid}
+    NativeExchangeResponse:
+      oneOf:
+        - $ref: '#/components/schemas/ActiveNativeSession'
+        - $ref: '#/components/schemas/DeletionCapabilityResult'
+    LogoutRequest:
+      type: object
+      additionalProperties: false
+      required: [installation_id, expected_binding_generation]
+      properties:
+        installation_id: {type: string, format: uuid}
+        expected_binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+    InstallationUpsertRequest:
+      type: object
+      additionalProperties: false
+      required: [platform, environment, token_provider, token_type, fcm_token, permission_status]
+      properties:
+        platform: {type: string, enum: [ios, android]}
+        environment: {type: string, enum: [beta, production]}
+        token_provider: {type: string, const: fcm}
+        token_type: {type: string, const: fcm_registration}
+        fcm_token: {type: string, minLength: 32, maxLength: 4096}
+        permission_status: {type: string, enum: [not_determined, denied, granted, provisional, ephemeral]}
+        expected_binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+    InstallationTokenPatchRequest:
+      type: object
+      additionalProperties: false
+      required: [fcm_token, expected_token_generation]
+      properties:
+        fcm_token: {type: string, minLength: 32, maxLength: 4096}
+        expected_token_generation: {type: integer, minimum: 0, maximum: 9007199254740991}
+    InstallationPermissionPatchRequest:
+      type: object
+      additionalProperties: false
+      required: [permission_status, expected_binding_generation]
+      properties:
+        permission_status: {type: string, enum: [not_determined, denied, granted, provisional, ephemeral]}
+        expected_binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+    InstallationUnlinkRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_binding_generation]
+      properties: {expected_binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}}
+    InstallationBinding:
+      type: object
+      additionalProperties: false
+      required: [installation_id, binding_generation, token_generation, binding_state]
+      properties:
+        installation_id: {type: string, format: uuid}
+        binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+        token_generation: {type: integer, minimum: 0, maximum: 9007199254740991}
+        binding_state: {type: string, enum: [bound, unlinked]}
+    Installation:
+      type: object
+      additionalProperties: false
+      required: [installation_id, binding_generation, token_generation, binding_state, platform, environment, token_provider, token_type, permission_status, token_state]
+      properties:
+        installation_id: {type: string, format: uuid}
+        binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+        token_generation: {type: integer, minimum: 0, maximum: 9007199254740991}
+        binding_state: {type: string, enum: [bound, unlinked]}
+        platform: {type: string, enum: [ios, android]}
+        environment: {type: string, enum: [beta, production]}
+        token_provider: {type: string, const: fcm}
+        token_type: {type: string, const: fcm_registration}
+        permission_status: {type: string, enum: [not_determined, denied, granted, provisional, ephemeral]}
+        token_state: {type: string, enum: [active, absent, invalidated]}
+    InstallationUnlinked:
+      type: object
+      additionalProperties: false
+      required: [installation_id, binding_generation, token_generation, binding_state, acknowledged_at_utc]
+      properties:
+        installation_id: {type: string, format: uuid}
+        binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+        token_generation: {type: integer, minimum: 0, maximum: 9007199254740991}
+        binding_state: {type: string, const: unlinked}
+        acknowledged_at_utc: {type: string, format: date-time}
+    DeletionRequestInput:
+      type: object
+      additionalProperties: false
+      description: Empty JSON object. When no active bearer is supplied, the one-time request capability is carried only in X-Deletion-Capability.
+    DeletionRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, state, requested_at_utc, deadline_at_utc, status_handle]
+      properties:
+        request_id: {type: string, format: uuid}
+        state: {type: string, const: deletion_pending}
+        requested_at_utc: {type: string, format: date-time}
+        deadline_at_utc: {type: string, format: date-time}
+        status_handle: {type: string, minLength: 32, maxLength: 512}
+    DeletionStatus:
+      type: object
+      additionalProperties: false
+      required: [request_id, state, deadline_at_utc, cancelable, retry_guidance]
+      properties:
+        request_id: {type: string, format: uuid}
+        state: {type: string, enum: [deletion_pending, finalizing, deletion_retry, deletion_failed, finalized, cancelled]}
+        deadline_at_utc: {type: [string, 'null'], format: date-time}
+        cancelable: {type: boolean}
+        retry_guidance: {type: string, enum: [none, retry_status_later, contact_privacy_support]}
+    DeletionCancelInput:
+      type: object
+      additionalProperties: false
+      description: Empty JSON object. The one-time cancel capability is carried only in X-Deletion-Capability.
+    DeletionCancelReceipt:
+      type: object
+      additionalProperties: false
+      required: [request_id, request_state, account_state, cancelled_at_utc, reauthentication_required]
+      properties:
+        request_id: {type: string, format: uuid}
+        request_state: {type: string, const: cancelled}
+        account_state: {type: string, enum: [active, suspended]}
+        cancelled_at_utc: {type: string, format: date-time}
+        reauthentication_required: {type: boolean, const: true}
+    DisplayAuthorizationRequest:
+      type: object
+      additionalProperties: false
+      required: [notice_id, installation_id, binding_generation, token_generation, session_id, client_display_epoch]
+      properties:
+        notice_id: {type: integer, minimum: 1}
+        installation_id: {type: string, format: uuid}
+        binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+        token_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+        session_id: {type: string, format: uuid}
+        client_display_epoch: {type: string, pattern: '^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]|1844674407370955161[0-5])$'}
+    DisplayAuthorization:
+      type: object
+      additionalProperties: false
+      required: [authorized, authorization_id, authorization_expires_at_utc, client_display_epoch, delivery_id, notice, display, installation]
+      properties:
+        authorized: {type: boolean, const: true}
+        authorization_id: {type: string, format: uuid}
+        authorization_expires_at_utc: {type: string, format: date-time}
+        client_display_epoch: {type: string, pattern: '^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]|1844674407370955161[0-5])$'}
+        delivery_id: {type: string, format: uuid}
+        notice:
+          type: object
+          additionalProperties: false
+          required: [id, public_title]
+          properties: {id: {type: integer, minimum: 1}, public_title: {type: string, minLength: 1, maxLength: 512}}
+        display:
+          type: object
+          additionalProperties: false
+          required: [app_name]
+          properties: {app_name: {type: string, const: ZeroTime}}
+        installation:
+          type: object
+          additionalProperties: false
+          required: [binding_generation, token_generation]
+          properties:
+            binding_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+            token_generation: {type: integer, minimum: 1, maximum: 9007199254740991}
+    ReleaseHealth:
+      type: object
+      additionalProperties: false
+      required: [environment, backend_git_sha, image_digest, deployment_id, deployed_at_utc, api_contract, firebase, db_revision, feature_flags]
+      properties:
+        environment: {type: string, enum: [beta, production]}
+        backend_git_sha: {type: string, pattern: '^[0-9a-f]{40}$'}
+        image_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        deployment_id: {type: string, minLength: 1, maxLength: 128}
+        deployed_at_utc: {type: string, format: date-time}
+        api_contract:
+          type: object
+          additionalProperties: false
+          required: [version, sha256]
+          properties: {version: {type: string, const: mobile-release.v1}, sha256: {type: string, pattern: '^[0-9a-f]{64}$'}}
+        firebase:
+          type: object
+          additionalProperties: false
+          required: [project_id, service_account_project_id]
+          properties: {project_id: {type: string}, service_account_project_id: {type: string}}
+        db_revision:
+          type: object
+          additionalProperties: false
+          required: [current, min_compatible, max_compatible]
+          properties: {current: {type: string}, min_compatible: {type: string}, max_compatible: {type: string}}
+        feature_flags: {type: object, additionalProperties: {type: boolean}}

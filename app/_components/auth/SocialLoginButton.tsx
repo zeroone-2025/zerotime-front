@@ -1,13 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
-import Image from 'next/image';
-import { Browser } from '@capacitor/browser';
-import { App } from '@capacitor/app';
+
 import { Capacitor } from '@capacitor/core';
-import { getSocialLoginUrl, fetchSocialLoginUrl, OAuthProvider } from '@/_lib/api';
-import { setAccessToken } from '@/_lib/auth/tokenStore';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+
+import { getSocialLoginUrl } from '@/_lib/api';
+import type { OAuthProvider } from '@/_lib/api';
+import {
+  isNativeAuthPlatform,
+  startNativeOAuthLogin,
+  subscribeToNativeAuthCallbacks,
+} from '@/_lib/native/nativeAuth';
 
 interface ProviderConfig {
   label: string;
@@ -64,103 +69,32 @@ export default function SocialLoginButton({
     return currentPath.startsWith('/') ? currentPath : undefined;
   };
 
-  // Deep Link 이벤트 리스너 (iOS/Android) - 모든 프로바이더 공통
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!isNativeAuthPlatform()) return;
 
-    let listenerHandle: any;
-    let isProcessing = false;
-
-    const handleDeepLink = async (urlString: string) => {
-      const lastProcessedUrl = localStorage.getItem('last_processed_url');
-      if (lastProcessedUrl === urlString) return;
-
-      if (urlString.startsWith('kr.zerotime.app://auth/callback')) {
-        if (isProcessing) return;
-
-        const url = new URL(urlString.replace('kr.zerotime.app://', 'https://dummy.com/'));
-        const accessToken = url.searchParams.get('access_token');
-
-        if (accessToken) {
-          isProcessing = true;
-          setAccessToken(accessToken);
-          localStorage.setItem('last_processed_url', urlString);
-
-          try {
-            await Browser.close();
-          } catch (e) {
-            // 브라우저가 이미 닫혀있을 수 있음
-          }
-
-          const redirectTo = url.searchParams.get('redirect_to');
-          const safeRedirect = redirectTo?.startsWith('/') ? redirectTo : '/';
-          setTimeout(() => {
-            router.replace(safeRedirect);
-          }, 300);
-        }
-      }
-    };
-
-    const setupListener = async () => {
-      listenerHandle = await App.addListener('appUrlOpen', async (event) => {
-        await handleDeepLink(event.url);
-      });
-
-      const launchUrl = await App.getLaunchUrl();
-      if (launchUrl && launchUrl.url) {
-        handleDeepLink(launchUrl.url);
-      }
-    };
-
-    setupListener();
-
-    return () => {
-      if (listenerHandle) {
-        listenerHandle.remove();
-      }
-    };
+    return subscribeToNativeAuthCallbacks(
+      ({ redirectTo: safeRedirectTo }) => router.replace(safeRedirectTo),
+      () => console.error('Native OAuth callback was rejected.'),
+    );
   }, [router]);
 
   const handleLogin = async () => {
     onLoginStart?.();
-    localStorage.setItem('last_login_provider', provider);
+    const target = getRedirectTo();
+
+    if (isNativeAuthPlatform()) {
+      try {
+        await startNativeOAuthLogin(provider, target);
+      } catch {
+        console.error('Native OAuth could not be started.');
+      }
+      return;
+    }
 
     const platform = Capacitor.getPlatform();
-
-    const redirectTo = getRedirectTo();
-    const buildLoginUrl = () => {
-      const baseUrl = getSocialLoginUrl(provider, redirectTo);
-      const separator = baseUrl.includes('?') ? '&' : '?';
-      return `${baseUrl}${separator}platform=${encodeURIComponent(platform)}`;
-    };
-
-    if (Capacitor.isNativePlatform()) {
-      if (platform === 'ios') {
-        try {
-          const loginUrl = await fetchSocialLoginUrl(provider, platform, redirectTo);
-          await Browser.open({
-            url: loginUrl,
-            presentationStyle: 'fullscreen',
-          });
-        } catch (error) {
-          console.error('Failed to get login URL:', error);
-          const loginUrl = buildLoginUrl();
-          await Browser.open({
-            url: loginUrl,
-            presentationStyle: 'fullscreen',
-          });
-        }
-      } else {
-        const loginUrl = buildLoginUrl();
-        await Browser.open({
-          url: loginUrl,
-          presentationStyle: 'popover',
-        });
-      }
-    } else {
-      const loginUrl = buildLoginUrl();
-      window.location.href = loginUrl;
-    }
+    const baseUrl = getSocialLoginUrl(provider, target);
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    window.location.href = `${baseUrl}${separator}platform=${encodeURIComponent(platform)}`;
   };
 
   return (

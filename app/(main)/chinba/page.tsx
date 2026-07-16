@@ -47,21 +47,21 @@ export default function ChinbaHomePage() {
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
       <div className="space-y-5 px-5 pt-6 pb-10">
-        {/* 제목 (카드 없이 상단에 붙은 형태) */}
-        <header>
+        {/* 제목 카드 */}
+        <header className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-center gap-1.5">
             <span className="text-lg font-bold tracking-tight text-blue-700">친해지길 바래</span>
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           </div>
 
           {!isAuthLoaded ? (
-            <div className="mt-1 h-8" />
+            <div className="mt-1 h-16" />
           ) : isNewcomer ? (
             <>
               <h1 className="mt-1 text-2xl font-extrabold leading-snug text-gray-900 break-keep">
-                시간표로 바로 만나는
+                단톡방 투표 없이,
                 <br />
-                시간 찾기
+                시간표로 바로 만나는 시간 찾기
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-gray-500 break-keep">
                 동아리 정모, 조별과제, 스터디 시간을 가장 빠르게 맞춰요.
@@ -69,11 +69,13 @@ export default function ChinbaHomePage() {
             </>
           ) : (
             <h1 className="mt-1 text-2xl font-extrabold leading-snug text-gray-900 break-keep">
+              단톡방 투표 없이,
+              <br />
               시간표로 바로 만나는 시간 찾기
             </h1>
           )}
 
-          {stats && (
+          {typeof stats?.total_teams === 'number' && (
             <p className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
               {stats.total_teams.toLocaleString('ko-KR')}개의 동아리가 함께하고 있어요
             </p>

@@ -61,8 +61,8 @@ captures/
 .externalNativeBuild
 .cxx/
 
-# Google Services (e.g. APIs or Firebase)
-# google-services.json
+# Google Services (e.g. APIs or Firebase) — plane별로 다르므로 커밋 금지 (docs/release/mobile-release-runbook.md)
+google-services.json
 
 # Freeline
 freeline.py

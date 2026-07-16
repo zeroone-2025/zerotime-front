@@ -70,8 +70,8 @@ export default function FlowCareerPage() {
           isMentor={profile?.is_mentor}
           visibility={profile?.visibility ?? 'private'}
           summary={{
-            languageScores: profile?.language_scores.length ?? 0,
-            certifications: profile?.certifications.length ?? 0,
+            languageScores: profile?.language_scores?.length ?? 0,
+            certifications: profile?.certifications?.length ?? 0,
             experiences: experiences.length,
             awards: awards.length,
           }}

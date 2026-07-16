@@ -135,26 +135,33 @@ function AnimatedCount({ value }: { value: number }) {
 export default function UserStatsBanner({ isLoggedIn, school, onSignupClick }: UserStatsBannerProps) {
     const { data: stats, isLoading } = useUserStats(school);
 
-    if (isLoading || !stats) return null;
-
     if (!isLoggedIn) {
+        // 통계 API 로딩/실패 여부와 무관하게 학교 선택 드롭다운은 항상 보여야 한다 —
+        // stats는 왼쪽 홍보 문구에만 필요하고, 드롭다운 기능 자체는 이 API와 무관하다.
+        const statsReady = !isLoading && !!stats;
         return (
             <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 w-[calc(100%-2rem)] animate-slideDown">
-                <button onClick={onSignupClick} className="flex items-start gap-3 text-left min-w-0 flex-1">
-                    <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                        <p className="text-sm text-gray-700">
-                            벌써 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생이 제로타임을 쓰고 있어요
-                        </p>
-                        <p className="text-xs font-semibold text-blue-600 mt-1.5">
-                            나만 놓치고 있을 수도? →
-                        </p>
-                    </div>
-                </button>
+                {statsReady ? (
+                    <button onClick={onSignupClick} className="flex items-start gap-3 text-left min-w-0 flex-1">
+                        <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-sm text-gray-700">
+                                벌써 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생이 제로타임을 쓰고 있어요
+                            </p>
+                            <p className="text-xs font-semibold text-blue-600 mt-1.5">
+                                나만 놓치고 있을 수도? →
+                            </p>
+                        </div>
+                    </button>
+                ) : (
+                    <div className="min-w-0 flex-1" />
+                )}
                 <GuestSchoolSelector />
             </div>
         );
     }
+
+    if (isLoading || !stats) return null;
 
     return (
         <div className="mx-4 mb-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 animate-slideDown">

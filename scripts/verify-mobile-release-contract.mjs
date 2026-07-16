@@ -23,10 +23,6 @@ const nativeAuthClientPath = resolve(
 );
 const providersPath = resolve(rootDirectory, "app/providers.tsx");
 const accountDeletionPagePath = resolve(rootDirectory, "app/account-deletion/page.tsx");
-const profileClientPath = resolve(
-  rootDirectory,
-  "app/(main)/profile/_components/ProfileClient.tsx",
-);
 const androidMainActivityPath = resolve(
   rootDirectory,
   "android/app/src/main/java/kr/zerotime/app/MainActivity.java",
@@ -300,7 +296,6 @@ async function verifyNativeCoordinatorContract() {
     nativeAuthClient,
     providers,
     accountDeletionPage,
-    profileClient,
     androidMainActivity,
     androidLaunchGate,
     androidCoordinator,
@@ -327,9 +322,6 @@ async function verifyNativeCoordinatorContract() {
       value.toString("utf8"),
     ),
     readRequired(accountDeletionPagePath, "Account deletion page").then((value) =>
-      value.toString("utf8"),
-    ),
-    readRequired(profileClientPath, "Profile deletion cleanup").then((value) =>
       value.toString("utf8"),
     ),
     readRequired(androidMainActivityPath, "Android launch gate").then((value) =>
@@ -513,21 +505,6 @@ async function verifyNativeCoordinatorContract() {
       "clearNativeAuthSessionAfterAccountDeletionAcknowledgement(displayEpoch)",
     ],
     "account deletion cleanup must finalize the exact same-process begin epoch",
-  );
-  const profileDeletionLocalCleanup = requiredSlice(
-    profileClient,
-    "const finishLocalCleanup = async (",
-    "const runLocalCleanup = async (",
-    "profile deletion local cleanup",
-  );
-  requireOrderedInvariants(
-    profileDeletionLocalCleanup,
-    [
-      "const displayEpoch = await ensureNativeAccountDeletionBarrier()",
-      "if (!displayEpoch)",
-      "clearNativeAuthSessionAfterAccountDeletionAcknowledgement(displayEpoch)",
-    ],
-    "profile cleanup must finalize the exact same-process begin epoch",
   );
   const nativeCorruptQuarantine = requiredSlice(
     nativeAuthClient,

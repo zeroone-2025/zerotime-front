@@ -337,9 +337,6 @@ export default function SidebarContent({
             <a href="/terms/" className="hover:text-gray-700 hover:underline">
               이용약관
             </a>
-            <a href="/account-deletion/" className="hover:text-gray-700 hover:underline">
-              계정 삭제
-            </a>
           </nav>
           {/* Social Links */}
           <div className="flex items-center justify-center gap-4">

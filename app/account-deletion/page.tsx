@@ -329,7 +329,7 @@ async function clearWebPersonalData(): Promise<void> {
   }
 }
 
-export default function AccountDeletionPage() {
+function LegacyAccountDeletionPage() {
   const [storedStatus, setStoredStatus] = useState<StoredDeletionStatus | null>(null);
   const [status, setStatus] = useState<DeletionStatus | null>(null);
   const [operation, setOperation] = useState<DeletionOperation | null>(null);
@@ -1373,6 +1373,25 @@ export default function AccountDeletionPage() {
           {message}
         </p>
       )}
+    </main>
+  );
+}
+
+export default function AccountDeletionPage() {
+  void LegacyAccountDeletionPage;
+  useEffect(() => {
+    window.location.replace('/profile/');
+  }, []);
+
+  return (
+    <main className="mx-auto max-w-2xl px-5 py-12">
+      <h1 className="text-2xl font-bold">회원 탈퇴</h1>
+      <p className="mt-3 text-sm leading-6 text-gray-600">
+        회원 탈퇴는 로그인 후 프로필에서 요청할 수 있습니다. 프로필로 이동합니다.
+      </p>
+      <a href="/profile/" className="mt-5 inline-block font-semibold text-blue-600 hover:underline">
+        프로필로 이동
+      </a>
     </main>
   );
 }

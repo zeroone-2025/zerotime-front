@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appID": "5ZR495UQN7.kr.zerotime.app",
+        "paths": [
+          "/auth/native/callback/"
+        ]
+      }
+    ]
+  }
+}

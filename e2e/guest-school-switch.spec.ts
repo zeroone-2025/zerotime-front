@@ -4,6 +4,10 @@ import { test, expect } from '@playwright/test';
  * 게스트 학교 선택(버튼+펼침 메뉴)을 빠르게 여러 번 전환할 때
  * 게시판 목록 리셋과 refetch가 겹쳐서 깜빡이거나 꼬이지 않는지 확인.
  * 목킹 없이 실제 로컬 Docker 백엔드(localhost:8080)를 그대로 쓴다.
+ *
+ * ⚠️ 반드시 기본 포트(3000, PLAYWRIGHT_PORT 미지정)로 실행할 것 — 백엔드
+ * CORS_ORIGINS 기본값이 :3000만 허용해 다른 포트로 돌리면 /boards가 브라우저에서
+ * CORS로 차단되어 코드와 무관하게 실패한다.
  */
 
 const FULL_NAME: Record<string, string> = {

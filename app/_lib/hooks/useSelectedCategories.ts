@@ -6,7 +6,19 @@ import { getUserInit, getUserSubscriptions, updateUserSubscriptions, getBoards }
 import { checkHasToken } from '@/_lib/api/auth';
 import { GUEST_FILTER_KEY, GUEST_FILTER_SCHOOL_KEY, GUEST_DEFAULT_BOARDS, DEFAULT_GUEST_SCHOOL, getDefaultBoardCodes } from '@/_lib/constants/boards';
 import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
+import { useGuestSchoolStore } from '@/_lib/store/useGuestSchoolStore';
 import { useAuthInitialized } from '@/providers';
+
+/** localStorage(JSON 배열)를 안전하게 파싱한다 — 실패/비배열/빈 배열은 전부 "유효한 캐시 없음"으로 취급. */
+function parseNonEmptyBoardCodes(raw: string | null): string[] | null {
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 const USER_STORAGE_KEY = 'my_subscribed_categories'; // 로그인 사용자 캐시 키
 
@@ -70,36 +82,54 @@ export function useSelectedCategories() {
         // 게스트가 고른 학교가 아직 안 정해졌으면(useGuestSchool 마운트 전) 대기
         if (isGuestSchoolLoading) return;
 
+        const requestedSchool = guestSchool;
         const savedSchool = localStorage.getItem(GUEST_FILTER_SCHOOL_KEY);
-        const saved = localStorage.getItem(GUEST_FILTER_KEY);
+        const parsedSaved = parseNonEmptyBoardCodes(localStorage.getItem(GUEST_FILTER_KEY));
 
         // 학교가 바뀌었는지 판단. 마커가 없는 기존 사용자는 아직 기본 학교(전북대)를
         // 보고 있는 한 "안 바뀐 것"으로 간주해 기존 선택을 건드리지 않는다.
         const schoolChanged = savedSchool
-          ? savedSchool !== guestSchool
-          : guestSchool !== DEFAULT_GUEST_SCHOOL;
+          ? savedSchool !== requestedSchool
+          : requestedSchool !== DEFAULT_GUEST_SCHOOL;
 
-        if (schoolChanged || !saved) {
-          // 새 학교의 기본 구독 게시판을 API에서 가져와 초기화
-          let defaultCategories: string[];
+        // 학교가 바뀌었거나, 캐시가 아예 없거나(첫 방문/파싱 실패), 예전에 API 실패로
+        // []가 잘못 저장돼 있던 경우(자동 복구 대상)엔 새로 받아온다.
+        if (schoolChanged || parsedSaved === null) {
+          let confirmedCategories: string[] | null = null;
           try {
-            const boards = await getBoards(guestSchool);
-            defaultCategories = getDefaultBoardCodes(boards);
+            const boards = await getBoards(requestedSchool);
+            const codes = getDefaultBoardCodes(boards);
+            // 빈 결과는 "확정된 게시판 없음"이 아니라 API 이상 신호로 취급 — 성공해도
+            // 1개 이상일 때만 새 학교 캐시로 확정한다.
+            if (codes.length > 0) confirmedCategories = codes;
           } catch (error) {
             console.error('Failed to fetch default boards, falling back:', error);
-            defaultCategories = guestSchool === DEFAULT_GUEST_SCHOOL ? [...GUEST_DEFAULT_BOARDS] : [];
           }
-          localStorage.setItem(GUEST_FILTER_KEY, JSON.stringify(defaultCategories));
-          localStorage.setItem(GUEST_FILTER_SCHOOL_KEY, guestSchool);
-          setSelectedCategories(defaultCategories);
+
+          // 응답을 기다리는 사이 사용자가 다른 학교로 또 전환했다면 이 응답은 오래된
+          // 것이므로 버린다 — 늦게 도착한 응답이 최신 학교 선택을 덮어쓰지 않게 한다.
+          if (useGuestSchoolStore.getState().guestSchool !== requestedSchool) {
+            return;
+          }
+
+          if (confirmedCategories) {
+            // API 성공 + 기본 게시판 1개 이상일 때만 새 학교 캐시를 확정 저장한다.
+            localStorage.setItem(GUEST_FILTER_KEY, JSON.stringify(confirmedCategories));
+            localStorage.setItem(GUEST_FILTER_SCHOOL_KEY, requestedSchool);
+            setSelectedCategories(confirmedCategories);
+          } else if (requestedSchool === DEFAULT_GUEST_SCHOOL && parsedSaved === null) {
+            // 유지할 기존 캐시가 전혀 없고 전북대인 경우에만 하드코딩 폴백을 쓴다.
+            // 이 폴백은 API 확정 결과가 아니므로 localStorage엔 저장하지 않는다 —
+            // 다음 로드 때 다시 API를 시도한다.
+            setSelectedCategories([...GUEST_DEFAULT_BOARDS]);
+          }
+          // 그 외(실패/빈 응답 + 유지할 기존 캐시 없음 + 전북대도 아님)엔 아무것도
+          // 하지 않는다 — 기존 selectedCategories를 그대로 두어 화면이 갑자기
+          // 비워지지 않게 하고, localStorage에도 실패를 "확정"으로 남기지 않아
+          // 다음 로드(새로고침)에서 API를 다시 시도하게 한다.
         } else {
-          // 기존 값 사용 (같은 학교)
-          try {
-            const parsed = JSON.parse(saved);
-            setSelectedCategories(Array.isArray(parsed) ? parsed : []);
-          } catch {
-            setSelectedCategories([]);
-          }
+          // 기존 값 사용 (같은 학교 + 유효한 비어있지 않은 캐시)
+          setSelectedCategories(parsedSaved);
         }
       }
 

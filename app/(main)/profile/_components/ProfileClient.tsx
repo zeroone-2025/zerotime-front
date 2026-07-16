@@ -605,7 +605,7 @@ export default function ProfileClient() {
               </div>
             )}
             <p className="mb-2 text-xs leading-5 text-gray-500">
-              회원 탈퇴 시 계정 접근이 즉시 비활성화됩니다. 개인정보의 최종 삭제·보관 정책은 재설계 중입니다.
+              회원 탈퇴 시 계정 접근이 즉시 비활성화됩니다.
             </p>
             <button
               type="button"
@@ -627,9 +627,6 @@ export default function ProfileClient() {
             variant="danger"
           >
             <p>회원 탈퇴 시 계정 접근이 즉시 비활성화됩니다.</p>
-            <p className="mt-1 text-xs text-gray-500">
-              개인정보의 최종 삭제·보관 및 복구 정책은 재설계 중입니다.
-            </p>
           </ConfirmModal>
         </div>
       </div>

@@ -13,8 +13,8 @@ test.describe('필터 페이지 - 게스트', () => {
 
   test('게시판 카테고리가 표시된다', async ({ asGuest }) => {
     await asGuest.goto('/filter');
-    // 카테고리 헤더 h4가 보여야 함
-    await expect(asGuest.getByRole('heading', { name: '전북대', exact: true })).toBeVisible({ timeout: 10_000 });
+    // 카테고리 헤더 h4가 보여야 함 (구 '전북대' 라벨 → 다학교 지원으로 '본부'로 개칭)
+    await expect(asGuest.getByRole('heading', { name: '본부', exact: true })).toBeVisible({ timeout: 10_000 });
   });
 
   test('게시판 검색 입력란이 있다', async ({ asGuest }) => {
@@ -31,7 +31,7 @@ test.describe('필터 페이지 - 로그인 사용자', () => {
 
   test('게시판 카테고리가 표시된다', async ({ asLoggedInUser }) => {
     await asLoggedInUser.goto('/filter');
-    await expect(asLoggedInUser.getByRole('heading', { name: '전북대', exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(asLoggedInUser.getByRole('heading', { name: '본부', exact: true })).toBeVisible({ timeout: 10_000 });
   });
 });
 

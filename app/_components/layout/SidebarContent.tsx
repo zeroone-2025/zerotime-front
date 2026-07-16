@@ -151,7 +151,7 @@ export default function SidebarContent({
       setDeptName(null);
       return;
     }
-    getAllDepartments(true)
+    getAllDepartments(true, user.school)
       .then((depts) => {
         const found = depts.find((d) => d.dept_code === user.dept_code);
         setDeptName(found?.dept_name || null);

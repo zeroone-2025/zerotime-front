@@ -6,8 +6,10 @@ export interface UserStats {
     updated_at: string;
 }
 
-export const getUserStats = async () => {
-    const response = await api.get<UserStats>('/stats/users');
+export const getUserStats = async (school?: string) => {
+    const response = await api.get<UserStats>('/stats/users', {
+        params: school ? { school } : {},
+    });
     return response.data;
 };
 

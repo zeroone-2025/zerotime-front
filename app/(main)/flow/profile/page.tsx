@@ -36,7 +36,7 @@ function PublicFlowProfileInner() {
       setDeptName(null);
       return;
     }
-    getAllDepartments(true)
+    getAllDepartments(true, profile.user.school ?? undefined)
       .then((depts) => {
         const found = depts.find((d) => d.dept_code === profile.user.dept_code);
         setDeptName(found?.dept_name || null);

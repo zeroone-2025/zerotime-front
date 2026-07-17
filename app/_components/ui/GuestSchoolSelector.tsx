@@ -3,15 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { FiShield, FiChevronDown, FiCheck } from 'react-icons/fi';
 
-import { GUEST_SCHOOL_OPTIONS } from '@/_lib/constants/boards';
+import { GUEST_SCHOOL_OPTIONS, SCHOOL_FULL_NAME } from '@/_lib/constants/boards';
 import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
-
-const SCHOOL_FULL_NAME: Record<string, string> = {
-  전북대: '전북대학교',
-  전남대: '전남대학교',
-  경북대: '경북대학교',
-  충남대: '충남대학교',
-};
 
 /**
  * 게스트(비로그인) 전용 학교 선택 드롭다운.

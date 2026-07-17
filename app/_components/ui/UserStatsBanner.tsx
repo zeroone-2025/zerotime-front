@@ -142,17 +142,20 @@ export default function UserStatsBanner({ isLoggedIn, school, onSignupClick }: U
         return (
             <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 w-[calc(100%-2rem)] animate-slideDown">
                 {statsReady ? (
-                    <button onClick={onSignupClick} className="flex items-start gap-3 text-left min-w-0 flex-1">
+                    // 배너 전체가 아니라 유도 문구만 클릭되게 한다 — 사용자는 "나만 놓치고
+                    // 있을 수도? →"만 버튼으로 인식하므로, 배너 오탭으로 의도치 않게 로그인
+                    // 화면에 가는 것을 막는다. block+text-left로 기존 <p>와 동일 기하 유지.
+                    <div className="flex items-start gap-3 text-left min-w-0 flex-1">
                         <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
                         <div className="min-w-0">
                             <p className="text-sm text-gray-700">
                                 벌써 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생이 제로타임을 쓰고 있어요
                             </p>
-                            <p className="text-xs font-semibold text-blue-600 mt-1.5">
+                            <button onClick={onSignupClick} className="block text-left text-xs font-semibold text-blue-600 mt-1.5">
                                 나만 놓치고 있을 수도? →
-                            </p>
+                            </button>
                         </div>
-                    </button>
+                    </div>
                 ) : (
                     <div className="min-w-0 flex-1" />
                 )}

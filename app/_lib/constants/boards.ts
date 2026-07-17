@@ -35,6 +35,17 @@ export const GUEST_SCHOOL_OPTIONS = ['전북대', '전남대', '경북대', '충
 export const DEFAULT_GUEST_SCHOOL = '전북대';
 
 /**
+ * 학교 축약명 → 전체 이름. 사이드바 라벨·게스트 학교 선택 드롭다운 등에서 공용으로 쓴다.
+ * 매핑에 없는 값은 축약명을 그대로 노출한다(호출부에서 `?? school` fallback).
+ */
+export const SCHOOL_FULL_NAME: Record<string, string> = {
+  전북대: '전북대학교',
+  전남대: '전남대학교',
+  경북대: '경북대학교',
+  충남대: '충남대학교',
+};
+
+/**
  * 게시판 목록에서 기본 구독 대상(board.default_subscribe === true)만 board_code로 뽑는다.
  * 정책(어떤 게시판이 기본값인지)은 백엔드가 결정하므로(`GET /boards`의 default_subscribe
  * 필드) 프론트는 그 값을 그대로 필터링만 한다.

@@ -10,7 +10,7 @@ export interface UserProfile {
     admission_year: number | null;
     profile_image: string | null;
     role: string; // "user" | "admin" | "super_admin"
-    user_type: 'student' | 'mentor';
+    user_type: 'student' | 'mentor' | ''; // '' = 온보딩 미완료(신규 가입) — 온보딩 노출 판정 기준
     created_at: string;
     keyword_notice_seen_at: string | null;
 }

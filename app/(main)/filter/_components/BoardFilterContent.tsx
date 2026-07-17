@@ -30,6 +30,19 @@ const CHOSEONG = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ',
 
 const normalizeSearchText = (text: string) => text.toLowerCase().replace(/\s+/g, '');
 
+/**
+ * 저장한 그룹을 적용할 때, 현재 학교의 게시판 목록에 실재하는 board_code만 남긴다.
+ * (학교 A에서 저장한 그룹을 학교 B에서 불러오면 타 학교 코드는 화면에 안 뜨지만
+ * tempSelection에 남아 그대로 저장되는 버그가 있었다 — 여기서 걸러낸다.)
+ */
+export const filterBoardCodesToSchool = (
+  boardCodes: string[],
+  boardList: BoardInfo[],
+): string[] => {
+  const available = new Set(boardList.map((board) => board.board_code));
+  return boardCodes.filter((code) => available.has(code));
+};
+
 const getChoseong = (text: string) => {
   let result = '';
   for (const char of text) {
@@ -195,7 +208,7 @@ export default function BoardFilterContent({
   };
 
   const handleApplyBoardGroup = (group: BoardGroup) => {
-    setTempSelection(new Set(group.board_codes));
+    setTempSelection(new Set(filterBoardCodesToSchool(group.board_codes, boardList)));
   };
 
   const handleDeleteBoardGroup = async (groupId: number) => {

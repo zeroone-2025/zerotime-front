@@ -172,7 +172,6 @@ export default function UserInfoForm({
                         <option value="전남대">전남대학교</option>
                         <option value="경북대">경북대학교</option>
                         <option value="충남대">충남대학교</option>
-                        <option value="기타">기타</option>
                     </select>
                     {!(isReadonlySchool || isReadonly) && (
                         <div className="absolute inset-y-0 flex items-center text-gray-400 pointer-events-none right-4">

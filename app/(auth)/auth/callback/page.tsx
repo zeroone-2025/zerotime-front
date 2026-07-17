@@ -82,7 +82,7 @@ function AuthCallbackContent() {
           return;
         }
 
-        if (!userProfile.dept_code) {
+        if (!userProfile.user_type) {
           setStatus('환영합니다! 온보딩 정보를 입력해주세요.');
           setTimeout(() => {
             router.replace('/onboarding?login=success');

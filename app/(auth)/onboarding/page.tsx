@@ -91,8 +91,12 @@ function OnboardingPageContent() {
           : pendingData;
 
         const result = await submitPendingOnboarding(payloadToSubmit);
-        queryClient.setQueryData(['user', 'profile'], result.user);
         setUser(result.user);
+        // useUpdateUser와 동일 패턴: 프로필이 실제로 읽는 ['user','init']와 구독/공지 캐시를
+        // 무효화해, stale 캐시가 방금 저장한 학교/학과를 되덮지 않게 한다.
+        queryClient.invalidateQueries({ queryKey: ['user', 'init'] });
+        queryClient.invalidateQueries({ queryKey: ['user', 'subscriptions'] });
+        queryClient.invalidateQueries({ queryKey: ['notices', 'infinite'] });
         localStorage.setItem('my_subscribed_categories', JSON.stringify(result.subscribedBoards));
         clearPendingOnboarding();
         localStorage.removeItem(ONBOARDING_DRAFT_STORAGE_KEY);
@@ -117,6 +121,11 @@ function OnboardingPageContent() {
     localStorage.setItem('my_subscribed_categories', JSON.stringify(categories));
     clearPendingOnboarding();
     localStorage.removeItem(ONBOARDING_DRAFT_STORAGE_KEY);
+    // useUpdateUser와 동일 패턴: 프로필이 실제로 읽는 ['user','init']와 구독/공지 캐시를
+    // 무효화해, 완료 후 이동한 화면이 stale 캐시로 이전 학교/학과를 되살리지 않게 한다.
+    queryClient.invalidateQueries({ queryKey: ['user', 'init'] });
+    queryClient.invalidateQueries({ queryKey: ['user', 'subscriptions'] });
+    queryClient.invalidateQueries({ queryKey: ['notices', 'infinite'] });
     router.replace(options?.redirectTo || '/');
   };
 

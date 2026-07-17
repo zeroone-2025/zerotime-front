@@ -529,8 +529,12 @@ export default function OnboardingModal({
     try {
       const result = await completeOnboarding(onboardingPayload);
 
-      queryClient.setQueryData(['user', 'profile'], result.user);
       setUser(result.user);
+      // useUpdateUser와 동일 패턴: 프로필이 실제로 읽는 ['user','init']와 구독/공지 캐시를
+      // 무효화해, stale 캐시가 방금 저장한 학교/학과를 되덮지 않게 한다.
+      queryClient.invalidateQueries({ queryKey: ['user', 'init'] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['notices', 'infinite'] });
       localStorage.setItem('my_subscribed_categories', JSON.stringify(result.subscribed_boards));
       clearOnboardingDraft();
       onShowToast?.('제로타임에 오신 것을 환영합니다! 🎉', 'success');
@@ -572,8 +576,12 @@ export default function OnboardingModal({
       const defaultBoards = onboardingPayload.board_codes;
       const result = await completeOnboarding(onboardingPayload);
 
-      queryClient.setQueryData(['user', 'profile'], result.user);
       setUser(result.user);
+      // useUpdateUser와 동일 패턴: 프로필이 실제로 읽는 ['user','init']와 구독/공지 캐시를
+      // 무효화해, stale 캐시가 방금 저장한 학교/학과를 되덮지 않게 한다.
+      queryClient.invalidateQueries({ queryKey: ['user', 'init'] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['notices', 'infinite'] });
       localStorage.setItem('my_subscribed_categories', JSON.stringify(defaultBoards));
       clearOnboardingDraft();
       onShowToast?.('제로타임에 오신 것을 환영합니다! 🎉', 'success');
@@ -896,8 +904,12 @@ export default function OnboardingModal({
       await saveCareerEducations(normalizedEducationsUpdate);
       await saveCareerMentorQnA(normalizedSeniorQna);
 
-      queryClient.setQueryData(['user', 'profile'], onboardingResult.user);
       setUser(onboardingResult.user);
+      // useUpdateUser와 동일 패턴: 프로필이 실제로 읽는 ['user','init']와 구독/공지 캐시를
+      // 무효화해, stale 캐시가 방금 저장한 학교/학과를 되덮지 않게 한다.
+      queryClient.invalidateQueries({ queryKey: ['user', 'init'] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['notices', 'infinite'] });
       localStorage.setItem('my_subscribed_categories', JSON.stringify(onboardingResult.subscribed_boards));
       clearOnboardingDraft();
       onSeniorCompleted?.();

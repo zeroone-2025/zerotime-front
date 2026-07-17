@@ -18,6 +18,8 @@ import { SiNaver } from 'react-icons/si';
 
 import { IconType } from 'react-icons';
 import { useUser } from '@/_lib/hooks/useUser';
+import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
+import { SCHOOL_FULL_NAME } from '@/_lib/constants/boards';
 import { getAllDepartments, logoutUser } from '@/_lib/api';
 import { useUserStore } from '@/_lib/store/useUserStore';
 import { useMyChinbaEvents } from '@/_lib/hooks/useChinba';
@@ -44,7 +46,8 @@ interface ServiceItem {
 
 const SERVICE_ITEMS: ServiceItem[] = [
   { id: 'profile', label: '프로필', icon: FiUser, href: '/profile', matchPath: '/profile' },
-  { id: 'jbnu-alarm', label: '전북대 알리미', icon: FiBell, matchPath: '/' },
+  // jbnu-alarm 라벨은 렌더 시점에 `<학교 전체명> 알리미`로 치환한다(아래 alarmLabel 참고).
+  { id: 'jbnu-alarm', label: '알리미', icon: FiBell, matchPath: '/' },
   { id: 'chinba', label: '친해지길 바래', icon: FiUsers, matchPath: '/chinba' },
 ];
 
@@ -61,6 +64,9 @@ export default function SidebarContent({
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoggedIn, isAuthLoaded, isLoading } = useUser();
+  const { guestSchool } = useGuestSchool();
+  const activeSchool = user?.school || guestSchool;
+  const alarmLabel = `${SCHOOL_FULL_NAME[activeSchool] ?? activeSchool} 알리미`;
   const clearUser = useUserStore((state) => state.clearUser);
   const [chinbaExpanded, setChinbaExpanded] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -240,7 +246,9 @@ export default function SidebarContent({
                 }`}
               >
                 <Icon size={18} />
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-sm font-medium">
+                  {item.id === 'jbnu-alarm' ? alarmLabel : item.label}
+                </span>
                 {isItemActive(item) && (
                   <span className="ml-auto rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-500">
                     현재

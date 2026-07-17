@@ -6,6 +6,8 @@ import { useToast } from '@/_context/ToastContext';
 import SidebarContent from './SidebarContent';
 import { useRouter } from 'next/navigation';
 import { FiUser, FiBell, FiUsers, FiSettings, FiChevronsRight, FiZap } from 'react-icons/fi';
+import { SCHOOL_FULL_NAME } from '@/_lib/constants/boards';
+import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
 import { useUser } from '@/_lib/hooks/useUser';
 
 interface DesktopSidebarProps {
@@ -22,7 +24,8 @@ interface CollapsedNavItem {
 }
 
 const NAV_ITEMS: CollapsedNavItem[] = [
-  { id: 'jbnu-alarm', icon: FiBell, href: '/', label: '전북대 알리미', matchPath: '/' },
+  // jbnu-alarm 라벨(툴팁)은 렌더 시점에 `<학교 전체명> 알리미`로 치환한다(아래 alarmLabel 참고).
+  { id: 'jbnu-alarm', icon: FiBell, href: '/', label: '알리미', matchPath: '/' },
   { id: 'chinba', icon: FiUsers, href: '/chinba', label: '친해지길 바래', matchPath: '/chinba' },
   { id: 'flow', icon: FiZap, href: '/flow', label: 'FLOW', matchPath: '/flow' },
 ];
@@ -32,6 +35,9 @@ export default function DesktopSidebar({ collapsed, onToggle }: DesktopSidebarPr
   const pathname = usePathname();
   const { showToast } = useToast();
   const { user, isLoggedIn } = useUser();
+  const { guestSchool } = useGuestSchool();
+  const activeSchool = user?.school || guestSchool;
+  const alarmLabel = `${SCHOOL_FULL_NAME[activeSchool] ?? activeSchool} 알리미`;
 
   const [transitionEnabled, setTransitionEnabled] = useState(false);
   useEffect(() => {
@@ -94,7 +100,7 @@ export default function DesktopSidebar({ collapsed, onToggle }: DesktopSidebarPr
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
               }`}
-              title={item.label}
+              title={item.id === 'jbnu-alarm' ? alarmLabel : item.label}
             >
               <Icon size={20} />
             </button>

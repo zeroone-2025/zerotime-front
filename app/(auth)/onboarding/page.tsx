@@ -55,10 +55,10 @@ function OnboardingPageContent() {
   useEffect(() => {
     if (!isAuthLoaded) return;
     if (onboardingCompletedRef.current) return;
-    if (isLoggedIn && user?.dept_code) {
+    if (isLoggedIn && user?.user_type) {
       router.replace('/');
     }
-  }, [isAuthLoaded, isLoggedIn, user?.dept_code, router]);
+  }, [isAuthLoaded, isLoggedIn, user?.user_type, router]);
 
   useEffect(() => {
     if (!isAuthLoaded || !isLoggedIn || didTryResumeRef.current) return;

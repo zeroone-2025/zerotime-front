@@ -1,22 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FiSettings } from 'react-icons/fi';
 
-import FullPageModal from '@/_components/layout/FullPageModal';
-import LoadingSpinner from '@/_components/ui/LoadingSpinner';
-import { useGroupSets } from '@/_lib/hooks/useGroups';
-import { useSmartBack } from '@/_lib/hooks/useSmartBack';
-import { useTeamDetail } from '@/_lib/hooks/useTeam';
-import { useAuthInitialized } from '@/providers';
+import ClubSwitcher from '@/(main)/chinba/_components/team/ClubSwitcher';
+import CategoryFilterBar from '@/(main)/teams/_components/CategoryFilterBar';
 import GroupFilterBar from '@/(main)/teams/_components/GroupFilterBar';
 import TeamSegmentTabs, { type TeamSegment } from '@/(main)/teams/_components/TeamSegmentTabs';
 import UpgradeModal from '@/(main)/teams/_components/UpgradeModal';
 import ActivityTab from '@/(main)/teams/detail/_components/ActivityTab';
 import JababwaTab from '@/(main)/teams/detail/_components/JababwaTab';
 import MannajaTab from '@/(main)/teams/detail/_components/MannajaTab';
+import FullPageModal from '@/_components/layout/FullPageModal';
+import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useEventCategories } from '@/_lib/hooks/useCategories';
+import { useGroupSets } from '@/_lib/hooks/useGroups';
+import { useSmartBack } from '@/_lib/hooks/useSmartBack';
+import { useTeamDetail } from '@/_lib/hooks/useTeam';
+import { setLastTeamId } from '@/_lib/utils/chinbaSelection';
+import { useAuthInitialized } from '@/providers';
 
 export default function TeamDetailView() {
   const router = useRouter();
@@ -32,11 +36,33 @@ export default function TeamDetailView() {
   const { data: groupSetsData } = useGroupSets(teamId || undefined);
   const [activeTab, setActiveTab] = useState<TeamSegment>(initialTab);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [pendingTab, setPendingTab] = useState<TeamSegment | null>(null);
+  const [freeNoticeSeen, setFreeNoticeSeen] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
   const groupSets = groupSetsData?.group_sets ?? [];
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
+
+  const { data: categoriesData } = useEventCategories(teamId || undefined);
+  const categories = categoriesData?.categories ?? [];
+
+  // 선택 중이던 카테고리가 삭제되면 필터 자동 해제 (로딩 중 오리셋 방지 위해 데이터 존재 가드)
+  useEffect(() => {
+    if (
+      selectedCategoryId != null &&
+      categoriesData &&
+      !categoriesData.categories.some((c) => c.id === selectedCategoryId)
+    ) {
+      setSelectedCategoryId(null);
+    }
+  }, [categoriesData, selectedCategoryId]);
+
+  // 마지막으로 본 동아리를 기억 → 하단 `동아리` 탭이 여기로 바로 들어옴
+  useEffect(() => {
+    if (teamId) setLastTeamId(teamId);
+  }, [teamId]);
 
   // Sync tab state when URL changes (e.g. browser back/forward)
   useEffect(() => {
@@ -48,16 +74,22 @@ export default function TeamDetailView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // 뭐했니/잡아봐 탭: 무료 이벤트 기간 — 안내 팝업 1회 노출 후 진입 허용
   const isPaidTab = (tab: TeamSegment) => tab === 'mwoheni' || tab === 'jabahbwa';
   const needsSubscription = team && !team.is_paid;
 
+  const goToTab = (tab: TeamSegment) => {
+    setActiveTab(tab);
+    router.replace(`/chinba/team/detail?id=${teamId}&tab=${tab}`);
+  };
+
   const handleTabChange = (tab: TeamSegment) => {
-    if (isPaidTab(tab) && needsSubscription) {
+    if (isPaidTab(tab) && needsSubscription && !freeNoticeSeen) {
+      setPendingTab(tab);
       setShowUpgrade(true);
       return;
     }
-    setActiveTab(tab);
-    router.replace(`/chinba/team/detail?id=${teamId}&tab=${tab}`);
+    goToTab(tab);
   };
 
   const handleSettingsClick = () => {
@@ -102,13 +134,13 @@ export default function TeamDetailView() {
 
   const renderTabContent = () => {
     if (activeTab === 'mannaja') {
-      return <MannajaTab teamId={teamId} myRole={team.my_role} memberCount={team.member_count} inviteCode={team.invite_code} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} terminology="club" />;
+      return <MannajaTab teamId={teamId} myRole={team.my_role} memberCount={team.member_count} inviteCode={team.invite_code} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} selectedCategoryId={selectedCategoryId} terminology="club" />;
     }
     if (activeTab === 'mwoheni') {
-      return <ActivityTab teamId={teamId} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} terminology="club" />;
+      return <ActivityTab teamId={teamId} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} selectedCategoryId={selectedCategoryId} terminology="club" />;
     }
     if (activeTab === 'jabahbwa') {
-      return <JababwaTab teamId={teamId} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} />;
+      return <JababwaTab teamId={teamId} myRole={team.my_role} selectedSetId={effectiveSetId} selectedGroupId={selectedGroupId} selectedCategoryId={selectedCategoryId} />;
     }
     return null;
   };
@@ -124,21 +156,33 @@ export default function TeamDetailView() {
   );
 
   return (
-    <FullPageModal isOpen={true} onClose={goBack} title={team.name} headerRight={settingsButton}>
+    <FullPageModal
+      isOpen={true}
+      onClose={goBack}
+      title={<ClubSwitcher currentTeamId={teamId} currentName={team.name} />}
+      headerRight={settingsButton}
+    >
       {/* Segment Tabs */}
       <div className="shrink-0">
         <TeamSegmentTabs activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
 
-      {/* Group Filter */}
-      {groupSets.length > 0 && (
-        <div className="shrink-0 px-4 pt-3">
-          <GroupFilterBar
-            groupSets={groupSets}
-            selectedSetId={effectiveSetId}
-            selectedGroupId={selectedGroupId}
-            onSetChange={setSelectedSetId}
-            onGroupChange={setSelectedGroupId}
+      {/* Group / Category Filter */}
+      {(groupSets.length > 0 || categories.length > 0) && (
+        <div className="shrink-0 px-4 pt-3 space-y-2">
+          {groupSets.length > 0 && (
+            <GroupFilterBar
+              groupSets={groupSets}
+              selectedSetId={effectiveSetId}
+              selectedGroupId={selectedGroupId}
+              onSetChange={setSelectedSetId}
+              onGroupChange={setSelectedGroupId}
+            />
+          )}
+          <CategoryFilterBar
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onChange={setSelectedCategoryId}
           />
         </div>
       )}
@@ -154,6 +198,11 @@ export default function TeamDetailView() {
         onClose={() => setShowUpgrade(false)}
         teamId={teamId}
         terminology="club"
+        onConfirm={() => {
+          setFreeNoticeSeen(true);
+          if (pendingTab) goToTab(pendingTab);
+          setPendingTab(null);
+        }}
       />
     </FullPageModal>
   );

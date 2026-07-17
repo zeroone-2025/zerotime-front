@@ -42,9 +42,11 @@
 
 ## Constants (`constants/`)
 
-- `boards.ts` — `BOARD_MAP`: 150개+ 게시판 메타데이터 (`{ name, color, category }`)
-  - 카테고리: 전북대, 단과대, 학과, 사업단
-  - 색상: blue, green, orange, indigo, sky, teal, gray 등
+- `boards.ts` — 게시판 이름/카테고리는 더 이상 하드코딩하지 않음(다학교 확장으로
+  폐기). `GET /boards`가 `{board_code, name, school, category}`를 반환하므로
+  `hooks/useBoards.ts`(`useAllBoards`/`useBoardsBySchool`)로 조회한다.
+  - `CATEGORY_ORDER`: 본부, 단과대, 학과, 사업단
+  - `CATEGORY_COLORS`: 카테고리 단위 배지 색상(blue/gray/orange/green)
 - `presets.ts` — 게시판 그룹 프리셋
 - `theme.ts` — 테마 상수
 

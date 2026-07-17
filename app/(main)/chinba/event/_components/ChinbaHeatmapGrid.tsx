@@ -123,6 +123,7 @@ export default function ChinbaHeatmapGrid({
               return (
                 <div
                   key={dtKey}
+                  data-slot-key={dtKey}
                   className={`relative flex items-center justify-center border-r border-gray-100 ${bgColor} ${isHourBorder ? 'border-t border-t-gray-200' : 'border-t border-t-gray-100/50'
                     } cursor-pointer transition-opacity hover:opacity-80`}
                   // 셀 크기 조정

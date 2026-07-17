@@ -31,7 +31,7 @@ export default function FlowCareerPage() {
       setDeptName(null);
       return;
     }
-    getAllDepartments(true)
+    getAllDepartments(true, user.school)
       .then((depts) => {
         const found = depts.find((d) => d.dept_code === user.dept_code);
         setDeptName(found?.dept_name || null);
@@ -70,8 +70,8 @@ export default function FlowCareerPage() {
           isMentor={profile?.is_mentor}
           visibility={profile?.visibility ?? 'private'}
           summary={{
-            languageScores: profile?.language_scores.length ?? 0,
-            certifications: profile?.certifications.length ?? 0,
+            languageScores: profile?.language_scores?.length ?? 0,
+            certifications: profile?.certifications?.length ?? 0,
             experiences: experiences.length,
             awards: awards.length,
           }}

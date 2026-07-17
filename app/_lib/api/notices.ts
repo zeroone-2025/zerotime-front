@@ -43,6 +43,27 @@ export const fetchNoticesInfinite = async (
     return response.data;
 };
 
+// 공지사항 제목 검색 (커서 기반)
+// 검색 범위: 교내공지(home_campus)는 항상 포함 + 구독 게시판(boardCodes).
+//   로그인 사용자는 서버 구독 목록을 기준으로 하므로 boardCodes는 비로그인(게스트)용이다.
+// 기간: 백엔드가 오늘 기준 최근 5년 이내로 제한한다.
+export const searchNotices = async (
+    query: string,
+    cursor: string | null = null,
+    limit: number = 20,
+    boardCodes?: string[],
+) => {
+    const response = await api.get<NoticeListResponse>('/notices/search', {
+        params: {
+            q: query,
+            cursor: cursor ?? undefined,
+            limit,
+            board_codes: boardCodes && boardCodes.length > 0 ? boardCodes.join(',') : undefined,
+        },
+    });
+    return response.data;
+};
+
 // 수동 크롤링 트리거
 export const triggerCrawl = async () => {
     return api.post('/notices/crawl');

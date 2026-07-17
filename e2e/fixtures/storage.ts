@@ -22,13 +22,10 @@ export async function setLocalStorage(page: Page, items: Record<string, string>)
  */
 export async function setupGuestBoards(page: Page) {
   await setLocalStorage(page, {
-    JB_ALARM_GUEST_FILTER: JSON.stringify({
-      version: 2,
-      boards: [
-        'home_campus', 'home_student', 'home_lecture',
-        'home_news', 'home_contest', 'home_parttime', 'agency_sw',
-      ],
-    }),
+    JB_ALARM_GUEST_FILTER: JSON.stringify([
+      'home_campus', 'home_student', 'home_lecture',
+      'home_news', 'home_contest', 'home_parttime', 'agency_sw',
+    ]),
   });
 }
 

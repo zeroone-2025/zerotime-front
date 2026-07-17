@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+
 import { FiSearch, FiX } from 'react-icons/fi';
+
 import { getAllDepartments } from '@/_lib/api';
 import { filterAndSort } from '@/_lib/utils/search';
 import type { Department } from '@/_types/department';
@@ -12,6 +14,7 @@ interface DepartmentSearchProps {
   placeholder?: string;
   isReadonly?: boolean;
   hasError?: boolean;
+  school?: string; // 소속 대학 (미지정 시 백엔드 기본값 "전북대")
 }
 
 export default function DepartmentSearch({
@@ -20,6 +23,7 @@ export default function DepartmentSearch({
   placeholder = '학과를 검색하세요 (예: 컴퓨터, 경영)',
   isReadonly = false,
   hasError = false,
+  school,
 }: DepartmentSearchProps) {
   const [query, setQuery] = useState('');
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
@@ -29,11 +33,12 @@ export default function DepartmentSearch({
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 1. 모든 학과 정보 미리 가져오기
+  // 1. 학교가 정해지면(또는 바뀌면) 그 학교의 학과 정보를 가져오기
   useEffect(() => {
+    setIsLoading(true);
     const fetchAll = async () => {
       try {
-        const data = await getAllDepartments(true); // 학과만
+        const data = await getAllDepartments(true, school); // 학과만
         setAllDepartments(data);
       } catch (error) {
         console.error('학과 목록 로드 실패:', error);
@@ -42,7 +47,7 @@ export default function DepartmentSearch({
       }
     };
     fetchAll();
-  }, []);
+  }, [school]);
 
   // 1-2. selectedDeptCode와 일치하는 학과 찾아서 초기값 설정
   useEffect(() => {

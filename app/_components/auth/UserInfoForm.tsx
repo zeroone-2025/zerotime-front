@@ -3,6 +3,7 @@
 import { FiUser, FiHome, FiBook, FiHash, FiMail, FiAtSign } from 'react-icons/fi';
 
 import DepartmentSearch from '@/_components/ui/DepartmentSearch';
+import { SCHOOL_FULL_NAME, SUPPORTED_SCHOOLS } from '@/_lib/constants/boards';
 import type { Department } from '@/_types/department';
 
 export interface UserInfoFormData {
@@ -168,10 +169,11 @@ export default function UserInfoForm({
                             }`}
                     >
                         <option value="">{isReadonly ? '미설정' : '-- 학교를 선택하세요 --'}</option>
-                        <option value="전북대">전북대학교</option>
-                        <option value="전남대">전남대학교</option>
-                        <option value="경북대">경북대학교</option>
-                        <option value="충남대">충남대학교</option>
+                        {SUPPORTED_SCHOOLS.map((school) => (
+                            <option key={school} value={school}>
+                                {SCHOOL_FULL_NAME[school]}
+                            </option>
+                        ))}
                     </select>
                     {!(isReadonlySchool || isReadonly) && (
                         <div className="absolute inset-y-0 flex items-center text-gray-400 pointer-events-none right-4">

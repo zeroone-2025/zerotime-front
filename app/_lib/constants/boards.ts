@@ -2,7 +2,7 @@
  * 게시판 관련 UI 상수
  *
  * 게시판 이름/카테고리는 더 이상 여기 하드코딩하지 않는다 — 학교가 늘어날
- * 때마다(전북대→전남대→경북대→충남대) 매번 목록을 손으로 옮겨 적어야 했고,
+ * 때마다(전북대→전남대→경북대→충남대→충북대) 매번 목록을 손으로 옮겨 적어야 했고,
  * 실제로 신규 학교 게시판이 이 파일에 누락되어 화면에 아예 안 뜨는 문제가
  * 있었다. `GET /boards`가 school/category를 함께 반환하므로 이제 그쪽을
  * 근거로 삼는다 (app/_lib/hooks/useBoards.ts, app/_lib/api/boards.ts 참고).
@@ -27,15 +27,11 @@ export const GUEST_FILTER_SCHOOL_KEY = 'JB_ALARM_GUEST_FILTER_SCHOOL';
  */
 export const GUEST_SCHOOL_KEY = 'JB_ALARM_GUEST_SCHOOL';
 
-/**
- * 게스트 학교 선택 드롭다운에 보여줄 학교 목록.
- */
-export const GUEST_SCHOOL_OPTIONS = ['전북대', '전남대', '경북대', '충남대'] as const;
-
 export const DEFAULT_GUEST_SCHOOL = '전북대';
 
 /**
- * 학교 축약명 → 전체 이름. 사이드바 라벨·게스트 학교 선택 드롭다운 등에서 공용으로 쓴다.
+ * 프론트에서 지원하는 학교의 단일 Source of Truth.
+ * 학교 축약명 → 전체 이름. 사이드바 라벨·학교 선택 드롭다운 등에서 공용으로 쓴다.
  * 매핑에 없는 값은 축약명을 그대로 노출한다(호출부에서 `?? school` fallback).
  */
 export const SCHOOL_FULL_NAME: Record<string, string> = {
@@ -43,7 +39,15 @@ export const SCHOOL_FULL_NAME: Record<string, string> = {
   전남대: '전남대학교',
   경북대: '경북대학교',
   충남대: '충남대학교',
+  충북대: '충북대학교',
 };
+
+export const SUPPORTED_SCHOOLS = Object.keys(SCHOOL_FULL_NAME);
+
+/**
+ * 기존 게스트 선택 UI 호환 이름. 실제 목록은 SUPPORTED_SCHOOLS에서 파생한다.
+ */
+export const GUEST_SCHOOL_OPTIONS = SUPPORTED_SCHOOLS;
 
 /**
  * 게시판 목록에서 기본 구독 대상(board.default_subscribe === true)만 board_code로 뽑는다.

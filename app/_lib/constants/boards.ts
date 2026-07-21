@@ -2,7 +2,7 @@
  * 게시판 관련 UI 상수
  *
  * 게시판 이름/카테고리는 더 이상 여기 하드코딩하지 않는다 — 학교가 늘어날
- * 때마다(전북대→전남대→경북대→충남대→충북대) 매번 목록을 손으로 옮겨 적어야 했고,
+ * 때마다(전북대→전남대→경북대→충남대→충북대→부산대) 매번 목록을 손으로 옮겨 적어야 했고,
  * 실제로 신규 학교 게시판이 이 파일에 누락되어 화면에 아예 안 뜨는 문제가
  * 있었다. `GET /boards`가 school/category를 함께 반환하므로 이제 그쪽을
  * 근거로 삼는다 (app/_lib/hooks/useBoards.ts, app/_lib/api/boards.ts 참고).
@@ -40,6 +40,7 @@ export const SCHOOL_FULL_NAME: Record<string, string> = {
   경북대: '경북대학교',
   충남대: '충남대학교',
   충북대: '충북대학교',
+  부산대: '부산대학교',
 };
 
 export const SUPPORTED_SCHOOLS = Object.keys(SCHOOL_FULL_NAME);

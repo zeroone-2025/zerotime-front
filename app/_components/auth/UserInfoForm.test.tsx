@@ -17,10 +17,10 @@ const formData: UserInfoFormData = {
 };
 
 describe('UserInfoForm 학교 선택', () => {
-  it('지원 학교 목록에 충북대를 노출한다', () => {
+  it('지원 학교 목록에 부산대를 노출한다', () => {
     render(<UserInfoForm formData={formData} onChange={vi.fn()} />);
 
-    expect(screen.getByRole('option', { name: '충북대학교' })).toHaveValue('충북대');
+    expect(screen.getByRole('option', { name: '부산대학교' })).toHaveValue('부산대');
   });
 
   it('학교를 변경하면 이전 학교의 학과 선택을 초기화한다', () => {
@@ -30,11 +30,11 @@ describe('UserInfoForm 학교 선택', () => {
     const schoolSelect = container.querySelector('select[name="school"]');
     expect(schoolSelect).not.toBeNull();
     fireEvent.change(schoolSelect!, {
-      target: { value: '충북대' },
+      target: { value: '부산대' },
     });
 
     expect(onChange).toHaveBeenCalledWith({
-      school: '충북대',
+      school: '부산대',
       dept_code: '',
       dept_name: '',
     });

@@ -48,7 +48,7 @@ const SERVICE_ITEMS: ServiceItem[] = [
   { id: 'profile', label: '프로필', icon: FiUser, href: '/profile', matchPath: '/profile' },
   // jbnu-alarm 라벨은 렌더 시점에 `<학교 전체명> 알리미`로 치환한다(아래 alarmLabel 참고).
   { id: 'jbnu-alarm', label: '알리미', icon: FiBell, matchPath: '/' },
-  { id: 'chinba', label: '친해지길 바래', icon: FiUsers, matchPath: '/chinba' },
+  { id: 'chinba', label: '타임라인', icon: FiUsers, matchPath: '/chinba' },
 ];
 
 function formatAdmissionYear(year: number | null | undefined): string | null {

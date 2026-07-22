@@ -10,7 +10,6 @@ import TeamCategoriesModal from '@/(main)/chinba/_components/team/TeamCategories
 import TeamGroupsModal from '@/(main)/chinba/_components/team/TeamGroupsModal';
 import TeamMembersModal from '@/(main)/chinba/_components/team/TeamMembersModal';
 import TeamOpsPanel from '@/(main)/chinba/_components/team/TeamOpsPanel';
-import TeamResponseModal from '@/(main)/chinba/_components/team/TeamResponseModal';
 import CategoryFilterBar from '@/(main)/teams/_components/CategoryFilterBar';
 import GroupFilterBar from '@/(main)/teams/_components/GroupFilterBar';
 import TeamSegmentTabs, { type TeamSegment } from '@/(main)/teams/_components/TeamSegmentTabs';
@@ -50,7 +49,6 @@ export default function TeamDetailView() {
   const [showMembers, setShowMembers] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
-  const [showResponse, setShowResponse] = useState(false);
 
   const groupSets = groupSetsData?.group_sets ?? [];
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
@@ -211,11 +209,11 @@ export default function TeamDetailView() {
         {/* Desktop-only operations panel (운영진 only) */}
         {canOps && (
           <TeamOpsPanel
+            teamId={teamId}
             inviteCode={team.invite_code}
             onOpenMembers={() => setShowMembers(true)}
             onOpenGroups={() => setShowGroups(true)}
             onOpenCategories={() => setShowCategories(true)}
-            onOpenResponse={() => setShowResponse(true)}
             onCreateEvent={() => router.push(`/chinba/team/event-create?id=${teamId}`)}
             onRecordActivity={() => handleTabChange('mwoheni')}
           />
@@ -255,11 +253,6 @@ export default function TeamDetailView() {
             onClose={() => setShowCategories(false)}
             teamId={teamId}
             myRole={team.my_role}
-          />
-          <TeamResponseModal
-            isOpen={showResponse}
-            onClose={() => setShowResponse(false)}
-            teamId={teamId}
           />
         </>
       )}

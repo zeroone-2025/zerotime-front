@@ -7,24 +7,24 @@ import {
   FiGrid,
   FiLink,
   FiTag,
-  FiBarChart2,
   FiCalendar,
   FiEdit3,
   FiChevronRight,
   FiChevronLeft,
 } from 'react-icons/fi';
 
+import TeamResponsePanel from '@/(main)/chinba/_components/team/TeamResponsePanel';
 import { useToast } from '@/_context/ToastContext';
 import { formatInviteUrl } from '@/_lib/utils/teamDisplay';
 
 const COLLAPSE_KEY = 'team_ops_panel_collapsed';
 
 interface TeamOpsPanelProps {
+  teamId: number;
   inviteCode: string | null;
   onOpenMembers: () => void;
   onOpenGroups: () => void;
   onOpenCategories: () => void;
-  onOpenResponse: () => void;
   onCreateEvent: () => void;
   onRecordActivity: () => void;
 }
@@ -36,11 +36,11 @@ interface TeamOpsPanelProps {
  * - 접기 상태는 localStorage에 영속(기존 사이드바 패턴과 동일).
  */
 export default function TeamOpsPanel({
+  teamId,
   inviteCode,
   onOpenMembers,
   onOpenGroups,
   onOpenCategories,
-  onOpenResponse,
   onCreateEvent,
   onRecordActivity,
 }: TeamOpsPanelProps) {
@@ -111,10 +111,12 @@ export default function TeamOpsPanel({
           <PanelButton icon={FiGrid} label="조 / 그룹 관리" onClick={onOpenGroups} trailing="modal" />
           <PanelButton icon={FiTag} label="카테고리 관리" onClick={onOpenCategories} trailing="modal" />
           <PanelButton icon={FiLink} label="초대링크 복사" onClick={handleCopyInvite} trailing="copy" />
-          <PanelButton icon={FiBarChart2} label="응답 현황" onClick={onOpenResponse} trailing="modal" />
         </section>
 
-        {/* 2) 그냥 있는 페이지 = 바로가기 */}
+        {/* 2) 응답 현황 — 인라인 펼침(기본 펼침) */}
+        <TeamResponsePanel teamId={teamId} />
+
+        {/* 3) 그냥 있는 페이지 = 바로가기 */}
         <section className="flex flex-col border-t border-gray-100 pt-5">
           <span className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">바로가기</span>
           <PanelButton icon={FiCalendar} label="일정 만들기" onClick={onCreateEvent} />

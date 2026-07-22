@@ -6,8 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FiSettings } from 'react-icons/fi';
 
 import ClubSwitcher from '@/(main)/chinba/_components/team/ClubSwitcher';
+import TeamCategoriesModal from '@/(main)/chinba/_components/team/TeamCategoriesModal';
+import TeamGroupsModal from '@/(main)/chinba/_components/team/TeamGroupsModal';
 import TeamMembersModal from '@/(main)/chinba/_components/team/TeamMembersModal';
 import TeamOpsPanel from '@/(main)/chinba/_components/team/TeamOpsPanel';
+import TeamResponseModal from '@/(main)/chinba/_components/team/TeamResponseModal';
 import CategoryFilterBar from '@/(main)/teams/_components/CategoryFilterBar';
 import GroupFilterBar from '@/(main)/teams/_components/GroupFilterBar';
 import TeamSegmentTabs, { type TeamSegment } from '@/(main)/teams/_components/TeamSegmentTabs';
@@ -45,6 +48,9 @@ export default function TeamDetailView() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [showMembers, setShowMembers] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const [showResponse, setShowResponse] = useState(false);
 
   const groupSets = groupSetsData?.group_sets ?? [];
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
@@ -205,9 +211,11 @@ export default function TeamDetailView() {
         {/* Desktop-only operations panel (운영진 only) */}
         {canOps && (
           <TeamOpsPanel
-            teamId={teamId}
             inviteCode={team.invite_code}
             onOpenMembers={() => setShowMembers(true)}
+            onOpenGroups={() => setShowGroups(true)}
+            onOpenCategories={() => setShowCategories(true)}
+            onOpenResponse={() => setShowResponse(true)}
             onCreateEvent={() => router.push(`/chinba/team/event-create?id=${teamId}`)}
             onRecordActivity={() => handleTabChange('mwoheni')}
           />
@@ -227,14 +235,33 @@ export default function TeamDetailView() {
         }}
       />
 
-      {/* Member management modal */}
+      {/* Operations modals (desktop panel actions) */}
       {canOps && (
-        <TeamMembersModal
-          isOpen={showMembers}
-          onClose={() => setShowMembers(false)}
-          teamId={teamId}
-          myRole={team.my_role}
-        />
+        <>
+          <TeamMembersModal
+            isOpen={showMembers}
+            onClose={() => setShowMembers(false)}
+            teamId={teamId}
+            myRole={team.my_role}
+          />
+          <TeamGroupsModal
+            isOpen={showGroups}
+            onClose={() => setShowGroups(false)}
+            teamId={teamId}
+            myRole={team.my_role}
+          />
+          <TeamCategoriesModal
+            isOpen={showCategories}
+            onClose={() => setShowCategories(false)}
+            teamId={teamId}
+            myRole={team.my_role}
+          />
+          <TeamResponseModal
+            isOpen={showResponse}
+            onClose={() => setShowResponse(false)}
+            teamId={teamId}
+          />
+        </>
       )}
     </FullPageModal>
   );

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
 import {
   FiUsers,
   FiGrid,
   FiLink,
   FiTag,
+  FiBarChart2,
   FiCalendar,
   FiEdit3,
   FiChevronRight,
@@ -20,27 +20,30 @@ import { formatInviteUrl } from '@/_lib/utils/teamDisplay';
 const COLLAPSE_KEY = 'team_ops_panel_collapsed';
 
 interface TeamOpsPanelProps {
-  teamId: number;
   inviteCode: string | null;
   onOpenMembers: () => void;
+  onOpenGroups: () => void;
+  onOpenCategories: () => void;
+  onOpenResponse: () => void;
   onCreateEvent: () => void;
   onRecordActivity: () => void;
 }
 
 /**
  * 데스크톱 전용 오른쪽 운영 패널.
- * 목적: 톱니바퀴(설정 페이지) 안에 묻혀 있던 운영 기능을 밖으로 꺼내 클릭 수를 줄인다.
+ * 목적: 톱니바퀴(설정 페이지)에 묻혀 있던 운영 기능을 밖으로 꺼내 클릭 수를 줄인다.
  * - 노출: 부모(TeamDetailView)가 운영진(canEditTeam) 조건으로 렌더. 데스크톱은 `lg:` 이상만.
  * - 접기 상태는 localStorage에 영속(기존 사이드바 패턴과 동일).
  */
 export default function TeamOpsPanel({
-  teamId,
   inviteCode,
   onOpenMembers,
+  onOpenGroups,
+  onOpenCategories,
+  onOpenResponse,
   onCreateEvent,
   onRecordActivity,
 }: TeamOpsPanelProps) {
-  const router = useRouter();
   const { showToast } = useToast();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -69,9 +72,6 @@ export default function TeamOpsPanel({
       showToast('복사에 실패했습니다', 'error');
     }
   };
-
-  const goSettings = () => router.push(`/chinba/team/settings?id=${teamId}`);
-  const goGroups = () => router.push(`/chinba/team/groups?id=${teamId}`);
 
   if (collapsed) {
     return (
@@ -105,28 +105,18 @@ export default function TeamOpsPanel({
         </div>
 
         {/* 1) 톱니바퀴에서 꺼낸 운영 도구 */}
-        <section className="flex flex-col gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400">운영 도구</span>
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">
-              톱니바퀴에서 꺼냄
-            </span>
-          </div>
+        <section className="flex flex-col">
+          <span className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">운영 도구</span>
           <PanelButton icon={FiUsers} label="멤버 관리" onClick={onOpenMembers} trailing="modal" />
-          <PanelButton icon={FiGrid} label="조 / 그룹 관리" onClick={goGroups} />
+          <PanelButton icon={FiGrid} label="조 / 그룹 관리" onClick={onOpenGroups} trailing="modal" />
+          <PanelButton icon={FiTag} label="카테고리 관리" onClick={onOpenCategories} trailing="modal" />
           <PanelButton icon={FiLink} label="초대링크 복사" onClick={handleCopyInvite} trailing="copy" />
-          <PanelButton icon={FiTag} label="카테고리 관리" onClick={goSettings} />
-          <button
-            onClick={goSettings}
-            className="mt-0.5 self-start text-xs font-medium text-gray-400 transition-colors hover:text-gray-700"
-          >
-            전체 설정 열기 ›
-          </button>
+          <PanelButton icon={FiBarChart2} label="응답 현황" onClick={onOpenResponse} trailing="modal" />
         </section>
 
         {/* 2) 그냥 있는 페이지 = 바로가기 */}
-        <section className="flex flex-col gap-2 border-t border-gray-100 pt-5">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400">바로가기</span>
+        <section className="flex flex-col border-t border-gray-100 pt-5">
+          <span className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">바로가기</span>
           <PanelButton icon={FiCalendar} label="일정 만들기" onClick={onCreateEvent} />
           <PanelButton icon={FiEdit3} label="활동 기록하기" onClick={onRecordActivity} />
         </section>
@@ -146,11 +136,11 @@ function PanelButton({ icon: Icon, label, onClick, trailing = 'nav' }: PanelButt
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-xl border border-gray-100 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-gray-200 hover:bg-gray-50 active:scale-[0.98]"
+      className="group flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-blue-50 hover:text-blue-700"
     >
-      <Icon size={16} className="shrink-0 text-gray-500" />
+      <Icon size={16} className="shrink-0 text-gray-500 transition-colors group-hover:text-blue-700" />
       <span className="flex-1 text-left">{label}</span>
-      <span className="text-xs text-gray-300">
+      <span className="text-xs text-gray-300 transition-colors group-hover:text-blue-400">
         {trailing === 'copy' ? '⧉' : trailing === 'modal' ? '⤢' : '›'}
       </span>
     </button>

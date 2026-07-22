@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FiSettings } from 'react-icons/fi';
 
 import ClubSwitcher from '@/(main)/chinba/_components/team/ClubSwitcher';
+import TeamMembersModal from '@/(main)/chinba/_components/team/TeamMembersModal';
+import TeamOpsPanel from '@/(main)/chinba/_components/team/TeamOpsPanel';
 import CategoryFilterBar from '@/(main)/teams/_components/CategoryFilterBar';
 import GroupFilterBar from '@/(main)/teams/_components/GroupFilterBar';
 import TeamSegmentTabs, { type TeamSegment } from '@/(main)/teams/_components/TeamSegmentTabs';
@@ -20,6 +22,7 @@ import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
 import { useTeamDetail } from '@/_lib/hooks/useTeam';
 import { setLastTeamId } from '@/_lib/utils/chinbaSelection';
+import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import { useAuthInitialized } from '@/providers';
 
 export default function TeamDetailView() {
@@ -41,6 +44,7 @@ export default function TeamDetailView() {
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [showMembers, setShowMembers] = useState(false);
 
   const groupSets = groupSetsData?.group_sets ?? [];
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
@@ -155,6 +159,8 @@ export default function TeamDetailView() {
     </button>
   );
 
+  const canOps = canEditTeam(team.my_role);
+
   return (
     <FullPageModal
       isOpen={true}
@@ -162,34 +168,50 @@ export default function TeamDetailView() {
       title={<ClubSwitcher currentTeamId={teamId} currentName={team.name} />}
       headerRight={settingsButton}
     >
-      {/* Segment Tabs */}
-      <div className="shrink-0">
-        <TeamSegmentTabs activeTab={activeTab} onTabChange={handleTabChange} />
-      </div>
+      <div className="flex min-h-0 flex-1 flex-row">
+        {/* Main column */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Segment Tabs */}
+          <div className="shrink-0">
+            <TeamSegmentTabs activeTab={activeTab} onTabChange={handleTabChange} />
+          </div>
 
-      {/* Group / Category Filter */}
-      {(groupSets.length > 0 || categories.length > 0) && (
-        <div className="shrink-0 px-4 pt-3 space-y-2">
-          {groupSets.length > 0 && (
-            <GroupFilterBar
-              groupSets={groupSets}
-              selectedSetId={effectiveSetId}
-              selectedGroupId={selectedGroupId}
-              onSetChange={setSelectedSetId}
-              onGroupChange={setSelectedGroupId}
-            />
+          {/* Group / Category Filter */}
+          {(groupSets.length > 0 || categories.length > 0) && (
+            <div className="shrink-0 px-4 pt-3 space-y-2">
+              {groupSets.length > 0 && (
+                <GroupFilterBar
+                  groupSets={groupSets}
+                  selectedSetId={effectiveSetId}
+                  selectedGroupId={selectedGroupId}
+                  onSetChange={setSelectedSetId}
+                  onGroupChange={setSelectedGroupId}
+                />
+              )}
+              <CategoryFilterBar
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                onChange={setSelectedCategoryId}
+              />
+            </div>
           )}
-          <CategoryFilterBar
-            categories={categories}
-            selectedCategoryId={selectedCategoryId}
-            onChange={setSelectedCategoryId}
-          />
-        </div>
-      )}
 
-      {/* Tab Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">
-        {renderTabContent()}
+          {/* Tab Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">
+            {renderTabContent()}
+          </div>
+        </div>
+
+        {/* Desktop-only operations panel (운영진 only) */}
+        {canOps && (
+          <TeamOpsPanel
+            teamId={teamId}
+            inviteCode={team.invite_code}
+            onOpenMembers={() => setShowMembers(true)}
+            onCreateEvent={() => router.push(`/chinba/team/event-create?id=${teamId}`)}
+            onRecordActivity={() => handleTabChange('mwoheni')}
+          />
+        )}
       </div>
 
       {/* Upgrade Modal */}
@@ -204,6 +226,16 @@ export default function TeamDetailView() {
           setPendingTab(null);
         }}
       />
+
+      {/* Member management modal */}
+      {canOps && (
+        <TeamMembersModal
+          isOpen={showMembers}
+          onClose={() => setShowMembers(false)}
+          teamId={teamId}
+          myRole={team.my_role}
+        />
+      )}
     </FullPageModal>
   );
 }

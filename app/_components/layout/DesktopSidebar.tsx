@@ -26,7 +26,7 @@ interface CollapsedNavItem {
 const NAV_ITEMS: CollapsedNavItem[] = [
   // jbnu-alarm 라벨(툴팁)은 렌더 시점에 `<학교 전체명> 알리미`로 치환한다(아래 alarmLabel 참고).
   { id: 'jbnu-alarm', icon: FiBell, href: '/', label: '알리미', matchPath: '/' },
-  { id: 'chinba', icon: FiUsers, href: '/chinba', label: '친해지길 바래', matchPath: '/chinba' },
+  { id: 'chinba', icon: FiUsers, href: '/chinba', label: '타임라인', matchPath: '/chinba' },
   { id: 'flow', icon: FiZap, href: '/flow', label: 'FLOW', matchPath: '/flow' },
 ];
 

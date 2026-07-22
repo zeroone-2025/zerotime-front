@@ -8,7 +8,7 @@ test.describe('친바 페이지 - 게스트', () => {
 
   test('섹션 헤더가 표시된다', async ({ asGuest }) => {
     await asGuest.goto('/chinba');
-    await expect(asGuest.getByText('친바 동아리 선택')).toBeVisible({ timeout: 10_000 });
+    await expect(asGuest.getByText('타임라인 동아리 선택')).toBeVisible({ timeout: 10_000 });
   });
 
   test('동아리 만들기 버튼이 있다', async ({ asGuest }) => {

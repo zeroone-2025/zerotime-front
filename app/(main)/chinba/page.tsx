@@ -50,7 +50,7 @@ export default function ChinbaHomePage() {
         {/* 제목 카드 */}
         <header className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-center gap-1.5">
-            <span className="text-lg font-bold tracking-tight text-blue-700">타임라인</span>
+            <span className="text-lg font-bold tracking-tight text-blue-700">TIMELINE</span>
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           </div>
 

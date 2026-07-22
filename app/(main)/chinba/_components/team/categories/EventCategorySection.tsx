@@ -16,9 +16,11 @@ import {
 interface EventCategorySectionProps {
   teamId: number;
   canManage: boolean;
+  /** 모달 등에 임베드될 때 자체 제목/외부 여백을 숨긴다 */
+  embedded?: boolean;
 }
 
-export default function EventCategorySection({ teamId, canManage }: EventCategorySectionProps) {
+export default function EventCategorySection({ teamId, canManage, embedded = false }: EventCategorySectionProps) {
   const { showToast } = useToast();
   const { data: categoriesData } = useEventCategories(teamId);
   const createCategory = useCreateEventCategory(teamId);
@@ -93,10 +95,10 @@ export default function EventCategorySection({ teamId, canManage }: EventCategor
   };
 
   return (
-    <section className="mb-6">
+    <section className={embedded ? 'p-4' : 'mb-6'}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold text-gray-800">일정 카테고리</h2>
+          {!embedded && <h2 className="text-sm font-bold text-gray-800">일정 카테고리</h2>}
           {categories.length > 0 && (
             <span className="text-xs text-gray-400">{categories.length}개</span>
           )}

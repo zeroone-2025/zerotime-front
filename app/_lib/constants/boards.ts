@@ -41,6 +41,7 @@ export const SCHOOL_FULL_NAME: Record<string, string> = {
   충남대: '충남대학교',
   충북대: '충북대학교',
   부산대: '부산대학교',
+  경상국립대: '경상국립대학교',
 };
 
 export const SUPPORTED_SCHOOLS = Object.keys(SCHOOL_FULL_NAME);

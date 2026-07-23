@@ -50,6 +50,11 @@ export default function UserInfoForm({
 }: UserInfoFormProps) {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        if (name === 'school' && value !== formData.school) {
+            // 학교가 바뀌면 이전 학교 기준으로 고른 학과는 더 이상 유효하지 않다
+            onChange({ school: value, dept_code: '', dept_name: '' });
+            return;
+        }
         onChange({ [name]: value });
     };
 
@@ -164,7 +169,9 @@ export default function UserInfoForm({
                     >
                         <option value="">{isReadonly ? '미설정' : '-- 학교를 선택하세요 --'}</option>
                         <option value="전북대">전북대학교</option>
-                        <option value="기타">기타</option>
+                        <option value="전남대">전남대학교</option>
+                        <option value="경북대">경북대학교</option>
+                        <option value="충남대">충남대학교</option>
                     </select>
                     {!(isReadonlySchool || isReadonly) && (
                         <div className="absolute inset-y-0 flex items-center text-gray-400 pointer-events-none right-4">
@@ -189,6 +196,7 @@ export default function UserInfoForm({
                     placeholder="학과를 검색하세요"
                     isReadonly={isReadonly}
                     hasError={Boolean(invalidFields.dept_code)}
+                    school={formData.school || undefined}
                 />
             </div>
 

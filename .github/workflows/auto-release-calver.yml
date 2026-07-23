@@ -1,0 +1,39 @@
+name: Auto Release (CalVer)
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate version number (YY.M.D-HHMM)
+        run: |
+          VERSION=$(TZ='Asia/Seoul' date +'%y.%-m.%-d-%H%M')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release (main)
+        if: github.ref_name == 'main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          generate_release_notes: true
+
+      - name: Create GitHub Release (beta)
+        if: github.ref_name == 'beta'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}-beta.${{ github.run_number }}
+          name: Beta v${{ env.VERSION }}
+          prerelease: true
+          generate_release_notes: true

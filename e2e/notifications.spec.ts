@@ -20,9 +20,10 @@ test.describe('알림 페이지 - 로그인 사용자', () => {
     await expect(asLoggedInUser.getByText('장학금 안내')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('키워드 설정 바가 표시된다', async ({ asLoggedInUser }) => {
+  test('키워드 설정 바에 현재 키워드 수와 설정 버튼이 표시된다', async ({ asLoggedInUser }) => {
     await asLoggedInUser.goto('/notifications');
-    await expect(asLoggedInUser.locator('.animate-spin')).toHaveCount(0, { timeout: 10_000 });
+    await expect(asLoggedInUser.getByText('알림 받는 키워드 2개')).toBeVisible({ timeout: 10_000 });
+    await expect(asLoggedInUser.getByRole('button', { name: '키워드 설정' })).toBeVisible();
   });
 });
 
@@ -104,7 +105,7 @@ test.describe('키워드 배지 localStorage 새로고침 시나리오', () => {
 
     await mockAuthenticatedAPIs(page);
     await page.addInitScript(() => {
-      localStorage.setItem('keyword_notice_seen_at', '2024-06-01T12:00:00.000Z');
+      localStorage.setItem('keyword_notice_seen_at', '2099-01-01T00:00:00.000Z');
     });
 
     await page.goto('/');

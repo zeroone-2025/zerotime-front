@@ -1,0 +1,986 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zerotime.kr/schemas/mobile-release/evidence.schema.json",
+  "title": "ZeroTime mobile release candidate evidence",
+  "description": "Fail-closed mobile-release.v1 candidate evidence. Schema validity is necessary but never substitutes for authentic signed-artifact, device, provider, store, and named human approval records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "captured_at",
+    "provenance",
+    "manual_execution",
+    "notification_deliveries",
+    "race_matrix",
+    "crash_recovery",
+    "deletion_evidence",
+    "release_decision"
+  ],
+  "properties": {
+    "schema_version": { "const": "mobile-release.v1" },
+    "evidence_id": { "$ref": "#/$defs/opaqueId" },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["app", "backend"],
+      "properties": {
+        "app": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "platform",
+            "release_plane",
+            "bundle_or_package",
+            "version",
+            "build_number",
+            "source_revision",
+            "artifact_sha256",
+            "api_origin",
+            "coordinator_contract",
+            "contract_sha256",
+            "firebase_project_reference",
+            "fcm_sender_reference",
+            "apns_environment",
+            "signing_reference",
+            "installation_generation_contract"
+          ],
+          "properties": {
+            "platform": { "enum": ["ios", "android"] },
+            "release_plane": { "enum": ["beta", "prod"] },
+            "bundle_or_package": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+$",
+              "minLength": 3
+            },
+            "version": { "type": "string", "minLength": 1 },
+            "build_number": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+            "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            "artifact_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "api_origin": {
+              "enum": ["https://beta-api.zerotime.kr", "https://api.zerotime.kr"]
+            },
+            "coordinator_contract": { "const": "native-notification-coordinator.v1" },
+            "contract_sha256": {
+              "const": "0f736c8e90c5ba1ea68370e327f2f405fba5a83e4807c3bc7691aaa8c0711d84"
+            },
+            "firebase_project_reference": { "$ref": "#/$defs/nonSecretReference" },
+            "fcm_sender_reference": { "$ref": "#/$defs/nonSecretReference" },
+            "apns_environment": { "enum": ["production", "not_applicable"] },
+            "apns_key_reference": { "$ref": "#/$defs/nonSecretReference" },
+            "signing_reference": { "$ref": "#/$defs/nonSecretReference" },
+            "installation_generation_contract": { "const": "mobile-release.v1" }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "platform": { "const": "ios" } },
+                "required": ["platform"]
+              },
+              "then": {
+                "required": ["apns_key_reference"],
+                "properties": { "apns_environment": { "const": "production" } }
+              }
+            },
+            {
+              "if": {
+                "properties": { "platform": { "const": "android" } },
+                "required": ["platform"]
+              },
+              "then": {
+                "properties": { "apns_environment": { "const": "not_applicable" } }
+              }
+            }
+          ]
+        },
+        "backend": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "release_plane",
+            "api_origin",
+            "deployment_reference",
+            "source_revision",
+            "image_digest",
+            "deployed_at",
+            "openapi_document",
+            "openapi_sha256",
+            "database_revision",
+            "worker_liveness_reference"
+          ],
+          "properties": {
+            "release_plane": { "enum": ["beta", "prod"] },
+            "api_origin": {
+              "enum": ["https://beta-api.zerotime.kr", "https://api.zerotime.kr"]
+            },
+            "deployment_reference": { "$ref": "#/$defs/nonSecretReference" },
+            "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            "image_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+            "deployed_at": { "type": "string", "format": "date-time" },
+            "openapi_document": { "const": "mobile-release-v1.openapi.yaml" },
+            "openapi_sha256": {
+              "const": "0f736c8e90c5ba1ea68370e327f2f405fba5a83e4807c3bc7691aaa8c0711d84"
+            },
+            "database_revision": { "$ref": "#/$defs/nonSecretReference" },
+            "worker_liveness_reference": { "$ref": "#/$defs/nonSecretReference" }
+          }
+        }
+      }
+    },
+    "manual_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["machine", "devices", "steps"],
+      "properties": {
+        "machine": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["machine_reference", "os_version", "tool_versions"],
+          "properties": {
+            "machine_reference": { "$ref": "#/$defs/nonSecretReference" },
+            "os_version": { "type": "string", "minLength": 1 },
+            "tool_versions": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["capacitor"],
+              "properties": {
+                "xcode": { "type": "string", "minLength": 1 },
+                "android_studio": { "type": "string", "minLength": 1 },
+                "capacitor": { "type": "string", "minLength": 1 }
+              },
+              "minProperties": 2
+            }
+          }
+        },
+        "devices": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["platform", "model", "os_version", "connection_state", "device_reference"],
+            "properties": {
+              "platform": { "enum": ["ios", "android"] },
+              "model": { "type": "string", "minLength": 1 },
+              "os_version": { "type": "string", "minLength": 1 },
+              "connection_state": { "enum": ["reachable", "offline"] },
+              "device_reference": { "$ref": "#/$defs/nonSecretReference" }
+            }
+          }
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 9,
+          "items": { "$ref": "#/$defs/manualStep" },
+          "allOf": [
+            { "contains": { "$ref": "#/$defs/payloadInspectionStep" } },
+            { "contains": { "$ref": "#/$defs/deliveryLifecycleStep" } },
+            { "contains": { "$ref": "#/$defs/pausePointStep" } },
+            { "contains": { "$ref": "#/$defs/reachableDeletionStep" } },
+            { "contains": { "$ref": "#/$defs/accountWideDeletionStep" } },
+            { "contains": { "$ref": "#/$defs/offlinePurgeStep" } },
+            { "contains": { "$ref": "#/$defs/nativeSigningStep" } },
+            { "contains": { "$ref": "#/$defs/storeMetadataStep" } },
+            {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "step_id": { "enum": ["testflight-internal-track", "play-internal-track"] },
+                  "result": { "const": "observed" }
+                },
+                "required": ["step_id", "result"]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "notification_deliveries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["delivery_reference", "payload_observation", "events"],
+        "properties": {
+          "delivery_reference": { "$ref": "#/$defs/opaqueId" },
+          "payload_observation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["application_data_keys", "no_alert_fields", "no_payload_values_recorded"],
+            "properties": {
+              "application_data_keys": {
+                "type": "array",
+                "prefixItems": [
+                  { "const": "delivery_id" },
+                  { "const": "notice_id" }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "no_alert_fields": { "const": true },
+              "no_payload_values_recorded": { "const": true }
+            }
+          },
+          "events": {
+            "type": "array",
+            "minItems": 6,
+            "items": { "$ref": "#/$defs/notificationEvent" },
+            "allOf": [
+              { "contains": { "$ref": "#/$defs/receivedEvent" } },
+              { "contains": { "$ref": "#/$defs/authorizedEvent" } },
+              { "contains": { "$ref": "#/$defs/scheduledEvent" } },
+              { "contains": { "$ref": "#/$defs/displayedEvent" } },
+              { "contains": { "$ref": "#/$defs/openedEvent" } },
+              { "contains": { "$ref": "#/$defs/purgedEvent" } }
+            ]
+          }
+        }
+      }
+    },
+    "race_matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["foreground_receive", "background_receive", "tap"],
+      "properties": {
+        "foreground_receive": { "$ref": "#/$defs/raceFlow" },
+        "background_receive": { "$ref": "#/$defs/raceFlow" },
+        "tap": { "$ref": "#/$defs/raceFlow" }
+      }
+    },
+    "crash_recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["after_epoch_persist", "after_schedule_completion", "after_purge", "before_server_ack"],
+      "properties": {
+        "after_epoch_persist": { "$ref": "#/$defs/crashReceipt" },
+        "after_schedule_completion": { "$ref": "#/$defs/crashReceipt" },
+        "after_purge": { "$ref": "#/$defs/crashReceipt" },
+        "before_server_ack": { "$ref": "#/$defs/crashReceipt" }
+      }
+    },
+    "deletion_evidence": {
+      "oneOf": [
+        { "$ref": "#/$defs/appLocalDeletionEvidence" },
+        { "$ref": "#/$defs/publicWebDeletionEvidence" },
+        { "$ref": "#/$defs/otherDeviceDeletionEvidence" }
+      ]
+    },
+    "release_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "candidate_reference", "approvals", "blockers"],
+      "properties": {
+        "status": { "const": "ready" },
+        "candidate_reference": { "$ref": "#/$defs/nonSecretReference" },
+        "approvals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["architect", "backend_owner", "mobile_owner", "privacy_owner", "release_owner"],
+          "properties": {
+            "architect": { "$ref": "#/$defs/nonSecretReference" },
+            "backend_owner": { "$ref": "#/$defs/nonSecretReference" },
+            "mobile_owner": { "$ref": "#/$defs/nonSecretReference" },
+            "privacy_owner": { "$ref": "#/$defs/nonSecretReference" },
+            "release_owner": { "$ref": "#/$defs/nonSecretReference" }
+          }
+        },
+        "blockers": { "type": "array", "maxItems": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "app": {
+                "properties": { "release_plane": { "const": "beta" } },
+                "required": ["release_plane"]
+              }
+            },
+            "required": ["app"]
+          }
+        },
+        "required": ["provenance"]
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "app": {
+                "properties": { "api_origin": { "const": "https://beta-api.zerotime.kr" } }
+              },
+              "backend": {
+                "properties": {
+                  "release_plane": { "const": "beta" },
+                  "api_origin": { "const": "https://beta-api.zerotime.kr" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "app": {
+                "properties": { "release_plane": { "const": "prod" } },
+                "required": ["release_plane"]
+              }
+            },
+            "required": ["app"]
+          }
+        },
+        "required": ["provenance"]
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "app": {
+                "properties": { "api_origin": { "const": "https://api.zerotime.kr" } }
+              },
+              "backend": {
+                "properties": {
+                  "release_plane": { "const": "prod" },
+                  "api_origin": { "const": "https://api.zerotime.kr" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "app": {
+                "properties": { "platform": { "const": "ios" } },
+                "required": ["platform"]
+              }
+            },
+            "required": ["app"]
+          }
+        },
+        "required": ["provenance"]
+      },
+      "then": {
+        "properties": {
+          "manual_execution": {
+            "properties": {
+              "machine": {
+                "properties": {
+                  "tool_versions": { "required": ["xcode"] }
+                }
+              },
+              "devices": {
+                "contains": {
+                  "type": "object",
+                  "properties": { "platform": { "const": "ios" } },
+                  "required": ["platform"]
+                }
+              },
+              "steps": {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "step_id": { "const": "testflight-internal-track" },
+                    "result": { "const": "observed" }
+                  },
+                  "required": ["step_id", "result"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "app": {
+                "properties": { "platform": { "const": "android" } },
+                "required": ["platform"]
+              }
+            },
+            "required": ["app"]
+          }
+        },
+        "required": ["provenance"]
+      },
+      "then": {
+        "properties": {
+          "manual_execution": {
+            "properties": {
+              "machine": {
+                "properties": {
+                  "tool_versions": { "required": ["android_studio"] }
+                }
+              },
+              "devices": {
+                "contains": {
+                  "type": "object",
+                  "properties": { "platform": { "const": "android" } },
+                  "required": ["platform"]
+                }
+              },
+              "steps": {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "step_id": { "const": "play-internal-track" },
+                    "result": { "const": "observed" }
+                  },
+                  "required": ["step_id", "result"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "opaqueId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,200}$"
+    },
+    "nonSecretReference": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:/@#-]{3,300}$"
+    },
+    "uint64": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]|1844674407370955161[0-5])$"
+    },
+    "zeroCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pending_count", "delivered_count", "foreground_banner_count", "registry_count", "inflight_count"],
+      "properties": {
+        "pending_count": { "const": 0 },
+        "delivered_count": { "const": 0 },
+        "foreground_banner_count": { "const": 0 },
+        "registry_count": { "const": 0 },
+        "inflight_count": { "const": 0 }
+      }
+    },
+    "manualStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "performed_at", "operator_role", "result", "artifact_refs"],
+      "properties": {
+        "step_id": {
+          "enum": [
+            "payload-inspection",
+            "delivery-lifecycle",
+            "pause-point-race",
+            "reachable-deletion",
+            "account-wide-deletion",
+            "offline-purge",
+            "native-signing",
+            "store-metadata-review",
+            "testflight-internal-track",
+            "play-internal-track"
+          ]
+        },
+        "performed_at": { "type": "string", "format": "date-time" },
+        "operator_role": {
+          "enum": [
+            "release-operator",
+            "ios-release-operator",
+            "android-release-operator",
+            "native-owner",
+            "backend-owner",
+            "privacy-owner",
+            "store-owner"
+          ]
+        },
+        "result": { "const": "observed" },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "payloadInspectionStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "payload-inspection" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "deliveryLifecycleStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "delivery-lifecycle" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "pausePointStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "pause-point-race" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "reachableDeletionStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "reachable-deletion" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "accountWideDeletionStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "account-wide-deletion" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "offlinePurgeStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "offline-purge" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "nativeSigningStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "native-signing" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "storeMetadataStep": {
+      "type": "object",
+      "properties": { "step_id": { "const": "store-metadata-review" }, "result": { "const": "observed" } },
+      "required": ["step_id", "result"]
+    },
+    "notificationEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "occurred_at", "display_epoch", "result", "artifact_refs"],
+      "properties": {
+        "event": {
+          "enum": ["fcm_accepted", "fcm_received", "authorized", "scheduled", "displayed", "opened", "purged"]
+        },
+        "occurred_at": { "type": "string", "format": "date-time" },
+        "display_epoch": { "$ref": "#/$defs/uint64" },
+        "result": { "enum": ["observed", "denied", "dropped"] },
+        "reason_code": {
+          "enum": [
+            "admitted",
+            "not_bound",
+            "not_authorized",
+            "epoch_mismatch",
+            "account_mutation",
+            "controlled_plane_denied",
+            "adapter_failure",
+            "next_launch_purge",
+            "user_opened"
+          ]
+        },
+        "native_notification_reference": { "$ref": "#/$defs/opaqueId" },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "receivedEvent": {
+      "type": "object",
+      "properties": { "event": { "const": "fcm_received" }, "result": { "const": "observed" } },
+      "required": ["event", "result"]
+    },
+    "authorizedEvent": {
+      "type": "object",
+      "properties": { "event": { "const": "authorized" }, "result": { "const": "observed" } },
+      "required": ["event", "result"]
+    },
+    "scheduledEvent": {
+      "type": "object",
+      "properties": { "event": { "const": "scheduled" }, "result": { "const": "observed" } },
+      "required": ["event", "result"]
+    },
+    "displayedEvent": {
+      "type": "object",
+      "properties": { "event": { "const": "displayed" }, "result": { "const": "observed" } },
+      "required": ["event", "result"]
+    },
+    "openedEvent": {
+      "type": "object",
+      "properties": { "event": { "const": "opened" }, "result": { "const": "observed" } },
+      "required": ["event", "result"]
+    },
+    "purgedEvent": {
+      "type": "object",
+      "properties": { "event": { "const": "purged" }, "result": { "const": "observed" } },
+      "required": ["event", "result"]
+    },
+    "raceFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorization_registered",
+        "authorization_response_before_gate",
+        "pre_schedule_or_banner_commit",
+        "native_schedule_pending",
+        "native_schedule_completed_before_recheck",
+        "purge_after_epoch_increment",
+        "server_ack",
+        "account_b_binding"
+      ],
+      "properties": {
+        "authorization_registered": { "$ref": "#/$defs/pauseMutations" },
+        "authorization_response_before_gate": { "$ref": "#/$defs/pauseMutations" },
+        "pre_schedule_or_banner_commit": { "$ref": "#/$defs/pauseMutations" },
+        "native_schedule_pending": { "$ref": "#/$defs/pauseMutations" },
+        "native_schedule_completed_before_recheck": { "$ref": "#/$defs/pauseMutations" },
+        "purge_after_epoch_increment": { "$ref": "#/$defs/pauseMutations" },
+        "server_ack": { "$ref": "#/$defs/pauseMutations" },
+        "account_b_binding": { "$ref": "#/$defs/pauseMutations" }
+      }
+    },
+    "pauseMutations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logout", "account_switch", "app_delete"],
+      "properties": {
+        "logout": { "$ref": "#/$defs/logoutRaceReceipt" },
+        "account_switch": { "$ref": "#/$defs/accountSwitchRaceReceipt" },
+        "app_delete": { "$ref": "#/$defs/deletionRaceReceipt" }
+      }
+    },
+    "beginMutationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "success", "zero_counts"],
+      "properties": {
+        "phase": { "const": "begin" },
+        "success": { "const": true },
+        "zero_counts": { "$ref": "#/$defs/zeroCounts" }
+      }
+    },
+    "finalizeMutationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "success", "zero_counts"],
+      "properties": {
+        "phase": { "const": "finalize" },
+        "success": { "const": true },
+        "zero_counts": { "$ref": "#/$defs/zeroCounts" }
+      }
+    },
+    "mutationTransaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "display_epoch", "begin_receipt", "finalize_receipt"],
+      "properties": {
+        "reason": { "enum": ["logout", "account_switch", "deletion"] },
+        "display_epoch": { "$ref": "#/$defs/uint64" },
+        "begin_receipt": { "$ref": "#/$defs/beginMutationReceipt" },
+        "finalize_receipt": { "$ref": "#/$defs/finalizeMutationReceipt" }
+      }
+    },
+    "logoutMutationTransaction": {
+      "allOf": [
+        { "$ref": "#/$defs/mutationTransaction" },
+        { "properties": { "reason": { "const": "logout" } } }
+      ]
+    },
+    "accountSwitchMutationTransaction": {
+      "allOf": [
+        { "$ref": "#/$defs/mutationTransaction" },
+        { "properties": { "reason": { "const": "account_switch" } } }
+      ]
+    },
+    "deletionMutationTransaction": {
+      "allOf": [
+        { "$ref": "#/$defs/mutationTransaction" },
+        { "properties": { "reason": { "const": "deletion" } } }
+      ]
+    },
+    "raceReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mutation_transaction",
+        "old_work_cancelled_or_drained",
+        "completed_schedule_absent_or_purged",
+        "deterministic_removal_confirmed",
+        "post_epoch_display_or_open_denied",
+        "server_ack_before_success_or_binding",
+        "success_or_binding_after_zero",
+        "account_b_denied_account_a_delivery",
+        "artifact_refs"
+      ],
+      "properties": {
+        "mutation_transaction": { "$ref": "#/$defs/mutationTransaction" },
+        "old_work_cancelled_or_drained": { "const": true },
+        "completed_schedule_absent_or_purged": { "const": true },
+        "deterministic_removal_confirmed": { "const": true },
+        "post_epoch_display_or_open_denied": { "const": true },
+        "server_ack_before_success_or_binding": { "const": true },
+        "success_or_binding_after_zero": { "const": true },
+        "account_b_denied_account_a_delivery": { "const": true },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "logoutRaceReceipt": {
+      "allOf": [
+        { "$ref": "#/$defs/raceReceipt" },
+        {
+          "properties": {
+            "mutation_transaction": { "$ref": "#/$defs/logoutMutationTransaction" }
+          }
+        }
+      ]
+    },
+    "accountSwitchRaceReceipt": {
+      "allOf": [
+        { "$ref": "#/$defs/raceReceipt" },
+        {
+          "properties": {
+            "mutation_transaction": { "$ref": "#/$defs/accountSwitchMutationTransaction" }
+          }
+        }
+      ]
+    },
+    "deletionRaceReceipt": {
+      "allOf": [
+        { "$ref": "#/$defs/raceReceipt" },
+        {
+          "properties": {
+            "mutation_transaction": { "$ref": "#/$defs/deletionMutationTransaction" }
+          }
+        }
+      ]
+    },
+    "crashReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["admission_closed_before_content", "purge_before_content", "zero_counts", "artifact_refs"],
+      "properties": {
+        "admission_closed_before_content": { "const": true },
+        "purge_before_content": { "const": true },
+        "zero_counts": { "$ref": "#/$defs/zeroCounts" },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "oldDeliveryDenial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "old_delivery_reference",
+        "post_revocation_observed_at",
+        "display_authorization_denied",
+        "notice_open_denied",
+        "artifact_refs"
+      ],
+      "properties": {
+        "old_delivery_reference": { "$ref": "#/$defs/opaqueId" },
+        "post_revocation_observed_at": { "type": "string", "format": "date-time" },
+        "display_authorization_denied": { "const": true },
+        "notice_open_denied": { "const": true },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "accountWideDeletion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "server_acknowledged_at",
+        "revocation_receipt_reference",
+        "old_delivery_denials",
+        "artifact_refs"
+      ],
+      "properties": {
+        "status": { "const": "observed" },
+        "server_acknowledged_at": { "type": "string", "format": "date-time" },
+        "revocation_receipt_reference": { "$ref": "#/$defs/nonSecretReference" },
+        "old_delivery_denials": {
+          "type": "object",
+          "minProperties": 2,
+          "propertyNames": { "$ref": "#/$defs/nonSecretReference" },
+          "additionalProperties": { "$ref": "#/$defs/oldDeliveryDenial" }
+        },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "reachableDeletion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "device_reference",
+        "pre_display_epoch",
+        "epoch_increment_confirmed",
+        "mutation_transaction",
+        "purge_before_content",
+        "old_work_cancelled_or_drained",
+        "deterministic_removal_confirmed",
+        "authorization_denied",
+        "open_denied",
+        "zero_counts",
+        "artifact_refs"
+      ],
+      "properties": {
+        "status": { "const": "observed" },
+        "device_reference": { "$ref": "#/$defs/nonSecretReference" },
+        "pre_display_epoch": { "$ref": "#/$defs/uint64" },
+        "epoch_increment_confirmed": { "const": true },
+        "mutation_transaction": { "$ref": "#/$defs/deletionMutationTransaction" },
+        "purge_before_content": { "const": true },
+        "old_work_cancelled_or_drained": { "const": true },
+        "deterministic_removal_confirmed": { "const": true },
+        "authorization_denied": { "const": true },
+        "open_denied": { "const": true },
+        "zero_counts": { "$ref": "#/$defs/zeroCounts" },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "remoteNextContactDeletion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "device_reference",
+        "pre_display_epoch",
+        "post_display_epoch",
+        "epoch_increment_confirmed",
+        "purge_before_content",
+        "old_work_cancelled_or_drained",
+        "deterministic_removal_confirmed",
+        "authorization_denied",
+        "open_denied",
+        "zero_counts",
+        "artifact_refs"
+      ],
+      "properties": {
+        "status": { "const": "observed" },
+        "device_reference": { "$ref": "#/$defs/nonSecretReference" },
+        "pre_display_epoch": { "$ref": "#/$defs/uint64" },
+        "post_display_epoch": { "$ref": "#/$defs/uint64" },
+        "epoch_increment_confirmed": { "const": true },
+        "purge_before_content": { "const": true },
+        "old_work_cancelled_or_drained": { "const": true },
+        "deterministic_removal_confirmed": { "const": true },
+        "authorization_denied": { "const": true },
+        "open_denied": { "const": true },
+        "zero_counts": { "$ref": "#/$defs/zeroCounts" },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    },
+    "appLocalDeletionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deletion_request_reference",
+        "entrypoint",
+        "account_wide_authorization_fence",
+        "initiating_device_barrier",
+        "offline_next_launch"
+      ],
+      "properties": {
+        "deletion_request_reference": { "$ref": "#/$defs/opaqueId" },
+        "entrypoint": { "const": "app_local" },
+        "account_wide_authorization_fence": { "$ref": "#/$defs/accountWideDeletion" },
+        "initiating_device_barrier": { "$ref": "#/$defs/reachableDeletion" },
+        "offline_next_launch": { "$ref": "#/$defs/offlineDeletion" }
+      }
+    },
+    "publicWebDeletionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deletion_request_reference",
+        "entrypoint",
+        "account_wide_authorization_fence",
+        "running_device_next_contact",
+        "offline_next_launch"
+      ],
+      "properties": {
+        "deletion_request_reference": { "$ref": "#/$defs/opaqueId" },
+        "entrypoint": { "const": "public_web" },
+        "account_wide_authorization_fence": { "$ref": "#/$defs/accountWideDeletion" },
+        "running_device_next_contact": { "$ref": "#/$defs/remoteNextContactDeletion" },
+        "offline_next_launch": { "$ref": "#/$defs/offlineDeletion" }
+      }
+    },
+    "otherDeviceDeletionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deletion_request_reference",
+        "entrypoint",
+        "account_wide_authorization_fence",
+        "deleting_device_barrier",
+        "offline_next_launch"
+      ],
+      "properties": {
+        "deletion_request_reference": { "$ref": "#/$defs/opaqueId" },
+        "entrypoint": { "const": "other_device" },
+        "account_wide_authorization_fence": { "$ref": "#/$defs/accountWideDeletion" },
+        "deleting_device_barrier": { "$ref": "#/$defs/reachableDeletion" },
+        "offline_next_launch": { "$ref": "#/$defs/offlineDeletion" }
+      }
+    },
+    "offlineDeletion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "device_reference",
+        "server_revoked_at",
+        "prior_entry_seeded",
+        "next_launch_required",
+        "purge_before_content",
+        "authorization_denied",
+        "open_denied",
+        "zero_counts",
+        "artifact_refs"
+      ],
+      "properties": {
+        "status": { "const": "observed" },
+        "device_reference": { "$ref": "#/$defs/nonSecretReference" },
+        "server_revoked_at": { "type": "string", "format": "date-time" },
+        "prior_entry_seeded": { "const": true },
+        "next_launch_required": { "const": true },
+        "purge_before_content": { "const": true },
+        "authorization_denied": { "const": true },
+        "open_denied": { "const": true },
+        "zero_counts": { "$ref": "#/$defs/zeroCounts" },
+        "artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonSecretReference" }
+        }
+      }
+    }
+  }
+}

@@ -50,7 +50,7 @@ export default function ChinbaHomePage() {
         {/* 제목 카드 */}
         <header className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-center gap-1.5">
-            <span className="text-lg font-bold tracking-tight text-blue-700">친해지길 바래</span>
+            <span className="text-lg font-bold tracking-tight text-blue-700">TIMELINE</span>
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           </div>
 
@@ -75,17 +75,17 @@ export default function ChinbaHomePage() {
             </h1>
           )}
 
-          {stats && (
+          {typeof stats?.total_teams === 'number' && (
             <p className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
               {stats.total_teams.toLocaleString('ko-KR')}개의 동아리가 함께하고 있어요
             </p>
           )}
         </header>
 
-        {/* 친바 동아리 선택 — 목록을 펼친 채로 + 만들기/참여 */}
+        {/* 타임라인 동아리 선택 — 목록을 펼친 채로 + 만들기/참여 */}
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-gray-900">친바 동아리 선택</h2>
+            <h2 className="text-sm font-bold text-gray-900">타임라인 동아리 선택</h2>
             <div className="flex shrink-0 gap-1.5">
               <button
                 type="button"
@@ -148,7 +148,7 @@ export default function ChinbaHomePage() {
             <section className="rounded-2xl bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <FiGrid size={16} className="text-gray-500" />
-                <h2 className="text-sm font-bold text-gray-900">친바가 하는 일</h2>
+                <h2 className="text-sm font-bold text-gray-900">타임라인이 하는 일</h2>
               </div>
               <div className="grid gap-2">
                 {CONCEPTS.map((item) => {

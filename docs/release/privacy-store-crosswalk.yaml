@@ -1,0 +1,369 @@
+crosswalk_version: mobile-release.v1
+purpose: >-
+  Release-review crosswalk from store/privacy disclosures to the backend canonical data
+  inventory. It is a reconciliation aid, not an independent inventory and not evidence
+  that any console declaration has been filed.
+canonical_inventory:
+  source_of_truth: zerotime-back/docs/privacy/data-inventory.v1.yaml
+  authority: >-
+    Backend inventory row IDs and field definitions are authoritative. A change to a
+    collection purpose, retention, recipient, deletion behavior, or processor starts in
+    that inventory and is then reconciled here before a store submission.
+  referenced_row_ids:
+    - db-user-identity-auth
+    - db-notice-preferences-activity
+    - db-device-installation-push
+    - device-native-auth-and-display-state
+    - api-deletion-status-capability
+    - deletion-evidence-classes
+    - provider-firebase-fcm
+    - provider-oauth-identity
+    - provider-gemini-image
+    - file-profile-images
+    - redis-refresh-sessions
+    - backup-postgres-and-snapshots
+    - logs-runtime-loki
+    - slack-operational-notifications
+privacy_boundaries:
+  controlled_plane:
+    description: >-
+      Account subject, session/refresh state, auth version, profile data, notice
+      preferences, device-installation registration, and deletion status stay on
+      authenticated backend/control-plane paths. The account subject is immutable and
+      auth-version changes revoke authorization; neither is a device notification value.
+    canonical_rows:
+      - db-user-identity-auth
+      - db-notice-preferences-activity
+      - db-device-installation-push
+      - api-deletion-status-capability
+      - redis-refresh-sessions
+  remote_transport:
+    description: >-
+      FCM/APNs transport is strictly data-only. The application payload is exactly opaque
+      delivery_id and notice_id values. It carries no notification content, title, body,
+      account subject, token, auth version, or installation generation, and it cannot
+      automatically display an OS alert.
+    canonical_rows:
+      - db-device-installation-push
+      - provider-firebase-fcm
+  offline_device:
+    description: >-
+      The native coordinator may keep displayEpoch, epoch-bound admission, opaque
+      delivery-to-local-ID mapping, and purgeOnNextLaunch. Bound account identity and
+      lifecycle readiness are runtime-only; no subject, OAuth result, token, or auth
+      version may be persisted in native notification state.
+    canonical_rows:
+      - device-native-auth-and-display-state
+      - deletion-evidence-classes
+  non_negotiable_rule: >-
+    A store declaration must not describe transport metadata as notice content or claim
+    that local/offline purge occurred before the device has actually run it.
+store_disclosure_crosswalk:
+  - canonical_row_id: db-user-identity-auth
+    data_and_purpose_to_confirm_in_inventory: >-
+      OAuth/account identity, email, account identifier, profile fields, and authentication
+      lifecycle used for account creation, sign-in, profile, and account management.
+    frontend_code_evidence:
+      - app/_types/user.ts
+      - app/_lib/api/user.ts
+      - app/_components/auth/LoginButtonGroup.tsx
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [Contact Info, User ID, Other User Content]
+      linked_to_user: Determine from the canonical field and account relationship.
+      tracking: Do not mark tracking unless the inventory proves cross-app/website tracking.
+      purpose_candidates: [App Functionality, Account Management]
+    privacyinfo_review:
+      relevance: >-
+        App Store Connect data disclosure is reviewed separately from the native manifest;
+        do not infer no backend collection from PrivacyInfo.xcprivacy.
+    google_data_safety_review:
+      categories_to_reconcile: [Personal info, User IDs]
+      purposes_to_reconcile: [Account management, App functionality]
+      sharing_and_collection: Determine from canonical recipients and service-provider role.
+    processors_to_review:
+      - provider-oauth-identity
+    deletion_behavior: >-
+      Reconcile with api-deletion-status-capability; public deletion request URL is
+      https://zerotime.kr/account-deletion/.
+  - canonical_row_id: db-notice-preferences-activity
+    data_and_purpose_to_confirm_in_inventory: >-
+      Board subscriptions, keyword preferences, favorites, read/activity state, and other
+      user-selected notice behavior used to personalize in-app notice experience.
+    frontend_code_evidence:
+      - app/(main)/(home)/page.tsx
+      - app/(main)/filter/_components/BoardFilterContent.tsx
+      - app/(main)/keywords/_components/KeywordsModalContent.tsx
+      - app/_context/NotificationBadgeContext.tsx
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [Product Interaction, Other User Content]
+      linked_to_user: Determine from the canonical row; do not infer from a UI route.
+      tracking: false unless the canonical inventory changes.
+      purpose_candidates: [App Functionality, Personalization]
+    privacyinfo_review:
+      relevance: >-
+        Any local preference/cache representation must be distinguished from server-side
+        collection; report only the APIs actually shipped in PrivacyInfo.xcprivacy.
+    google_data_safety_review:
+      categories_to_reconcile: [App activity]
+      purposes_to_reconcile: [App functionality, Personalization]
+      sharing_and_collection: Determine from canonical recipients and service-provider role.
+    processors_to_review: []
+    deletion_behavior: >-
+      Confirm deletion scope/retention using api-deletion-status-capability and the
+      account-wide deletion evidence class; do not claim an offline device purge here.
+  - canonical_row_id: db-device-installation-push
+    data_and_purpose_to_confirm_in_inventory: >-
+      Installation registration, push routing metadata, platform/package identity, and
+      generation/revocation state used only to target eligible installations.
+    frontend_code_evidence:
+      - capacitor.config.ts
+      - android/app/build.gradle
+      - docs/release/native-notification-barrier.v1.md
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [Device ID, User ID]
+      linked_to_user: Determine from the current registration relationship in the canonical inventory.
+      tracking: false unless the canonical inventory changes.
+      purpose_candidates: [App Functionality]
+    privacyinfo_review:
+      relevance: >-
+        The manifest does not replace a review of collection by Firebase/FCM and native
+        dependencies. Verify the shipped dependency set and inventory before declaring.
+    google_data_safety_review:
+      categories_to_reconcile: [Device or other IDs]
+      purposes_to_reconcile: [App functionality]
+      sharing_and_collection: >-
+        Review Firebase/FCM as a processor/service provider under the current Google
+        Data safety definitions; do not classify it from this YAML alone.
+    processors_to_review:
+      - provider-firebase-fcm
+    deletion_behavior: >-
+      Backend deletion/revocation is account-wide evidence. A device's local notification
+      state is separate offline/reachable evidence, not registration deletion proof by itself.
+  - canonical_row_id: device-native-auth-and-display-state
+    data_and_purpose_to_confirm_in_inventory: >-
+      Device-local displayEpoch, epoch-bound display admission, opaque delivery-to-local
+      notification mapping, and purgeOnNextLaunch. Account binding/lifecycle readiness is
+      runtime-only and secrets/subjects are prohibited from persistence.
+    frontend_code_evidence:
+      - docs/release/native-notification-barrier.v1.md
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: []
+      linked_to_user: >-
+        Do not add a store data category solely for opaque local coordinator state; revisit
+        immediately if the canonical row permits an identifier or content to persist.
+      tracking: false
+      purpose_candidates: []
+    privacyinfo_review:
+      shipped_file: ios/App/App/PrivacyInfo.xcprivacy
+      current_manifest_facts:
+        tracking: false
+        collected_data_types: []
+        required_reason_apis:
+          - category: NSPrivacyAccessedAPICategoryUserDefaults
+            reason: CA92.1
+          - category: NSPrivacyAccessedAPICategoryFileTimestamp
+            reason: C617.1
+      release_rule: >-
+        Compare the final archive's manifest and dependency manifests to this row. An empty
+        NSPrivacyCollectedDataTypes array does not prove that the backend collects no data.
+    google_data_safety_review:
+      categories_to_reconcile: []
+      purposes_to_reconcile: []
+      sharing_and_collection: >-
+        No cloud upload is allowed for this state. Reassess if any local state is transmitted.
+    processors_to_review: []
+    deletion_behavior: >-
+      On account mutation, remove local scheduled/displayed items. If removal fails, retain
+      only purgeOnNextLaunch and classify the result as offline evidence until initialization
+      actually succeeds.
+  - canonical_row_id: api-deletion-status-capability
+    data_and_purpose_to_confirm_in_inventory: Public deletion request/status capability and its scope boundary.
+    frontend_code_evidence:
+      - app/(main)/profile/_components/ProfileClient.tsx
+      - app/_lib/api/user.ts
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: []
+      linked_to_user: Not a collection category; verify account-deletion support information.
+      tracking: false
+      purpose_candidates: []
+    privacyinfo_review:
+      relevance: No native required-reason API disclosure follows from a public deletion URL.
+    google_data_safety_review:
+      categories_to_reconcile: []
+      purposes_to_reconcile: []
+      sharing_and_collection: Not a processor declaration.
+    processors_to_review: []
+    deletion_behavior: >-
+      Publish and manually verify https://zerotime.kr/account-deletion/. In-app entry is
+      /profile -> 회원 탈퇴. The URL/status capability does not itself prove deletion execution.
+  - canonical_row_id: deletion-evidence-classes
+    data_and_purpose_to_confirm_in_inventory: Reachable-device, account-wide, and offline deletion evidence boundaries.
+    frontend_code_evidence:
+      - docs/release/evidence.schema.json
+      - docs/release/native-notification-barrier.v1.md
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: []
+      linked_to_user: Do not submit release evidence as store user data.
+      tracking: false
+      purpose_candidates: []
+    privacyinfo_review:
+      relevance: Evidence records must remain data-only and contain no payload values, subject, or credential.
+    google_data_safety_review:
+      categories_to_reconcile: []
+      purposes_to_reconcile: []
+      sharing_and_collection: Do not use the evidence system as a user-data analytics pipeline.
+    processors_to_review: []
+    deletion_behavior: >-
+      Keep the three classes separate: reachable means a currently reachable device fenced/
+      purged; account-wide means backend canonical scope; offline means a next-launch
+      obligation or later observed initialization purge.
+  - canonical_row_id: provider-firebase-fcm
+    data_and_purpose_to_confirm_in_inventory: Firebase/FCM transport and service-provider processing.
+    frontend_code_evidence:
+      - android/app/build.gradle
+      - android/.gitignore
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [Device ID]
+      linked_to_user: Determine from db-device-installation-push.
+      tracking: Do not presume Firebase transport is tracking; use Apple's current definition and the inventory.
+      purpose_candidates: [App Functionality]
+    privacyinfo_review:
+      relevance: Review final Firebase/native SDK manifests in the archive; this repository file is not sufficient.
+    google_data_safety_review:
+      categories_to_reconcile: [Device or other IDs]
+      purposes_to_reconcile: [App functionality]
+      sharing_and_collection: Reconcile processor/service-provider status with the canonical inventory and Google guidance.
+    processors_to_review: [provider-firebase-fcm]
+    deletion_behavior: >-
+      Remove/revoke eligible installation registrations through backend-controlled deletion;
+      do not place deletion status or identity in FCM payloads.
+  - canonical_row_id: provider-oauth-identity
+    data_and_purpose_to_confirm_in_inventory: OAuth identity-provider processing for Google, Apple, Naver, and Kakao login.
+    frontend_code_evidence:
+      - app/_components/auth/LoginButtonGroup.tsx
+      - app/_components/auth/SocialLoginButton.tsx
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [Contact Info, User ID]
+      linked_to_user: Determine from db-user-identity-auth.
+      tracking: Use canonical recipient/purpose facts; provider login alone is not a tracking declaration.
+      purpose_candidates: [Account Management, App Functionality]
+    privacyinfo_review:
+      relevance: OAuth browser/deep-link behavior does not replace native-manifest review.
+    google_data_safety_review:
+      categories_to_reconcile: [Personal info, User IDs]
+      purposes_to_reconcile: [Account management]
+      sharing_and_collection: Reconcile provider disclosure/recipient status from canonical inventory.
+    processors_to_review: [provider-oauth-identity]
+    deletion_behavior: >-
+      Deletion increments auth version and denies further OAuth authorization from deletion_pending;
+      confirm the provider unlink/retention scope in the canonical inventory.
+  - canonical_row_id: provider-gemini-image
+    data_and_purpose_to_confirm_in_inventory: Image-processing provider use, if enabled for the candidate release.
+    frontend_code_evidence: []
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [Photos or Videos, Other User Content]
+      linked_to_user: Determine from file-profile-images and the actual enabled flow.
+      tracking: false unless canonical inventory changes.
+      purpose_candidates: [App Functionality]
+    privacyinfo_review:
+      relevance: Reconcile third-party SDK/manifest content in the final archive if this provider is shipped.
+    google_data_safety_review:
+      categories_to_reconcile: [Photos and videos]
+      purposes_to_reconcile: [App functionality]
+      sharing_and_collection: Confirm enabled status and provider recipient role; omit only when the inventory proves no release-plane use.
+    processors_to_review: [provider-gemini-image]
+    deletion_behavior: Confirm source/output retention and deletion propagation in the canonical inventory.
+  - canonical_row_id: file-profile-images
+    data_and_purpose_to_confirm_in_inventory: Profile image storage and retrieval.
+    frontend_code_evidence:
+      - app/_types/user.ts
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [Photos or Videos, Other User Content]
+      linked_to_user: Determine from the canonical storage relationship.
+      tracking: false unless canonical inventory changes.
+      purpose_candidates: [App Functionality]
+    privacyinfo_review:
+      relevance: Do not infer camera/photo-library permission text from profile-image storage; inspect final Info.plist separately.
+    google_data_safety_review:
+      categories_to_reconcile: [Photos and videos]
+      purposes_to_reconcile: [App functionality]
+      sharing_and_collection: Determine storage/provider recipients from canonical inventory.
+    processors_to_review: []
+    deletion_behavior: Confirm object deletion/retention with api-deletion-status-capability and backup policy.
+  - canonical_row_id: redis-refresh-sessions
+    data_and_purpose_to_confirm_in_inventory: Server-side refresh-session state.
+    frontend_code_evidence:
+      - app/_lib/auth/tokenStore.ts
+      - app/_lib/api/client.ts
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: [User ID]
+      linked_to_user: Determine from db-user-identity-auth.
+      tracking: false unless canonical inventory changes.
+      purpose_candidates: [Account Management, Security]
+    privacyinfo_review:
+      relevance: HttpOnly refresh-cookie/server-session handling is not a reason to add payload values to native evidence.
+    google_data_safety_review:
+      categories_to_reconcile: [User IDs]
+      purposes_to_reconcile: [Account management, Security, fraud prevention, and compliance]
+      sharing_and_collection: Determine from canonical infrastructure recipient status.
+    processors_to_review: []
+    deletion_behavior: Auth-version revocation and session invalidation scope is verified by account-wide evidence.
+  - canonical_row_id: backup-postgres-and-snapshots
+    data_and_purpose_to_confirm_in_inventory: Backup/snapshot retention of canonical account data.
+    frontend_code_evidence: []
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: []
+      linked_to_user: Disclosure follows the underlying canonical data categories, not a new client collection category.
+      tracking: false
+      purpose_candidates: []
+    privacyinfo_review:
+      relevance: No direct iOS manifest declaration; reconcile retention/deletion statement with backend inventory.
+    google_data_safety_review:
+      categories_to_reconcile: []
+      purposes_to_reconcile: []
+      sharing_and_collection: Determine infrastructure processor disclosure from canonical inventory.
+    processors_to_review: []
+    deletion_behavior: State backup retention/deletion timing exactly as the canonical inventory defines; never imply immediate snapshot erasure.
+  - canonical_row_id: logs-runtime-loki
+    data_and_purpose_to_confirm_in_inventory: Runtime/operational logging.
+    frontend_code_evidence: []
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: []
+      linked_to_user: Determine from actual logged fields; prohibit credentials and payload values.
+      tracking: false
+      purpose_candidates: []
+    privacyinfo_review:
+      relevance: Do not add evidence payload values to logs.
+    google_data_safety_review:
+      categories_to_reconcile: []
+      purposes_to_reconcile: []
+      sharing_and_collection: Determine from canonical inventory.
+    processors_to_review: []
+    deletion_behavior: Apply canonical retention/redaction rules; deletion evidence references are data-only.
+  - canonical_row_id: slack-operational-notifications
+    data_and_purpose_to_confirm_in_inventory: Operational notification recipient/processor boundary.
+    frontend_code_evidence: []
+    apple_privacy_review:
+      app_privacy_categories_to_reconcile: []
+      linked_to_user: Determine from actual operational content; do not transmit subjects, tokens, or payload values.
+      tracking: false
+      purpose_candidates: []
+    privacyinfo_review:
+      relevance: No direct native manifest declaration.
+    google_data_safety_review:
+      categories_to_reconcile: []
+      purposes_to_reconcile: []
+      sharing_and_collection: Determine from canonical inventory.
+    processors_to_review: [slack-operational-notifications]
+    deletion_behavior: Operational notices are not deletion evidence and must follow canonical retention/redaction rules.
+release_reconciliation_steps:
+  - Privacy owner opens the current canonical inventory and verifies every referenced row ID still exists and matches the candidate release plane.
+  - Privacy owner compares the final iOS archive PrivacyInfo manifests, not only the repository file, to the Apple disclosure decision.
+  - Store owner manually updates/reviews Apple App Privacy and Google Data safety using only confirmed inventory fields, purposes, recipients, retention, and deletion behavior.
+  - Store owner manually verifies the privacy-policy and deletion URLs. The current public deletion URL is https://zerotime.kr/account-deletion/.
+  - Release owner records the review as a manual evidence step; no placeholder console screenshot or unverified prefilled answer is acceptable.
+manual_ownership:
+  responsible: privacy-owner
+  accountable: release-owner
+  consulted: [backend-owner, native-owner, store-owner]
+  informed: [support-owner]

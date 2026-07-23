@@ -24,6 +24,7 @@ import KeywordSettingsBar from '@/_components/ui/KeywordSettingsBar';
 import ScrollToTop from '@/_components/ui/ScrollToTop';
 import PullToRefreshIndicator from '@/_components/ui/PullToRefreshIndicator';
 import UserStatsBanner from '@/_components/ui/UserStatsBanner';
+import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
 
 // Dayjs 설정
 dayjs.extend(relativeTime);
@@ -40,14 +41,18 @@ function HomeContent() {
   // 초기 마운트 시 visibilitychange 무시를 위한 ref
   const isInitialMount = useRef(true);
 
-  // 검색 상태: 입력값(searchInput)을 300ms 디바운스해 debouncedSearch로 반영
+  // 검색 상태: 입력값(searchInput)은 타이핑을 담고, 실제 검색은 엔터로 제출한
+  // submittedSearch에 대해서만 수행한다 (타자마다 검색하지 않는다).
   const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
-    return () => clearTimeout(t);
+  const [submittedSearch, setSubmittedSearch] = useState('');
+  const handleSearchSubmit = useCallback(() => {
+    setSubmittedSearch(searchInput.trim());
   }, [searchInput]);
-  const isSearching = debouncedSearch.length > 0;
+  // 입력을 완전히 비우면(X 버튼 등) 검색도 해제한다.
+  useEffect(() => {
+    if (searchInput === '') setSubmittedSearch('');
+  }, [searchInput]);
+  const isSearching = submittedSearch.length > 0;
 
   // 클라이언트 마운트 체크
   useEffect(() => {
@@ -56,6 +61,7 @@ function HomeContent() {
 
   // Custom Hooks
   const { isLoggedIn, isAuthLoaded, refetch: refetchUser, user } = useUser();
+  const { guestSchool } = useGuestSchool();
   const {
     selectedCategories,
     updateSelectedCategories,
@@ -125,7 +131,8 @@ function HomeContent() {
     refetchOnReconnect: false,
   });
 
-  // 검색 무한 스크롤 쿼리 (검색어가 있을 때만 활성 — 전체 게시판 대상, 필터 무관)
+  // 검색 무한 스크롤 쿼리 (엔터로 제출됐을 때만 활성)
+  // 범위: 교내공지(home_campus) 항상 포함 + 구독 게시판(selectedBoards). 백엔드가 최근 5년으로 제한.
   const {
     data: searchPages,
     fetchNextPage: fetchNextSearchPage,
@@ -133,8 +140,8 @@ function HomeContent() {
     isFetchingNextPage: isFetchingNextSearchPage,
     isLoading: isSearchLoading,
   } = useInfiniteQuery({
-    queryKey: ['notices', 'search', debouncedSearch],
-    queryFn: ({ pageParam }) => searchNotices(debouncedSearch, pageParam, 20),
+    queryKey: ['notices', 'search', submittedSearch, selectedBoardsParam],
+    queryFn: ({ pageParam }) => searchNotices(submittedSearch, pageParam, 20, selectedBoards),
     getNextPageParam: (lastPage) => lastPage.next_cursor,
     initialPageParam: null as string | null,
     enabled: isQueryReady && isSearching,
@@ -305,8 +312,8 @@ function HomeContent() {
     <>
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} onShowToast={showToast} />
 
-      {/* User Stats Banner */}
-      <UserStatsBanner isLoggedIn={isLoggedIn} onSignupClick={() => router.push('/login')} />
+      {/* User Stats Banner — 게스트일 땐 배너 우측에 학교 선택 드롭다운도 함께 렌더 (UserStatsBanner 내부) */}
+      <UserStatsBanner isLoggedIn={isLoggedIn} school={user?.school || guestSchool} onSignupClick={() => router.push('/login')} />
 
         {/* 카테고리 필터 */}
         <div className="shrink-0" style={{ touchAction: 'none' }}>
@@ -318,6 +325,7 @@ function HomeContent() {
             onShowToast={showToast}
             searchValue={searchInput}
             onSearchChange={setSearchInput}
+            onSearchSubmit={handleSearchSubmit}
           />
         </div>
 
@@ -358,9 +366,11 @@ function HomeContent() {
         >
           {/* 검색 결과 개수 표시 (결과가 1건 이상일 때만 — 0건은 아래 빈 상태가 안내) */}
           {isSearching && !activeIsLoading && searchTotalCount !== null && searchTotalCount > 0 && (
-            <div className="px-4 pt-3 pb-1 text-sm text-gray-500">
-              <span className="font-semibold text-gray-800">&apos;{debouncedSearch}&apos;</span> 검색 결과{' '}
-              <span className="font-semibold text-gray-800">{searchTotalCount.toLocaleString()}</span>건
+            <div className="flex min-h-10 items-center justify-start px-4 py-2 text-sm text-gray-500">
+              <span>
+                <span className="font-semibold text-gray-800">&apos;{submittedSearch}&apos;</span> 검색 결과{' '}
+                <span className="font-semibold text-gray-800">{searchTotalCount.toLocaleString()}</span>건
+              </span>
             </div>
           )}
 
@@ -377,7 +387,7 @@ function HomeContent() {
             onShowToast={showToast}
             emptyMessage={
               isSearching
-                ? `'${debouncedSearch}'에 대한 검색 결과가 없어요`
+                ? `'${submittedSearch}'에 대한 검색 결과가 없어요`
                 : filter === 'KEYWORD'
                   ? (keywordCount === 0
                     ? '키워드를 등록하면 관련 공지가 모여요'

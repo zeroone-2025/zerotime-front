@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useUserStats } from '@/_lib/hooks/useUserStats';
 import { FiUsers } from 'react-icons/fi';
+import GuestSchoolSelector from '@/_components/ui/GuestSchoolSelector';
 
 interface UserStatsBannerProps {
     isLoggedIn: boolean;
+    school?: string;
     onSignupClick?: () => void;
 }
 
@@ -130,38 +132,46 @@ function AnimatedCount({ value }: { value: number }) {
     );
 }
 
-export default function UserStatsBanner({ isLoggedIn, onSignupClick }: UserStatsBannerProps) {
-    const { data: stats, isLoading } = useUserStats();
-
-    if (isLoading || !stats) return null;
+export default function UserStatsBanner({ isLoggedIn, school, onSignupClick }: UserStatsBannerProps) {
+    const { data: stats, isLoading } = useUserStats(school);
 
     if (!isLoggedIn) {
+        // 통계 API 로딩/실패 여부와 무관하게 학교 선택 드롭다운은 항상 보여야 한다 —
+        // stats는 왼쪽 홍보 문구에만 필요하고, 드롭다운 기능 자체는 이 API와 무관하다.
+        const statsReady = !isLoading && !!stats;
         return (
-            <button
-                onClick={onSignupClick}
-                className="mx-4 mb-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-left w-[calc(100%-2rem)] animate-slideDown"
-            >
-                <div className="flex items-start gap-3">
-                    <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
-                    <div>
-                        <p className="text-sm text-gray-700">
-                            벌써 <AnimatedCount value={stats.total_users} />의 전북대 학생이 제로타임을 쓰고 있어요
-                        </p>
-                        <p className="text-xs font-semibold text-blue-600 mt-1.5">
-                            나만 놓치고 있을 수도? →
-                        </p>
+            <div className="mx-4 mb-3 flex items-center gap-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 w-[calc(100%-2rem)] animate-slideDown">
+                {statsReady ? (
+                    // 배너 전체가 아니라 유도 문구만 클릭되게 한다 — 사용자는 "나만 놓치고
+                    // 있을 수도? →"만 버튼으로 인식하므로, 배너 오탭으로 의도치 않게 로그인
+                    // 화면에 가는 것을 막는다. block+text-left로 기존 <p>와 동일 기하 유지.
+                    <div className="flex items-start gap-3 text-left min-w-0 flex-1">
+                        <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-sm text-gray-700">
+                                벌써 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생이 제로타임을 쓰고 있어요
+                            </p>
+                            <button onClick={onSignupClick} className="block text-left text-xs font-semibold text-blue-600 mt-1.5">
+                                나만 놓치고 있을 수도? →
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </button>
+                ) : (
+                    <div className="min-w-0 flex-1" />
+                )}
+                <GuestSchoolSelector />
+            </div>
         );
     }
+
+    if (isLoading || !stats) return null;
 
     return (
         <div className="mx-4 mb-3 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 animate-slideDown">
             <div className="flex items-start gap-3">
                 <FiUsers size={20} className="text-blue-600 mt-0.5 shrink-0" />
                 <p className="text-sm text-gray-700">
-                    제로타임은 <AnimatedCount value={stats.total_users} />의 전북대 학생과 함께하고 있어요
+                    제로타임은 <AnimatedCount value={stats.total_users} />의 {stats.school} 학생과 함께하고 있어요
                 </p>
             </div>
         </div>

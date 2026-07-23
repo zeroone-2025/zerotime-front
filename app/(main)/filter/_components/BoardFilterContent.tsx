@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+
 import { FiBookmark, FiInfo, FiRotateCcw, FiSave, FiSearch, FiTrash2, FiX } from 'react-icons/fi';
-import { BOARD_LIST, CATEGORY_ORDER, BoardCategory, GUEST_DEFAULT_BOARDS } from '@/_lib/constants/boards';
-import { useUser } from '@/_lib/hooks/useUser';
+
+import Button from '@/_components/ui/Button';
+import Toast from '@/_components/ui/Toast';
 import {
   BoardGroup,
   deleteMyBoardGroup,
@@ -12,8 +14,11 @@ import {
   readBoardGroupsCache,
   writeBoardGroupsCache,
 } from '@/_lib/api';
-import Button from '@/_components/ui/Button';
-import Toast from '@/_components/ui/Toast';
+import type { BoardCategory, BoardInfo } from '@/_lib/api/boards';
+import { CATEGORY_ORDER, getDefaultBoardCodes } from '@/_lib/constants/boards';
+import { useBoardsBySchool } from '@/_lib/hooks/useBoards';
+import { useGuestSchool } from '@/_lib/hooks/useGuestSchool';
+import { useUser } from '@/_lib/hooks/useUser';
 
 interface BoardFilterContentProps {
   selectedBoards: string[];
@@ -24,6 +29,19 @@ interface BoardFilterContentProps {
 const CHOSEONG = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
 
 const normalizeSearchText = (text: string) => text.toLowerCase().replace(/\s+/g, '');
+
+/**
+ * 저장한 그룹을 적용할 때, 현재 학교의 게시판 목록에 실재하는 board_code만 남긴다.
+ * (학교 A에서 저장한 그룹을 학교 B에서 불러오면 타 학교 코드는 화면에 안 뜨지만
+ * tempSelection에 남아 그대로 저장되는 버그가 있었다 — 여기서 걸러낸다.)
+ */
+export const filterBoardCodesToSchool = (
+  boardCodes: string[],
+  boardList: BoardInfo[],
+): string[] => {
+  const available = new Set(boardList.map((board) => board.board_code));
+  return boardCodes.filter((code) => available.has(code));
+};
 
 const getChoseong = (text: string) => {
   let result = '';
@@ -57,6 +75,9 @@ export default function BoardFilterContent({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { isLoggedIn, isAuthLoaded, user } = useUser();
   const isGuest = !isLoggedIn;
+  const { guestSchool } = useGuestSchool();
+  const school = user?.school || guestSchool;
+  const { data: boardList = [], isLoading: isBoardsLoading } = useBoardsBySchool(school);
 
   // 초기화
   useEffect(() => {
@@ -94,11 +115,11 @@ export default function BoardFilterContent({
   }, [isAuthLoaded, isLoggedIn, user?.email]);
 
   const normalizedQuery = normalizeSearchText(searchQuery);
-  const matchesSearch = (board: (typeof BOARD_LIST)[number]) => {
+  const matchesSearch = (board: BoardInfo) => {
     if (!normalizedQuery) return true;
 
     const name = normalizeSearchText(board.name);
-    const id = normalizeSearchText(board.id);
+    const id = normalizeSearchText(board.board_code);
     const category = normalizeSearchText(board.category);
     const choseong = normalizeSearchText(getChoseong(board.name));
 
@@ -111,15 +132,15 @@ export default function BoardFilterContent({
   };
 
   // 선택된 게시판은 검색과 무관하게 항상 표시
-  const selectedItems = BOARD_LIST.filter((board) => tempSelection.has(board.id));
+  const selectedItems = boardList.filter((board) => tempSelection.has(board.board_code));
   // 미선택 게시판 목록에만 검색 적용
-  const unselectedItems = BOARD_LIST.filter(
-    (board) => !tempSelection.has(board.id) && matchesSearch(board)
+  const unselectedItems = boardList.filter(
+    (board) => !tempSelection.has(board.board_code) && matchesSearch(board)
   );
 
   // 카테고리별로 미선택 게시판 그룹화
-  const groupedUnselected: Record<BoardCategory, typeof BOARD_LIST> = {
-    전북대: [],
+  const groupedUnselected: Record<BoardCategory, BoardInfo[]> = {
+    본부: [],
     단과대: [],
     학과: [],
     사업단: [],
@@ -145,7 +166,7 @@ export default function BoardFilterContent({
   // 초기화하기
   const handleReset = () => {
     if (isGuest) {
-      setTempSelection(new Set(GUEST_DEFAULT_BOARDS));
+      setTempSelection(new Set(getDefaultBoardCodes(boardList)));
     } else {
       setTempSelection(new Set());
     }
@@ -187,7 +208,7 @@ export default function BoardFilterContent({
   };
 
   const handleApplyBoardGroup = (group: BoardGroup) => {
-    setTempSelection(new Set(group.board_codes));
+    setTempSelection(new Set(filterBoardCodesToSchool(group.board_codes, boardList)));
   };
 
   const handleDeleteBoardGroup = async (groupId: number) => {
@@ -260,8 +281,8 @@ export default function BoardFilterContent({
             <div className="flex flex-wrap gap-2">
               {selectedItems.map((board) => (
                 <button
-                  key={board.id}
-                  onClick={() => toggleBoard(board.id)}
+                  key={board.board_code}
+                  onClick={() => toggleBoard(board.board_code)}
                   className="rounded-full border-2 border-gray-900 bg-white px-4 py-2 text-sm font-bold text-gray-900 shadow-md transition-all hover:bg-gray-50 active:scale-95"
                 >
                   {board.name}
@@ -412,10 +433,13 @@ export default function BoardFilterContent({
               </button>
             </div>
           </div>
+          {isBoardsLoading && (
+            <p className="py-6 text-center text-sm text-gray-400">게시판 목록을 불러오는 중...</p>
+          )}
           <div className="flex flex-col gap-6">
-            {CATEGORY_ORDER.map((category) => {
+            {!isBoardsLoading && CATEGORY_ORDER.map((category) => {
               const unselectedBoards = groupedUnselected[category];
-              const allBoardsInCategory = BOARD_LIST.filter((b) => b.category === category);
+              const allBoardsInCategory = boardList.filter((b) => b.category === category);
 
               return (
                 <div key={category}>
@@ -424,8 +448,8 @@ export default function BoardFilterContent({
                     <div className="flex flex-wrap gap-2">
                       {unselectedBoards.map((board) => (
                         <button
-                          key={board.id}
-                          onClick={() => toggleBoard(board.id)}
+                          key={board.board_code}
+                          onClick={() => toggleBoard(board.board_code)}
                           className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-100 active:scale-95"
                         >
                           {board.name}

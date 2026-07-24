@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import type { BoardInfo } from '@/_lib/api/boards';
 
-import { filterBoardCodesToSchool } from './BoardFilterContent';
+import { displayBoardName, filterBoardCodesToSchool } from './BoardFilterContent';
 
 const makeBoard = (board_code: string): BoardInfo => ({
   board_code,
@@ -33,5 +33,25 @@ describe('filterBoardCodesToSchool (F010)', () => {
 
   it('boardList가 비어 있으면 빈 배열을 반환한다', () => {
     expect(filterBoardCodesToSchool(['jnu_home'], [])).toEqual([]);
+  });
+});
+
+describe('displayBoardName', () => {
+  it('끝의 "공지" 접미사를 제거한다', () => {
+    expect(displayBoardName('컴퓨터공학부 공지')).toBe('컴퓨터공학부');
+    expect(displayBoardName('전자공학부 공지')).toBe('전자공학부');
+  });
+
+  it('중간에 있는 단어는 건드리지 않고 끝의 접미사만 뗀다', () => {
+    expect(displayBoardName('영어영문학부 영어전공 공지')).toBe('영어영문학부 영어전공');
+  });
+
+  it('"공지"로 끝나지 않는 이름은 그대로 둔다', () => {
+    expect(displayBoardName('학사 공지사항')).toBe('학사 공지사항');
+    expect(displayBoardName('도서관')).toBe('도서관');
+  });
+
+  it('이름이 "공지" 자체이면(제거 시 빈 문자열) 원본을 그대로 둔다', () => {
+    expect(displayBoardName('공지')).toBe('공지');
   });
 });

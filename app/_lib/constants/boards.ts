@@ -30,7 +30,7 @@ export const GUEST_SCHOOL_KEY = 'JB_ALARM_GUEST_SCHOOL';
 /**
  * 게스트 학교 선택 드롭다운에 보여줄 학교 목록.
  */
-export const GUEST_SCHOOL_OPTIONS = ['전북대', '전남대', '경북대', '충남대', '경상국립대'] as const;
+export const GUEST_SCHOOL_OPTIONS = ['전북대', '전남대', '경북대', '충남대'] as const;
 
 export const DEFAULT_GUEST_SCHOOL = '전북대';
 
@@ -43,7 +43,6 @@ export const SCHOOL_FULL_NAME: Record<string, string> = {
   전남대: '전남대학교',
   경북대: '경북대학교',
   충남대: '충남대학교',
-  경상국립대: '경상국립대학교',
 };
 
 /**

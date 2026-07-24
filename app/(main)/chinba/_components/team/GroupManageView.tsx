@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { FiClipboard, FiUsers } from 'react-icons/fi';
 
 import FullPageModal from '@/_components/layout/FullPageModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
@@ -14,7 +15,7 @@ import GroupTextInput from './groups/GroupTextInput';
 import GroupParsePreview from './groups/GroupParsePreview';
 import GroupInlineEditor from './groups/GroupInlineEditor';
 
-type Step = 'current' | 'set-select' | 'input' | 'preview' | 'edit';
+type Step = 'current' | 'set-select' | 'method' | 'compose' | 'input' | 'preview' | 'edit';
 
 export default function GroupManageView() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function GroupManageView() {
         setStep('edit');
       } else if (initialMode === 'recompose' && initialSetId) {
         setSelectedGroupSetId(Number(initialSetId));
-        setStep('input');
+        setStep('method');
       } else {
         setStep(hasExistingGroups ? 'current' : 'set-select');
       }
@@ -66,14 +67,14 @@ export default function GroupManageView() {
       try {
         const created = await createGroupSet.mutateAsync({ name: newSetName.trim() });
         setSelectedGroupSetId(created.id);
-        setStep('input');
+        setStep('method');
       } catch (err: any) {
         setError(err.response?.data?.detail || '그룹세트 생성에 실패했습니다.');
       }
       return;
     }
 
-    setStep('input');
+    setStep('method');
   };
 
   const handleParse = async (text: string) => {
@@ -127,7 +128,7 @@ export default function GroupManageView() {
           groupSets={groupSets}
           onRecompose={(setId?: number) => {
             setSelectedGroupSetId(setId ?? null);
-            setStep(setId ? 'input' : 'set-select');
+            setStep(setId ? 'method' : 'set-select');
           }}
           onEdit={(setId?: number) => {
             setSelectedGroupSetId(setId ?? null);
@@ -192,11 +193,62 @@ export default function GroupManageView() {
           </div>
         </div>
       )}
+      {step === 'method' && (
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-800">편성 방식 선택</h3>
+              <p className="text-xs text-gray-500 mt-0.5">조를 어떻게 만들지 고르세요.</p>
+            </div>
+
+            <button
+              onClick={() => { setError(null); setStep('compose'); }}
+              className="w-full text-left rounded-xl border border-gray-200 p-4 transition-colors hover:border-gray-300 active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <FiUsers size={16} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-800">직접 선택하기</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">멤버를 눌러 조에 배정합니다</p>
+            </button>
+
+            <button
+              onClick={() => { setError(null); setStep('input'); }}
+              className="w-full text-left rounded-xl border border-gray-200 p-4 transition-colors hover:border-gray-300 active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <FiClipboard size={16} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-800">텍스트 붙여넣기 (AI)</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">엑셀·카톡 명단을 붙여넣어 자동 분석합니다</p>
+            </button>
+          </div>
+
+          <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100">
+            <button
+              onClick={() => { setError(null); setStep(hasExistingGroups ? 'current' : 'set-select'); }}
+              className="w-full rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              돌아가기
+            </button>
+          </div>
+        </div>
+      )}
+      {step === 'compose' && (
+        <GroupInlineEditor
+          teamId={teamId}
+          groupSetId={selectedGroupSetId ?? undefined}
+          mode="compose"
+          onSave={handleConfirm}
+          onBack={() => { setError(null); setStep('method'); }}
+          isSaving={saveGroups.isPending}
+        />
+      )}
       {step === 'input' && (
         <GroupTextInput
           onParse={handleParse}
           isParsing={parseGroups.isPending}
-          onBack={() => { setError(null); setStep('set-select'); }}
+          onBack={() => { setError(null); setStep('method'); }}
         />
       )}
       {step === 'preview' && parseResult && (

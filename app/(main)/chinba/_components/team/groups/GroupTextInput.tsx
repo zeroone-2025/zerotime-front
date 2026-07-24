@@ -31,11 +31,20 @@ export default function GroupTextInput({ onParse, isParsing, onBack }: GroupText
         />
       </div>
 
-      <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100">
+      <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100 flex gap-2">
+        {onBack && (
+          <button
+            onClick={onBack}
+            disabled={isParsing}
+            className="flex-1 rounded-lg border border-gray-200 px-6 py-3 text-base font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+          >
+            돌아가기
+          </button>
+        )}
         <button
           onClick={() => onParse(text)}
           disabled={!text.trim() || isParsing}
-          className="w-full rounded-lg bg-gray-900 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 rounded-lg bg-gray-900 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isParsing ? (
             <span className="flex items-center justify-center gap-2">

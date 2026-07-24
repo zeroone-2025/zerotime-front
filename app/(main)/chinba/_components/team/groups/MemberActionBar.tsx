@@ -17,8 +17,9 @@ export default function MemberActionBar({
   onUnassign,
   onClose,
 }: MemberActionBarProps) {
+  // 바닥에 붙으면 잘 안 보여서 safe-area 위로 12px 더 띄운 카드형 바
   return (
-    <div className="shrink-0 border-t border-gray-200 bg-white px-4 py-3 pb-safe">
+    <div className="shrink-0 mx-3 mb-[calc(env(safe-area-inset-bottom)+0.75rem)] rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-gray-800">{nickname}</span>
         <button

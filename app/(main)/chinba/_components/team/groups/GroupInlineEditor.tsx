@@ -308,7 +308,7 @@ export default function GroupInlineEditor({
     <div className="flex flex-col h-full">
       <div
         className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
-        style={{ paddingBottom: selectedMember ? 80 : undefined }}
+        style={{ paddingBottom: selectedMember ? 96 : undefined }}
       >
         {/* Header */}
         <div>

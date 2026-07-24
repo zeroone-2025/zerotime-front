@@ -58,6 +58,13 @@ function editableToGroupInputs(groups: EditableGroup[]): GroupInput[] {
   }));
 }
 
+/** 기본 이름("N조")인 조만 순서대로 다시 번호를 매긴다 — 직접 지은 이름은 건드리지 않는다 */
+function renumberDefaultNames(groups: EditableGroup[]): EditableGroup[] {
+  return groups.map((g, idx) =>
+    /^\d+조$/.test(g.name) ? { ...g, name: `${idx + 1}조` } : g,
+  );
+}
+
 function toUnassigned(
   members: { member_id: number; nickname: string }[],
 ): EditableMember[] {
@@ -189,7 +196,7 @@ export default function GroupInlineEditor({
   const handleDeleteGroup = (groupIdx: number) => {
     const removed = groups[groupIdx];
     setUnassigned((u) => [...u, ...removed.members.map((m) => ({ ...m, is_leader: false }))]);
-    setGroups((prev) => prev.filter((_, i) => i !== groupIdx));
+    setGroups((prev) => renumberDefaultNames(prev.filter((_, i) => i !== groupIdx)));
     setShowDeleteConfirm(null);
     setSelectedMember(null);
   };
@@ -358,6 +365,7 @@ export default function GroupInlineEditor({
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(gIdx)}
+                    aria-label={`${group.name} 삭제`}
                     className="p-1 text-gray-300 hover:text-red-400 transition-colors"
                   >
                     <FiTrash2 size={14} />

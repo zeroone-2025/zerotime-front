@@ -55,7 +55,8 @@ describe('GroupInlineEditor — compose 모드', () => {
   it('조가 없으면 1조를 만들어 두고, 빈 조 상태에서는 저장을 막는다', () => {
     renderCompose();
 
-    expect(screen.getByRole('button', { name: /1조/ })).toBeInTheDocument();
+    // 정확히 일치로 찾는다 — 삭제 버튼의 aria-label("1조 삭제")과 겹치지 않게
+    expect(screen.getByRole('button', { name: '1조' })).toBeInTheDocument();
     expect(screen.getByText('멤버 필요')).toBeInTheDocument();
     expect(screen.getByText('멤버가 없는 조가 있습니다')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '저장하기' })).toBeDisabled();
@@ -100,5 +101,43 @@ describe('GroupInlineEditor — compose 모드', () => {
     // 시트 후보에는 박지현만 남는다 (김민수는 이미 조에 들어갔다)
     expect(within(second).queryByText('김민수')).not.toBeInTheDocument();
     expect(within(second).getByText('박지현')).toBeInTheDocument();
+  });
+
+  it('중간 조를 삭제하면 뒤 조들의 번호가 앞당겨진다', () => {
+    renderCompose();
+
+    // 1조(자동 생성) + 2조 + 3조
+    fireEvent.click(screen.getByRole('button', { name: /새 조 추가/ }));
+    fireEvent.click(screen.getByRole('button', { name: /새 조 추가/ }));
+    expect(screen.getByRole('button', { name: '3조' })).toBeInTheDocument();
+
+    // 2조 삭제 → 3조가 2조로 당겨진다
+    fireEvent.click(screen.getByRole('button', { name: '2조 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
+
+    expect(screen.getByRole('button', { name: '1조' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2조' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '3조' })).not.toBeInTheDocument();
+  });
+
+  it('직접 지은 조 이름은 삭제 후에도 그대로 둔다', () => {
+    renderCompose();
+
+    fireEvent.click(screen.getByRole('button', { name: /새 조 추가/ }));
+    fireEvent.click(screen.getByRole('button', { name: /새 조 추가/ }));
+
+    // 3조 → "친목조"로 이름 변경
+    fireEvent.click(screen.getByRole('button', { name: '3조' }));
+    const input = screen.getByDisplayValue('3조');
+    fireEvent.change(input, { target: { value: '친목조' } });
+    fireEvent.blur(input);
+
+    // 2조 삭제 → 1조는 그대로, 친목조는 이름 유지
+    fireEvent.click(screen.getByRole('button', { name: '2조 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
+
+    expect(screen.getByRole('button', { name: '1조' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '친목조' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '2조' })).not.toBeInTheDocument();
   });
 });

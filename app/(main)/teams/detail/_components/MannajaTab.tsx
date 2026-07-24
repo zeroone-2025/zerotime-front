@@ -10,6 +10,7 @@ import { FiPlus, FiCalendar, FiUsers, FiLayers } from 'react-icons/fi';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useTeamEvents } from '@/_lib/hooks/useTeamEvents';
+import { formatDateRanges } from '@/_lib/utils/dateRange';
 import { buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
 import type { TeamRole, TeamEvent } from '@/_types/team';
 
@@ -235,7 +236,7 @@ function EventCard({ event, groupSetNameMap, onClick }: { event: TeamEvent; grou
       <div className="flex items-center gap-1.5 mb-2">
         <FiCalendar size={12} className="text-gray-400" />
         <p className="text-xs text-gray-500 truncate">
-          {event.dates.join(', ')}
+          {formatDateRanges(event.dates)}
         </p>
       </div>
 

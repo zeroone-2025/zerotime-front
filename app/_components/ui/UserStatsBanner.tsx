@@ -82,8 +82,6 @@ function AnimatedCount({ value }: { value: number }) {
     const rafRef = useRef<number | null>(null);
 
     useEffect(() => {
-        if (value === 0) return;
-
         const startValue = prevTargetRef.current;
         prevTargetRef.current = value;
         startTimeRef.current = null;

@@ -72,7 +72,8 @@ export default function MannajaTab({
     }
     if (!selectedGroupIds && !selectedGroupId) return list;
     return list.filter((event) => {
-      if (event.target_groups.length === 0) return false;
+      // 대상 조 없음 = 전체 일정 → 모든 조에 해당하므로 필터와 무관하게 표시
+      if (event.target_groups.length === 0) return true;
       if (selectedGroupId) {
         return event.target_groups.some((g) => g.id === selectedGroupId);
       }
@@ -98,7 +99,6 @@ export default function MannajaTab({
   }, [events]);
 
   const hasGroups = groupSets.length > 0;
-  const isFilterActive = !!selectedSetId || !!selectedGroupId;
 
   if (isLoading) {
     return (
@@ -141,25 +141,21 @@ export default function MannajaTab({
       {hasGroups ? (
         /* 섹션 분리 레이아웃 */
         <>
-          {!isFilterActive && (
-            <>
-              <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
-              {teamWideEvents.length > 0 ? (
-                teamWideEvents.map((event) => (
-                  <EventCard
-                    key={event.event_id}
-                    event={event}
-                    groupSetNameMap={groupSetNameMap}
-                    onClick={() => openEvent(event.event_id)}
-                  />
-                ))
-              ) : (
-                <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
-              )}
-            </>
+          <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
+          {teamWideEvents.length > 0 ? (
+            teamWideEvents.map((event) => (
+              <EventCard
+                key={event.event_id}
+                event={event}
+                groupSetNameMap={groupSetNameMap}
+                onClick={() => openEvent(event.event_id)}
+              />
+            ))
+          ) : (
+            <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
           )}
 
-          {!isFilterActive && <SectionHeader icon={FiLayers} label="조별 일정" />}
+          <SectionHeader icon={FiLayers} label="조별 일정" />
           {groupEvents.length > 0 ? (
             groupEvents.map((event) => (
               <EventCard

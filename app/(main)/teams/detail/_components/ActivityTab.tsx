@@ -6,6 +6,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LuPlus, LuClock, LuCalendar, LuTrash2, LuPencil } from 'react-icons/lu';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { CHINBA_GROUP_SCORING_ENABLED } from '@/_lib/constants/features';
 import {
   useActivities,
   useCreateActivity,
@@ -310,8 +311,9 @@ export default function ActivityTab({
             </div>
           )}
 
-          {/* Group Scores */}
-          {visibleGroups.length > 0 && (
+          {/* Group Scores — 랭킹 기능 미사용으로 플래그 off (app/_lib/constants/features.ts).
+              폼 상태(formScores)는 그대로 두어 수정 시 기존 점수가 지워지지 않게 한다. */}
+          {CHINBA_GROUP_SCORING_ENABLED && visibleGroups.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-gray-500">조별 점수</p>
               {visibleGroups.map((group) => {

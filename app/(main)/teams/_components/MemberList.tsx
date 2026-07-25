@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react';
 import { FiUser, FiMoreVertical } from 'react-icons/fi';
 
 import { useGroupSets } from '@/_lib/hooks/useGroups';
+import { useUserStore } from '@/_lib/store/useUserStore';
 import { getRoleBadgeLabel, getRoleBadgeColor, buildGroupSetNameMap, groupDisplayName, CLUB_ROLE_LABELS } from '@/_lib/utils/teamDisplay';
 import { canRemoveMember, canChangeRoleOf } from '@/_lib/utils/teamPermissions';
 import type { TeamMember, TeamRole } from '@/_types/team';
@@ -41,6 +42,7 @@ export default function MemberList({
   terminology = 'team',
 }: MemberListProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const myUserId = useUserStore((state) => state.user?.id);
   const { data: groupSetsData } = useGroupSets(teamId);
   const groupSetNameMap = useMemo(() => buildGroupSetNameMap(groupSetsData?.group_sets ?? []), [groupSetsData]);
 
@@ -58,6 +60,8 @@ export default function MemberList({
             ? CLUB_ROLE_LABELS[member.role]
             : defaultRoleLabel;
         const canRemove = canRemoveMember(myRole, member.role);
+        // 본인 행 제외 — 역할만으로 게이트하면 부회장이 자기 행의 관리 메뉴를 보게 된다
+        const isSelf = member.user_id === myUserId;
 
         return (
           <div
@@ -96,7 +100,7 @@ export default function MemberList({
             </div>
 
             {/* Actions */}
-            {canChangeRoleOf(myRole, member.role) && (
+            {!isSelf && canChangeRoleOf(myRole, member.role) && (
               <div className="relative">
                 <button
                   onClick={() => handleMenuToggle(member.id)}

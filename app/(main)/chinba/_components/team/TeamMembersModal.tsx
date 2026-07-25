@@ -14,6 +14,7 @@ import {
   useChangeRole,
   useRemoveMember,
 } from '@/_lib/hooks/useTeam';
+import { useUserStore } from '@/_lib/store/useUserStore';
 import { buildGroupSetNameMap, groupDisplayName, CLUB_ROLE_LABELS } from '@/_lib/utils/teamDisplay';
 import { canChangeRole, canChangeRoleOf, canRemoveMember } from '@/_lib/utils/teamPermissions';
 import type { TeamMember, TeamRole } from '@/_types/team';
@@ -39,10 +40,12 @@ const ASSIGNABLE_ROLES: TeamRole[] = ['member', 'executive', 'vice_captain'];
  * 가운데 모달로 여는 멤버 관리. 목록만 보는 게 아니라 인라인으로 관리한다.
  * - 역할 변경: 회장·부회장만 조작(각 행 역할 드롭다운). 운영진에겐 읽기전용 배지.
  * - 내보내기: 서버 규칙(canRemoveMember)대로 회장/부회장/운영진에게 노출.
+ * - 본인 행은 관리 대상에서 제외 — 역할만으로는 부회장이 자기 행을 조작 가능해 보인다.
  * 훅(useChangeRole/useRemoveMember)은 설정 페이지와 동일하게 재사용.
  */
 export default function TeamMembersModal({ isOpen, onClose, teamId, myRole }: TeamMembersModalProps) {
   const { showToast } = useToast();
+  const myUserId = useUserStore((state) => state.user?.id);
   const { data: membersData, isLoading } = useTeamMembers(isOpen ? teamId : undefined);
   const { data: groupSetsData } = useGroupSets(isOpen ? teamId : undefined);
   const changeRole = useChangeRole(teamId);
@@ -122,8 +125,9 @@ export default function TeamMembersModal({ isOpen, onClose, teamId, myRole }: Te
           ) : (
             <div className="space-y-1">
               {filtered.map((member) => {
-                const roleEditable = canChangeRoleOf(myRole, member.role);
-                const removable = canRemoveMember(myRole, member.role);
+                const isSelf = member.user_id === myUserId;
+                const roleEditable = !isSelf && canChangeRoleOf(myRole, member.role);
+                const removable = !isSelf && canRemoveMember(myRole, member.role);
                 return (
                   <div key={member.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50">
                     {member.profile_image ? (

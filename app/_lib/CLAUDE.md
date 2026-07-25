@@ -49,6 +49,8 @@
   - `CATEGORY_COLORS`: 카테고리 단위 배지 색상(blue/gray/orange/green)
 - `presets.ts` — 게시판 그룹 프리셋
 - `theme.ts` — 테마 상수
+- `features.ts` — 기능 토글(빌드타임 상수). 정적 export라 런타임 플래그가 불가능해
+  UI를 끄고 켤 때 여기 상수를 쓴다. 값만 바꾸면 되살아나므로 코드를 지우지 않는다.
 
 ## Store (`store/`)
 

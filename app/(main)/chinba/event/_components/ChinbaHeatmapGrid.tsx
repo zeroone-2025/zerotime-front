@@ -5,6 +5,9 @@ import type { ChinbaHeatmapSlot } from '@/_types/chinba';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
+// ChinbaScheduleGrid.MAX_CELL_WIDTH와 동일 — 탭 전환 시 두 그리드 폭이 일치해야 한다
+const MAX_CELL_WIDTH = 64;
+
 interface ChinbaHeatmapGridProps {
   dates: string[];
   heatmap: ChinbaHeatmapSlot[];
@@ -76,7 +79,7 @@ export default function ChinbaHeatmapGrid({
     const calculate = () => {
       const containerWidth = el.clientWidth;
       // 28px for time label column, remaining space divided by number of dates
-      setCellSize(Math.floor((containerWidth - 28) / dates.length));
+      setCellSize(Math.min(Math.floor((containerWidth - 28) / dates.length), MAX_CELL_WIDTH));
     };
     calculate();
     const observer = new ResizeObserver(calculate);

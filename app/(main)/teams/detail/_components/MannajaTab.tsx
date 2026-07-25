@@ -24,6 +24,9 @@ interface MannajaTabProps {
   selectedGroupId?: number | null;
   selectedCategoryId?: number | null;
   terminology?: 'team' | 'club';
+  // 호스트(TeamDetailView)가 임베드 뷰로 열고 싶을 때 제공 — 미제공 시 기존 라우트 이동
+  onCreateEvent?: () => void;
+  onOpenEvent?: (eventId: string) => void;
 }
 
 export default function MannajaTab({
@@ -35,6 +38,8 @@ export default function MannajaTab({
   selectedGroupId,
   selectedCategoryId,
   terminology = 'team',
+  onCreateEvent,
+  onOpenEvent,
 }: MannajaTabProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,10 +50,14 @@ export default function MannajaTab({
   // 현재 위치(pathname)를 그대로 쓰므로 /teams/detail·/chinba/team/detail 어디서든 동작.
   const openEvent = useCallback(
     (eventId: string) => {
+      if (onOpenEvent) {
+        onOpenEvent(eventId);
+        return;
+      }
       const returnTo = encodeURIComponent(`${pathname}?id=${teamId}&tab=mwoheni`);
       router.push(`/chinba/event?id=${eventId}&returnTo=${returnTo}`);
     },
-    [router, pathname, teamId],
+    [onOpenEvent, router, pathname, teamId],
   );
 
   const canCreate = myRole === 'captain' || myRole === 'executive';
@@ -125,6 +134,10 @@ export default function MannajaTab({
       {canCreate && (
         <button
           onClick={() => {
+            if (onCreateEvent) {
+              onCreateEvent();
+              return;
+            }
             const params = new URLSearchParams({ id: String(teamId) });
             if (selectedSetId) params.set('setId', String(selectedSetId));
             if (selectedGroupId) params.set('groupId', String(selectedGroupId));

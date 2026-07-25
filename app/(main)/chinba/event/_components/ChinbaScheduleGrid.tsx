@@ -5,6 +5,9 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
+// 넓은 화면(데스크톱)에서 날짜 열이 무한정 넓어지지 않도록 셀 폭 상한
+const MAX_CELL_WIDTH = 64;
+
 interface ChinbaScheduleGridProps {
   dates: string[];
   startHour: number;
@@ -56,7 +59,7 @@ export default function ChinbaScheduleGrid({
     const calculate = () => {
       const containerWidth = el.clientWidth;
       // 28px for time label column, remaining space divided by number of dates
-      setCellWidth(Math.floor((containerWidth - 28) / dates.length));
+      setCellWidth(Math.min(Math.floor((containerWidth - 28) / dates.length), MAX_CELL_WIDTH));
     };
     calculate();
     const observer = new ResizeObserver(calculate);

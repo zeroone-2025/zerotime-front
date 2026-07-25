@@ -115,6 +115,18 @@ export default function TeamDetailView() {
     return () => mql.removeEventListener('change', onChange);
   }, [view, teamId, viewEventId, viewSetId, viewGroupId, viewCategoryId, router]);
 
+  // 임베드 뷰는 FullPageModal 없이 렌더되므로 ESC = 목록 복귀를 직접 처리
+  useEffect(() => {
+    if (!view) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        router.replace(`/chinba/team/detail?id=${teamId}&tab=mannaja`);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [view, teamId, router]);
+
   // Sync tab state when URL changes (e.g. browser back/forward)
   useEffect(() => {
     const tab = searchParams.get('tab') as TeamSegment | null;
@@ -236,104 +248,20 @@ export default function TeamDetailView() {
 
   const canOps = canEditTeam(team.my_role);
 
-  return (
-    <FullPageModal
-      isOpen={true}
-      onClose={goBack}
-      title={<ClubSwitcher currentTeamId={teamId} currentName={team.name} />}
-      headerRight={settingsButton}
-    >
-      <div className="flex min-h-0 flex-1 flex-row">
-        {/* Main column */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Segment Tabs */}
-          <div className="shrink-0">
-            <TeamSegmentTabs activeTab={activeTab} onTabChange={handleTabChange} />
-          </div>
+  const opsPanel = canOps ? (
+    <TeamOpsPanel
+      teamId={teamId}
+      inviteCode={team.invite_code}
+      onOpenMembers={() => setShowMembers(true)}
+      onOpenGroups={() => setShowGroups(true)}
+      onOpenCategories={() => setShowCategories(true)}
+      onCreateEvent={goCreate}
+      onRecordActivity={() => handleTabChange('mwoheni')}
+    />
+  ) : null;
 
-          {view ? (
-            /* 데스크톱 임베드 뷰 — 만들기 폼 / 이벤트 상세를 프레임 안에서 렌더 */
-            <>
-              <div className="shrink-0 flex items-center gap-1 px-2 pt-3">
-                <button
-                  onClick={closeView}
-                  className="group rounded-full p-1.5 text-gray-600 transition-all hover:bg-gray-100 hover:text-gray-900 active:scale-95"
-                  aria-label="목록으로"
-                >
-                  <LuChevronLeft size={20} strokeWidth={2.5} className="transition-transform group-hover:-translate-x-0.5" />
-                </button>
-                <span className="text-sm font-bold text-gray-800">
-                  {view === 'create' ? '동아리 친바 만들기' : '일정 상세'}
-                </span>
-              </div>
-              <div className="flex min-h-0 flex-1 flex-col pt-3">
-                {view === 'create' ? (
-                  <TeamEventCreateBody
-                    teamId={teamId}
-                    preSetId={viewSetId}
-                    preGroupId={viewGroupId}
-                    preCategoryId={viewCategoryId}
-                    onSuccess={closeView}
-                  />
-                ) : (
-                  <ChinbaEventDetailBody
-                    key={viewEventId}
-                    eventId={viewEventId}
-                    variant="embedded"
-                    onDeleted={closeView}
-                    onCompleted={(recordQuery) =>
-                      router.replace(
-                        `/chinba/team/detail?id=${teamId}&tab=mwoheni${recordQuery ? `&${recordQuery}` : ''}`
-                      )
-                    }
-                  />
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Group / Category Filter */}
-              {(groupSets.length > 0 || categories.length > 0) && (
-                <div className="shrink-0 px-4 pt-3 space-y-2">
-                  {groupSets.length > 0 && (
-                    <GroupFilterBar
-                      groupSets={groupSets}
-                      selectedSetId={effectiveSetId}
-                      selectedGroupId={selectedGroupId}
-                      onSetChange={setSelectedSetId}
-                      onGroupChange={setSelectedGroupId}
-                    />
-                  )}
-                  <CategoryFilterBar
-                    categories={categories}
-                    selectedCategoryId={selectedCategoryId}
-                    onChange={setSelectedCategoryId}
-                  />
-                </div>
-              )}
-
-              {/* Tab Content */}
-              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">
-                {renderTabContent()}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Desktop-only operations panel (운영진 only) */}
-        {canOps && (
-          <TeamOpsPanel
-            teamId={teamId}
-            inviteCode={team.invite_code}
-            onOpenMembers={() => setShowMembers(true)}
-            onOpenGroups={() => setShowGroups(true)}
-            onOpenCategories={() => setShowCategories(true)}
-            onCreateEvent={goCreate}
-            onRecordActivity={() => handleTabChange('mwoheni')}
-          />
-        )}
-      </div>
-
+  const teamModals = (
+    <>
       {/* Upgrade Modal */}
       <UpgradeModal
         isOpen={showUpgrade}
@@ -370,6 +298,107 @@ export default function TeamDetailView() {
           />
         </>
       )}
+    </>
+  );
+
+  // 데스크톱 임베드 뷰 — 동아리 헤더·세그먼트 탭 없이 콘텐츠를 화면 최상단까지 올려
+  // 양쪽 사이드바(앱 사이드바 + 운영 패널)만 남긴다. 8~24시 시간 그리드의 스크롤을 줄이기 위함.
+  if (view) {
+    return (
+      <div className="flex-1 h-full min-h-0 flex flex-col animate-fadeIn bg-white">
+        <div className="flex min-h-0 flex-1 flex-row">
+          {/* Main column */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="shrink-0 flex items-center gap-1.5 px-3 pt-3 pb-1">
+              <button
+                onClick={closeView}
+                className="group rounded-full p-1.5 text-gray-600 transition-all hover:bg-gray-100 hover:text-gray-900 active:scale-95"
+                aria-label="목록으로"
+              >
+                <LuChevronLeft size={22} strokeWidth={2.5} className="transition-transform group-hover:-translate-x-0.5" />
+              </button>
+              <span className="text-base font-bold text-gray-800">
+                {view === 'create' ? '동아리 친바 만들기' : team.name}
+              </span>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col pt-2">
+              {view === 'create' ? (
+                <TeamEventCreateBody
+                  teamId={teamId}
+                  preSetId={viewSetId}
+                  preGroupId={viewGroupId}
+                  preCategoryId={viewCategoryId}
+                  onSuccess={closeView}
+                />
+              ) : (
+                <ChinbaEventDetailBody
+                  key={viewEventId}
+                  eventId={viewEventId}
+                  variant="embedded"
+                  onDeleted={closeView}
+                  onCompleted={(recordQuery) =>
+                    router.replace(
+                      `/chinba/team/detail?id=${teamId}&tab=mwoheni${recordQuery ? `&${recordQuery}` : ''}`
+                    )
+                  }
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Desktop-only operations panel (운영진 only) */}
+          {opsPanel}
+        </div>
+        {teamModals}
+      </div>
+    );
+  }
+
+  return (
+    <FullPageModal
+      isOpen={true}
+      onClose={goBack}
+      title={<ClubSwitcher currentTeamId={teamId} currentName={team.name} />}
+      headerRight={settingsButton}
+    >
+      <div className="flex min-h-0 flex-1 flex-row">
+        {/* Main column */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Segment Tabs */}
+          <div className="shrink-0">
+            <TeamSegmentTabs activeTab={activeTab} onTabChange={handleTabChange} />
+          </div>
+
+          {/* Group / Category Filter */}
+          {(groupSets.length > 0 || categories.length > 0) && (
+            <div className="shrink-0 px-4 pt-3 space-y-2">
+              {groupSets.length > 0 && (
+                <GroupFilterBar
+                  groupSets={groupSets}
+                  selectedSetId={effectiveSetId}
+                  selectedGroupId={selectedGroupId}
+                  onSetChange={setSelectedSetId}
+                  onGroupChange={setSelectedGroupId}
+                />
+              )}
+              <CategoryFilterBar
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                onChange={setSelectedCategoryId}
+              />
+            </div>
+          )}
+
+          {/* Tab Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">
+            {renderTabContent()}
+          </div>
+        </div>
+
+        {/* Desktop-only operations panel (운영진 only) */}
+        {opsPanel}
+      </div>
+      {teamModals}
     </FullPageModal>
   );
 }

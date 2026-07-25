@@ -15,6 +15,7 @@ export interface PickableMember {
 
 const ROLE_LABELS: Partial<Record<TeamRole, string>> = {
   captain: '회장',
+  vice_captain: '부회장',
   executive: '운영진',
 };
 

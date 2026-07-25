@@ -12,6 +12,7 @@ import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useTeamEvents } from '@/_lib/hooks/useTeamEvents';
 import { formatDateRanges } from '@/_lib/utils/dateRange';
 import { buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
+import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import type { TeamRole, TeamEvent } from '@/_types/team';
 
 import TeamSetupGuide from './TeamSetupGuide';
@@ -51,7 +52,7 @@ export default function MannajaTab({
     [router, pathname, teamId],
   );
 
-  const canCreate = myRole === 'captain' || myRole === 'executive';
+  const canCreate = canEditTeam(myRole);
   const groupSets = groupSetsData?.group_sets ?? [];
   const groupSetNameMap = useMemo(() => buildGroupSetNameMap(groupSets), [groupSets]);
 

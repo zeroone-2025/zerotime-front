@@ -15,6 +15,7 @@ import {
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
 import { getRoleBadgeLabel, buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
+import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import type { TeamRole, Activity, ActivityCreateRequest } from '@/_types/team';
 
 interface ActivityTabProps {
@@ -56,7 +57,7 @@ export default function ActivityTab({
   });
   const [formScores, setFormScores] = useState<{ group_id: number; score: number }[]>([]);
 
-  const hasRole = myRole === 'captain' || myRole === 'executive';
+  const hasRole = canEditTeam(myRole);
   const isGroupSelected = selectedGroupId !== null && selectedGroupId !== undefined;
   const canRecord = hasRole && isGroupSelected;
   const canDelete = hasRole;

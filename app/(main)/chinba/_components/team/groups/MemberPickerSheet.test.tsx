@@ -104,4 +104,41 @@ describe('MemberPickerSheet', () => {
 
     expect(onConfirm).toHaveBeenCalledWith([2]);
   });
+
+  it('initialSelected로 준 멤버는 선택된 채로 열린다', () => {
+    const onConfirm = vi.fn();
+    render(
+      <MemberPickerSheet
+        title="참여 인원 선택"
+        members={MEMBERS}
+        initialSelected={[1, 3]}
+        confirmLabel="선택 완료"
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    // 아무것도 안 누르고 확인해도 초기 선택이 그대로 넘어간다
+    fireEvent.click(screen.getByRole('button', { name: '선택 완료' }));
+    expect(onConfirm.mock.calls[0][0].sort()).toEqual([1, 3]);
+  });
+
+  it('initialSelected로 준 멤버를 다시 누르면 선택이 해제된다', () => {
+    const onConfirm = vi.fn();
+    render(
+      <MemberPickerSheet
+        title="참여 인원 선택"
+        members={MEMBERS}
+        initialSelected={[1, 3]}
+        confirmLabel="선택 완료"
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('김민수'));
+    fireEvent.click(screen.getByRole('button', { name: '선택 완료' }));
+
+    expect(onConfirm).toHaveBeenCalledWith([3]);
+  });
 });

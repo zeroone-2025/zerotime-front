@@ -7,6 +7,7 @@ import {
   createActivity,
   updateActivity,
   deleteActivity,
+  uploadActivityPhoto,
 } from '@/_lib/api/activities'
 import type { ActivityCreateRequest, ActivityUpdateRequest } from '@/_types/team'
 
@@ -57,5 +58,12 @@ export function useDeleteActivity(teamId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teams', teamId, 'activities'] })
     },
+  })
+}
+
+/** 사진 업로드는 활동 저장과 별개 요청이라 캐시를 건드리지 않는다 (URL만 받아 폼이 들고 있는다) */
+export function useUploadActivityPhoto(teamId: number) {
+  return useMutation({
+    mutationFn: (file: File) => uploadActivityPhoto(teamId, file),
   })
 }

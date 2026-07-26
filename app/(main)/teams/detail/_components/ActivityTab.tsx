@@ -1,23 +1,34 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { LuPlus, LuClock, LuCalendar, LuTrash2, LuPencil } from 'react-icons/lu';
+import { LuPlus, LuClock, LuCalendar, LuTrash2, LuPencil, LuX, LuImage, LuUsers } from 'react-icons/lu';
 
+import MemberPickerSheet from '@/(main)/chinba/_components/team/groups/MemberPickerSheet';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useToast } from '@/_context/ToastContext';
 import { CHINBA_GROUP_SCORING_ENABLED } from '@/_lib/constants/features';
 import {
   useActivities,
   useCreateActivity,
   useUpdateActivity,
   useDeleteActivity,
+  useUploadActivityPhoto,
 } from '@/_lib/hooks/useActivities';
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
+import { useTeamMembers } from '@/_lib/hooks/useTeam';
+import { resolveAssetUrl } from '@/_lib/utils/assetUrl';
 import { getRoleBadgeLabel, buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
 import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import type { TeamRole, Activity, ActivityCreateRequest } from '@/_types/team';
+
+import MoneyInput, { formatMoney } from './MoneyInput';
+
+const PHOTO_MAX_COUNT = 5;
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp';
 
 interface ActivityTabProps {
   teamId: number;
@@ -45,10 +56,14 @@ export default function ActivityTab({
   });
   const { data: groupsData } = useGroups(teamId);
   const { data: categoriesData } = useEventCategories(teamId);
+  const { data: membersData } = useTeamMembers(teamId);
+  const teamMembers = useMemo(() => membersData?.members ?? [], [membersData]);
   const categories = categoriesData?.categories ?? [];
   const createMutation = useCreateActivity(teamId);
   const updateMutation = useUpdateActivity(teamId);
   const deleteMutation = useDeleteActivity(teamId);
+  const uploadPhotoMutation = useUploadActivityPhoto(teamId);
+  const { showToast } = useToast();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -57,6 +72,28 @@ export default function ActivityTab({
     activity_date: new Date().toISOString().slice(0, 10),
   });
   const [formScores, setFormScores] = useState<{ group_id: number; score: number }[]>([]);
+  const [participantIds, setParticipantIds] = useState<number[]>([]);
+  const [showMemberPicker, setShowMemberPicker] = useState(false);
+  // 사진은 이미 올라간 URL(수정 시)과 아직 안 올린 파일을 나눠서 들고 있다가 제출 때 합친다
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // 선택한 파일의 미리보기 objectURL 생성·정리
+  useEffect(() => {
+    const urls = photoFiles.map((file) => URL.createObjectURL(file));
+    setPhotoPreviews(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [photoFiles]);
+
+  const participantMembers = useMemo(
+    () => participantIds
+      .map((id) => teamMembers.find((m) => m.id === id))
+      .filter((m): m is (typeof teamMembers)[number] => m !== undefined),
+    [participantIds, teamMembers],
+  );
+  const photoCount = photoUrls.length + photoFiles.length;
 
   const hasRole = canEditTeam(myRole);
   const isGroupSelected = selectedGroupId !== null && selectedGroupId !== undefined;
@@ -140,6 +177,10 @@ export default function ActivityTab({
     setEditingId(null);
     setFormData({ title: '', activity_date: new Date().toISOString().slice(0, 10) });
     setFormScores([]);
+    setParticipantIds([]);
+    setShowMemberPicker(false);
+    setPhotoUrls([]);
+    setPhotoFiles([]);
   };
 
   const handleEdit = (activity: Activity) => {
@@ -151,11 +192,41 @@ export default function ActivityTab({
       end_time: activity.end_time ?? undefined,
       description: activity.description ?? undefined,
       highlight: activity.highlight ?? undefined,
+      total_cost: activity.total_cost ?? undefined,
+      cost_note: activity.cost_note ?? undefined,
     });
     // 화면에 보이지 않는 조의 점수도 유지해야 하므로 전체 점수를 그대로 담는다
     // (수정 요청의 scores는 기존 점수를 통째로 대체한다)
     setFormScores(activity.scores.map((s) => ({ group_id: s.group_id, score: s.score })));
+    setParticipantIds(activity.participants.map((p) => p.member_id));
+    setPhotoUrls(activity.photo_urls ?? []);
+    setPhotoFiles([]);
     setShowForm(true);
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ''; // 같은 파일 재선택 허용
+    if (files.length === 0) return;
+
+    const accepted: File[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        showToast('이미지 파일만 첨부할 수 있어요', 'error');
+        continue;
+      }
+      if (file.size > PHOTO_MAX_BYTES) {
+        showToast('사진은 장당 5MB 이하만 첨부할 수 있어요', 'error');
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    const room = PHOTO_MAX_COUNT - photoCount;
+    if (accepted.length > room) {
+      showToast(`사진은 최대 ${PHOTO_MAX_COUNT}장까지 첨부할 수 있어요`, 'error');
+    }
+    if (room > 0) setPhotoFiles([...photoFiles, ...accepted.slice(0, room)]);
   };
 
   const handleSubmit = async () => {
@@ -168,6 +239,17 @@ export default function ActivityTab({
           ? formData.category_id
           : undefined;
     try {
+      // 사진은 먼저 올려 URL을 받고, 그 URL을 활동 저장 요청에 실어 보낸다
+      let submitPhotoUrls = photoUrls;
+      if (photoFiles.length > 0) {
+        const uploaded: string[] = [];
+        for (const file of photoFiles) {
+          const { url } = await uploadPhotoMutation.mutateAsync(file);
+          uploaded.push(url);
+        }
+        submitPhotoUrls = [...photoUrls, ...uploaded];
+      }
+
       if (editingId !== null) {
         await updateMutation.mutateAsync({
           activityId: editingId,
@@ -178,8 +260,14 @@ export default function ActivityTab({
             highlight: formData.highlight ?? '',
             start_time: formData.start_time ?? '',
             end_time: formData.end_time ?? '',
+            cost_note: formData.cost_note ?? '',
+            // 숫자는 빈 문자열로 못 지운다 — null을 보내야 해제된다
+            total_cost: formData.total_cost ?? null,
             category_id: submitCategoryId,
             scores: formScores,
+            // 배열은 통째 대체라 현재 상태를 항상 보낸다 (빈 배열 = 전체 해제)
+            participant_member_ids: participantIds,
+            photo_urls: submitPhotoUrls,
           },
         });
       } else {
@@ -187,11 +275,13 @@ export default function ActivityTab({
           ...formData,
           scores: formScores.length > 0 ? formScores : undefined,
           category_id: submitCategoryId,
+          participant_member_ids: participantIds.length > 0 ? participantIds : undefined,
+          photo_urls: submitPhotoUrls.length > 0 ? submitPhotoUrls : undefined,
         });
       }
       closeForm();
     } catch {
-      // error handled by mutation
+      showToast('활동 기록 저장에 실패했어요', 'error');
     }
   };
 
@@ -284,6 +374,105 @@ export default function ActivityTab({
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
           />
 
+          {/* Cost */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-gray-500">사용 금액 (선택)</p>
+            <MoneyInput
+              value={formData.total_cost}
+              onChange={(value) => setFormData({ ...formData, total_cost: value })}
+            />
+            <input
+              type="text"
+              placeholder="용도 메모 (예: 회식비 + 다과)"
+              aria-label="용도 메모"
+              value={formData.cost_note ?? ''}
+              onChange={(e) => setFormData({ ...formData, cost_note: e.target.value || undefined })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              maxLength={100}
+            />
+          </div>
+
+          {/* Participants */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-500">
+                참여 인원 (선택){participantIds.length > 0 && ` · 총 ${participantIds.length}명`}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowMemberPicker(true)}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <LuUsers size={12} />
+                팀원 선택
+              </button>
+            </div>
+            {participantMembers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {participantMembers.map((member) => (
+                  <span
+                    key={member.id}
+                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white py-1 pl-2.5 pr-1.5 text-xs text-gray-600"
+                  >
+                    {member.nickname ?? '알 수 없음'}
+                    <button
+                      type="button"
+                      onClick={() => setParticipantIds(participantIds.filter((id) => id !== member.id))}
+                      aria-label={`${member.nickname ?? '팀원'} 제외`}
+                      className="rounded-full p-0.5 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    >
+                      <LuX size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Photos */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-500">
+                사진 (선택) · {photoCount}/{PHOTO_MAX_COUNT}
+              </p>
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoCount >= PHOTO_MAX_COUNT}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                <LuImage size={12} />
+                사진 첨부
+              </button>
+            </div>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept={PHOTO_ACCEPT}
+              multiple
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+            {photoCount > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {photoUrls.map((url, index) => (
+                  <PhotoThumb
+                    key={url}
+                    src={resolveAssetUrl(url)}
+                    onRemove={() => setPhotoUrls(photoUrls.filter((_, i) => i !== index))}
+                  />
+                ))}
+                {photoPreviews.map((preview, index) => (
+                  <PhotoThumb
+                    key={preview}
+                    src={preview}
+                    onRemove={() => setPhotoFiles(photoFiles.filter((_, i) => i !== index))}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Category */}
           {categories.length > 0 && (
             <div className="space-y-2">
@@ -360,20 +549,45 @@ export default function ActivityTab({
             <button
               onClick={handleSubmit}
               disabled={
-                !formData.title.trim() || createMutation.isPending || updateMutation.isPending
+                !formData.title.trim() ||
+                createMutation.isPending ||
+                updateMutation.isPending ||
+                uploadPhotoMutation.isPending
               }
               className="flex-1 rounded-lg bg-gray-900 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
             >
-              {isEditing
-                ? updateMutation.isPending
-                  ? '수정 중...'
-                  : '수정하기'
-                : createMutation.isPending
-                  ? '기록 중...'
-                  : '기록하기'}
+              {uploadPhotoMutation.isPending
+                ? '사진 업로드 중...'
+                : isEditing
+                  ? updateMutation.isPending
+                    ? '수정 중...'
+                    : '수정하기'
+                  : createMutation.isPending
+                    ? '기록 중...'
+                    : '기록하기'}
             </button>
           </div>
         </div>
+      )}
+
+      {/* 참여 인원 선택 시트 — 기존 선택을 이어받고, 제외는 폼의 칩에서 한다 */}
+      {showMemberPicker && (
+        <MemberPickerSheet
+          title="참여 인원 선택"
+          members={teamMembers.map((m) => ({
+            member_id: m.id,
+            nickname: m.nickname ?? '알 수 없음',
+            profile_image: m.profile_image,
+            role: m.role,
+          }))}
+          initialSelected={participantIds}
+          confirmLabel="선택 완료"
+          onConfirm={(memberIds) => {
+            setParticipantIds(memberIds);
+            setShowMemberPicker(false);
+          }}
+          onCancel={() => setShowMemberPicker(false)}
+        />
       )}
 
       {/* Activity List */}
@@ -402,6 +616,29 @@ export default function ActivityTab({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+
+/** 폼의 사진 미리보기 한 장 (X로 제거) */
+function PhotoThumb({ src, onRemove }: { src: string; onRemove: () => void }) {
+  return (
+    <div className="relative">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        className="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="사진 제거"
+        className="absolute -right-1.5 -top-1.5 rounded-full border border-gray-200 bg-white p-0.5 text-gray-400 shadow-sm transition-colors hover:text-gray-700"
+      >
+        <LuX size={11} />
+      </button>
     </div>
   );
 }
@@ -489,6 +726,65 @@ function ActivityCard({
       {/* Description */}
       {activity.description && (
         <p className="mt-2 text-xs text-gray-500 line-clamp-2">{activity.description}</p>
+      )}
+
+      {/* Photos */}
+      {activity.photo_urls && activity.photo_urls.length > 0 && (
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
+          {activity.photo_urls.map((url) => (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              key={url}
+              src={resolveAssetUrl(url)}
+              alt=""
+              className="h-20 w-20 shrink-0 rounded-lg border border-gray-100 object-cover"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Cost */}
+      {activity.total_cost != null && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-gray-900 px-2.5 py-1 text-xs font-semibold text-white">
+            {formatMoney(activity.total_cost)}원
+          </span>
+          {activity.cost_note && (
+            <span className="text-xs text-gray-400">{activity.cost_note}</span>
+          )}
+        </div>
+      )}
+
+      {/* Participants */}
+      {activity.participants.length > 0 && (
+        <div className="mt-3 flex items-center gap-2">
+          <div className="flex -space-x-2">
+            {activity.participants.slice(0, 5).map((participant) => (
+              participant.profile_image ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  key={participant.member_id}
+                  src={resolveAssetUrl(participant.profile_image)}
+                  alt={participant.nickname ?? ''}
+                  title={participant.nickname ?? undefined}
+                  className="h-6 w-6 rounded-full border border-white bg-gray-50 object-cover"
+                />
+              ) : (
+                <span
+                  key={participant.member_id}
+                  title={participant.nickname ?? undefined}
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-gray-100 text-[10px] font-medium text-gray-500"
+                >
+                  {(participant.nickname ?? '?').slice(0, 1)}
+                </span>
+              )
+            ))}
+          </div>
+          <span className="text-xs text-gray-400">
+            {activity.participants.length > 5 && `+${activity.participants.length - 5} · `}
+            총 {activity.participants.length}명 참여
+          </span>
+        </div>
       )}
 
       {/* Scores */}

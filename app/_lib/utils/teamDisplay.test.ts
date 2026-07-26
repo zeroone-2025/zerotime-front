@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getRoleBadgeLabel,
   getRoleBadgeColor,
+  CLUB_ROLE_LABELS,
   formatInviteUrl,
   getTeamStatusLabel,
   formatMemberCount,
@@ -11,6 +12,10 @@ import {
 describe('getRoleBadgeLabel', () => {
   it('returns 팀장 for captain', () => {
     expect(getRoleBadgeLabel('captain')).toBe('팀장');
+  });
+
+  it('returns 부팀장 for vice_captain', () => {
+    expect(getRoleBadgeLabel('vice_captain')).toBe('부팀장');
   });
 
   it('returns 임원 for executive', () => {
@@ -35,6 +40,10 @@ describe('getRoleBadgeColor', () => {
     expect(getRoleBadgeColor('captain')).toBe('red');
   });
 
+  it('returns orange for vice_captain', () => {
+    expect(getRoleBadgeColor('vice_captain')).toBe('orange');
+  });
+
   it('returns blue for executive', () => {
     expect(getRoleBadgeColor('executive')).toBe('blue');
   });
@@ -49,6 +58,17 @@ describe('getRoleBadgeColor', () => {
 
   it('returns gray for unknown role', () => {
     expect(getRoleBadgeColor('unknown')).toBe('gray');
+  });
+});
+
+describe('CLUB_ROLE_LABELS', () => {
+  it('maps every role to a club label', () => {
+    expect(CLUB_ROLE_LABELS).toEqual({
+      captain: '회장',
+      vice_captain: '부회장',
+      executive: '운영진',
+      member: '회원',
+    });
   });
 });
 

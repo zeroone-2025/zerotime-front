@@ -4,6 +4,7 @@ import {
   canDeleteTeam,
   canRemoveMember,
   canChangeRole,
+  canChangeRoleOf,
   canViewInvitation,
   canRegenerateInvitation,
   canTransferCaptain,
@@ -12,6 +13,10 @@ import {
 describe('canEditTeam', () => {
   it('captain can edit team', () => {
     expect(canEditTeam('captain')).toBe(true);
+  });
+
+  it('vice_captain can edit team', () => {
+    expect(canEditTeam('vice_captain')).toBe(true);
   });
 
   it('executive can edit team', () => {
@@ -26,6 +31,10 @@ describe('canEditTeam', () => {
 describe('canDeleteTeam', () => {
   it('captain can delete team', () => {
     expect(canDeleteTeam('captain')).toBe(true);
+  });
+
+  it('vice_captain can delete team', () => {
+    expect(canDeleteTeam('vice_captain')).toBe(true);
   });
 
   it('executive cannot delete team', () => {
@@ -50,12 +59,30 @@ describe('canRemoveMember', () => {
     expect(canRemoveMember('captain', 'captain')).toBe(false);
   });
 
+  it('captain can remove vice_captain', () => {
+    expect(canRemoveMember('captain', 'vice_captain')).toBe(true);
+  });
+
+  it('vice_captain can remove vice_captain, executive, member', () => {
+    expect(canRemoveMember('vice_captain', 'vice_captain')).toBe(true);
+    expect(canRemoveMember('vice_captain', 'executive')).toBe(true);
+    expect(canRemoveMember('vice_captain', 'member')).toBe(true);
+  });
+
+  it('vice_captain cannot remove captain', () => {
+    expect(canRemoveMember('vice_captain', 'captain')).toBe(false);
+  });
+
   it('executive can remove member', () => {
     expect(canRemoveMember('executive', 'member')).toBe(true);
   });
 
   it('executive cannot remove executive', () => {
     expect(canRemoveMember('executive', 'executive')).toBe(false);
+  });
+
+  it('executive cannot remove vice_captain', () => {
+    expect(canRemoveMember('executive', 'vice_captain')).toBe(false);
   });
 
   it('executive cannot remove captain', () => {
@@ -65,6 +92,7 @@ describe('canRemoveMember', () => {
   it('member cannot remove anyone', () => {
     expect(canRemoveMember('member', 'member')).toBe(false);
     expect(canRemoveMember('member', 'executive')).toBe(false);
+    expect(canRemoveMember('member', 'vice_captain')).toBe(false);
     expect(canRemoveMember('member', 'captain')).toBe(false);
   });
 });
@@ -72,6 +100,10 @@ describe('canRemoveMember', () => {
 describe('canChangeRole', () => {
   it('captain can change role', () => {
     expect(canChangeRole('captain')).toBe(true);
+  });
+
+  it('vice_captain can change role', () => {
+    expect(canChangeRole('vice_captain')).toBe(true);
   });
 
   it('executive cannot change role', () => {
@@ -83,9 +115,38 @@ describe('canChangeRole', () => {
   });
 });
 
+describe('canChangeRoleOf', () => {
+  it('captain can change role of anyone but captain', () => {
+    expect(canChangeRoleOf('captain', 'vice_captain')).toBe(true);
+    expect(canChangeRoleOf('captain', 'executive')).toBe(true);
+    expect(canChangeRoleOf('captain', 'member')).toBe(true);
+    expect(canChangeRoleOf('captain', 'captain')).toBe(false);
+  });
+
+  it('vice_captain can change role of anyone but captain', () => {
+    expect(canChangeRoleOf('vice_captain', 'vice_captain')).toBe(true);
+    expect(canChangeRoleOf('vice_captain', 'executive')).toBe(true);
+    expect(canChangeRoleOf('vice_captain', 'member')).toBe(true);
+    expect(canChangeRoleOf('vice_captain', 'captain')).toBe(false);
+  });
+
+  it('executive cannot change any role', () => {
+    expect(canChangeRoleOf('executive', 'vice_captain')).toBe(false);
+    expect(canChangeRoleOf('executive', 'member')).toBe(false);
+  });
+
+  it('member cannot change any role', () => {
+    expect(canChangeRoleOf('member', 'member')).toBe(false);
+  });
+});
+
 describe('canViewInvitation', () => {
   it('captain can view invitation', () => {
     expect(canViewInvitation('captain')).toBe(true);
+  });
+
+  it('vice_captain can view invitation', () => {
+    expect(canViewInvitation('vice_captain')).toBe(true);
   });
 
   it('executive can view invitation', () => {
@@ -102,6 +163,10 @@ describe('canRegenerateInvitation', () => {
     expect(canRegenerateInvitation('captain')).toBe(true);
   });
 
+  it('vice_captain can regenerate invitation', () => {
+    expect(canRegenerateInvitation('vice_captain')).toBe(true);
+  });
+
   it('executive cannot regenerate invitation', () => {
     expect(canRegenerateInvitation('executive')).toBe(false);
   });
@@ -114,6 +179,10 @@ describe('canRegenerateInvitation', () => {
 describe('canTransferCaptain', () => {
   it('captain can transfer captain', () => {
     expect(canTransferCaptain('captain')).toBe(true);
+  });
+
+  it('vice_captain cannot transfer captain', () => {
+    expect(canTransferCaptain('vice_captain')).toBe(false);
   });
 
   it('executive cannot transfer captain', () => {

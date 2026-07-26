@@ -14,8 +14,9 @@ import {
   useChangeRole,
   useRemoveMember,
 } from '@/_lib/hooks/useTeam';
-import { buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
-import { canChangeRole, canRemoveMember } from '@/_lib/utils/teamPermissions';
+import { useUserStore } from '@/_lib/store/useUserStore';
+import { buildGroupSetNameMap, groupDisplayName, CLUB_ROLE_LABELS } from '@/_lib/utils/teamDisplay';
+import { canChangeRole, canChangeRoleOf, canRemoveMember } from '@/_lib/utils/teamPermissions';
 import type { TeamMember, TeamRole } from '@/_types/team';
 
 interface TeamMembersModalProps {
@@ -25,29 +26,26 @@ interface TeamMembersModalProps {
   myRole: TeamRole;
 }
 
-const CLUB_ROLE_LABELS: Record<TeamRole, string> = {
-  captain: '회장',
-  executive: '운영진',
-  member: '회원',
-};
-
 const ROLE_BADGE_STYLES: Record<TeamRole, string> = {
   captain: 'bg-red-100 text-red-700',
+  vice_captain: 'bg-orange-100 text-orange-700',
   executive: 'bg-blue-100 text-blue-700',
   member: 'bg-gray-100 text-gray-500',
 };
 
 // 지정 가능한 역할(회장은 위임 API 전용이라 제외)
-const ASSIGNABLE_ROLES: TeamRole[] = ['member', 'executive'];
+const ASSIGNABLE_ROLES: TeamRole[] = ['member', 'executive', 'vice_captain'];
 
 /**
  * 가운데 모달로 여는 멤버 관리. 목록만 보는 게 아니라 인라인으로 관리한다.
- * - 역할 변경: 회장만 조작(각 행 역할 드롭다운). 운영진에겐 읽기전용 배지.
- * - 내보내기: 서버 규칙(canRemoveMember)대로 회장/운영진에게 노출.
+ * - 역할 변경: 회장·부회장만 조작(각 행 역할 드롭다운). 운영진에겐 읽기전용 배지.
+ * - 내보내기: 서버 규칙(canRemoveMember)대로 회장/부회장/운영진에게 노출.
+ * - 본인 행은 관리 대상에서 제외 — 역할만으로는 부회장이 자기 행을 조작 가능해 보인다.
  * 훅(useChangeRole/useRemoveMember)은 설정 페이지와 동일하게 재사용.
  */
 export default function TeamMembersModal({ isOpen, onClose, teamId, myRole }: TeamMembersModalProps) {
   const { showToast } = useToast();
+  const myUserId = useUserStore((state) => state.user?.id);
   const { data: membersData, isLoading } = useTeamMembers(isOpen ? teamId : undefined);
   const { data: groupSetsData } = useGroupSets(isOpen ? teamId : undefined);
   const changeRole = useChangeRole(teamId);
@@ -127,8 +125,9 @@ export default function TeamMembersModal({ isOpen, onClose, teamId, myRole }: Te
           ) : (
             <div className="space-y-1">
               {filtered.map((member) => {
-                const roleEditable = canEditRoles && member.role !== 'captain';
-                const removable = canRemoveMember(myRole, member.role);
+                const isSelf = member.user_id === myUserId;
+                const roleEditable = !isSelf && canChangeRoleOf(myRole, member.role);
+                const removable = !isSelf && canRemoveMember(myRole, member.role);
                 return (
                   <div key={member.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50">
                     {member.profile_image ? (
@@ -191,7 +190,7 @@ export default function TeamMembersModal({ isOpen, onClose, teamId, myRole }: Te
 
           {!canEditRoles && (
             <p className="mt-3 border-t border-gray-100 pt-3 text-center text-xs text-gray-400">
-              역할 변경은 회장만 할 수 있습니다.
+              역할 변경은 회장·부회장만 할 수 있습니다.
             </p>
           )}
         </div>

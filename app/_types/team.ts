@@ -1,4 +1,4 @@
-export type TeamRole = 'captain' | 'executive' | 'member'
+export type TeamRole = 'captain' | 'vice_captain' | 'executive' | 'member'
 export type TeamStatus = 'active' | 'archived'
 
 export interface Team {

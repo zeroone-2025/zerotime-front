@@ -5,8 +5,9 @@ import { useState, useMemo } from 'react';
 import { FiUser, FiMoreVertical } from 'react-icons/fi';
 
 import { useGroupSets } from '@/_lib/hooks/useGroups';
-import { getRoleBadgeLabel, getRoleBadgeColor, buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
-import { canRemoveMember, canChangeRole } from '@/_lib/utils/teamPermissions';
+import { useUserStore } from '@/_lib/store/useUserStore';
+import { getRoleBadgeLabel, getRoleBadgeColor, buildGroupSetNameMap, groupDisplayName, CLUB_ROLE_LABELS } from '@/_lib/utils/teamDisplay';
+import { canRemoveMember, canChangeRoleOf } from '@/_lib/utils/teamPermissions';
 import type { TeamMember, TeamRole } from '@/_types/team';
 
 interface MemberListProps {
@@ -20,21 +21,17 @@ interface MemberListProps {
 
 const ROLE_BADGE_STYLES: Record<string, string> = {
   red: 'bg-red-100 text-red-700',
+  orange: 'bg-orange-100 text-orange-700',
   blue: 'bg-blue-100 text-blue-700',
   gray: 'bg-gray-100 text-gray-500',
 };
 
 const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
   { value: 'captain', label: '팀장' },
+  { value: 'vice_captain', label: '부팀장' },
   { value: 'executive', label: '임원' },
   { value: 'member', label: '팀원' },
 ];
-
-const CLUB_ROLE_LABELS: Record<TeamRole, string> = {
-  captain: '회장',
-  executive: '운영진',
-  member: '회원',
-};
 
 export default function MemberList({
   members,
@@ -45,14 +42,13 @@ export default function MemberList({
   terminology = 'team',
 }: MemberListProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const myUserId = useUserStore((state) => state.user?.id);
   const { data: groupSetsData } = useGroupSets(teamId);
   const groupSetNameMap = useMemo(() => buildGroupSetNameMap(groupSetsData?.group_sets ?? []), [groupSetsData]);
 
   const handleMenuToggle = (memberId: number) => {
     setOpenMenuId((prev) => (prev === memberId ? null : memberId));
   };
-
-  const showActions = canChangeRole(myRole);
 
   return (
     <div className="space-y-1">
@@ -64,6 +60,8 @@ export default function MemberList({
             ? CLUB_ROLE_LABELS[member.role]
             : defaultRoleLabel;
         const canRemove = canRemoveMember(myRole, member.role);
+        // 본인 행 제외 — 역할만으로 게이트하면 부회장이 자기 행의 관리 메뉴를 보게 된다
+        const isSelf = member.user_id === myUserId;
 
         return (
           <div
@@ -102,7 +100,7 @@ export default function MemberList({
             </div>
 
             {/* Actions */}
-            {showActions && member.role !== 'captain' && (
+            {!isSelf && canChangeRoleOf(myRole, member.role) && (
               <div className="relative">
                 <button
                   onClick={() => handleMenuToggle(member.id)}

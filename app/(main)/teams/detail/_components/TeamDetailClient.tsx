@@ -7,10 +7,14 @@ import { FiSettings } from 'react-icons/fi';
 import { LuChevronLeft } from 'react-icons/lu';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useToast } from '@/_context/ToastContext';
+import { CHINBA_RANKING_TAB_ENABLED } from '@/_lib/constants/features';
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
 import { useTeamDetail } from '@/_lib/hooks/useTeam';
+import { useUserStore } from '@/_lib/store/useUserStore';
+import { hasSeenFreeNotice, markFreeNoticeSeen } from '@/_lib/utils/freeNotice';
 
 import CategoryFilterBar from '../../_components/CategoryFilterBar';
 import GroupFilterBar from '../../_components/GroupFilterBar';
@@ -29,11 +33,20 @@ export default function TeamDetailClient() {
   const { data: groupSetsData } = useGroupSets(teamId);
 
   const tabParam = searchParams.get('tab') as TeamSegment | null;
-  const initialTab: TeamSegment = tabParam === 'mwoheni' || tabParam === 'jabahbwa' ? tabParam : 'mannaja';
+  const initialTab: TeamSegment =
+    tabParam === 'mwoheni' || (tabParam === 'jabahbwa' && CHINBA_RANKING_TAB_ENABLED)
+      ? tabParam
+      : 'mannaja';
+  const { showToast } = useToast();
+  const user = useUserStore((state) => state.user);
   const [activeTab, setActiveTab] = useState<TeamSegment>(initialTab);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [pendingTab, setPendingTab] = useState<TeamSegment | null>(null);
   const [freeNoticeSeen, setFreeNoticeSeen] = useState(false);
+  // (사용자, 동아리)별 1회 노출 기억 — 클라이언트에서만 읽어 hydration mismatch 방지
+  useEffect(() => {
+    setFreeNoticeSeen(hasSeenFreeNotice(user?.id, teamId ?? 0));
+  }, [user?.id, teamId]);
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -61,6 +74,10 @@ export default function TeamDetailClient() {
   const needsSubscription = team && !team.is_paid;
 
   const handleTabChange = (tab: TeamSegment) => {
+    if (tab === 'jabahbwa' && !CHINBA_RANKING_TAB_ENABLED) {
+      showToast('추후 업데이트 예정입니다');
+      return;
+    }
     if (isPaidTab(tab) && needsSubscription && !freeNoticeSeen) {
       setPendingTab(tab);
       setShowUpgrade(true);
@@ -170,6 +187,7 @@ export default function TeamDetailClient() {
           onClose={() => setShowUpgrade(false)}
           teamId={teamId}
           onConfirm={() => {
+            markFreeNoticeSeen(user?.id, teamId);
             setFreeNoticeSeen(true);
             if (pendingTab) setActiveTab(pendingTab);
             setPendingTab(null);

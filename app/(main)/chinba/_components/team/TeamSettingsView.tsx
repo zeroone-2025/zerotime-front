@@ -28,6 +28,7 @@ import {
 import type { TeamRole } from '@/_types/team';
 import InviteSection from '@/(main)/teams/_components/InviteSection';
 import MemberList from '@/(main)/teams/_components/MemberList';
+import CaptainTransferSection from '@/(main)/chinba/_components/team/CaptainTransferSection';
 import EventCategorySection from '@/(main)/chinba/_components/team/categories/EventCategorySection';
 import GroupSettingsSection from '@/(main)/chinba/_components/team/groups/GroupSettingsSection';
 import SubscriptionSection from '@/(main)/chinba/_components/team/SubscriptionSection';
@@ -310,6 +311,11 @@ export default function TeamSettingsView() {
           teamId={teamId}
           canManage={canEditTeam(myRole)}
         />
+
+        {/* Section 5: 회장 위임 */}
+        {!isEditing && (
+          <CaptainTransferSection teamId={teamId} members={members} myRole={myRole} />
+        )}
 
         {/* Section 6: 동아리 삭제 (Danger Zone) */}
         {canDeleteTeam(myRole) && !isEditing && (

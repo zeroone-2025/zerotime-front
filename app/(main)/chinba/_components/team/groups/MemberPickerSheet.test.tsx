@@ -84,4 +84,24 @@ describe('MemberPickerSheet', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it('singleSelect면 뒤에 고른 한 명만 남는다', () => {
+    const onConfirm = vi.fn();
+    render(
+      <MemberPickerSheet
+        title="회장을 위임할 멤버"
+        members={MEMBERS}
+        singleSelect
+        confirmLabel="선택"
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('김민수'));
+    fireEvent.click(screen.getByText('박지현'));
+    fireEvent.click(screen.getByRole('button', { name: '선택' }));
+
+    expect(onConfirm).toHaveBeenCalledWith([2]);
+  });
 });

@@ -97,7 +97,7 @@ export default function TeamEventCreateBody({
       setShowQuickAdd(false);
       setQuickAddError(null);
     } catch (err: any) {
-      setQuickAddError(err.response?.data?.detail || '카테고리 추가에 실패했습니다');
+      setQuickAddError(err.response?.data?.detail || '해시태그 추가에 실패했습니다');
     }
   };
 
@@ -182,7 +182,7 @@ export default function TeamEventCreateBody({
           {(categories.length > 0 || canManageCategory) && (
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                카테고리 <span className="text-xs font-normal text-gray-400">(선택)</span>
+                해시태그 <span className="text-xs font-normal text-gray-400">(선택)</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => {
@@ -198,7 +198,7 @@ export default function TeamEventCreateBody({
                           : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      {category.name}
+                      #{category.name}
                     </button>
                   );
                 })}
@@ -209,7 +209,7 @@ export default function TeamEventCreateBody({
                     className="flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-400 transition-colors hover:border-gray-400 hover:text-gray-500"
                   >
                     <FiPlus size={14} />
-                    카테고리 추가
+                    해시태그 추가
                   </button>
                 )}
               </div>
@@ -220,7 +220,7 @@ export default function TeamEventCreateBody({
                     value={quickAddName}
                     maxLength={30}
                     autoFocus
-                    placeholder="카테고리 이름"
+                    placeholder="해시태그 이름"
                     onChange={(e) => setQuickAddName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleQuickAdd();

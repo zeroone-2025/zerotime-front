@@ -298,20 +298,34 @@ export default function ActivityTab({
               className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
             />
           </div>
-          <textarea
-            placeholder="활동 설명 (선택)"
-            value={formData.description ?? ''}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value || undefined })}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none resize-none"
-            rows={2}
-          />
-          <input
-            type="text"
-            placeholder="하이라이트 (선택)"
-            value={formData.highlight ?? ''}
-            onChange={(e) => setFormData({ ...formData, highlight: e.target.value || undefined })}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-          />
+          {/* Description */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-gray-500">활동 설명 (선택)</p>
+            <textarea
+              placeholder="무엇을 했는지 적어주세요"
+              aria-label="활동 설명"
+              value={formData.description ?? ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value || undefined })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none resize-none"
+              rows={2}
+            />
+          </div>
+
+          {/* Highlight — 자유 텍스트 칸이 둘이라 무엇을 어디에 쓰는지 라벨·예시로 구분한다 */}
+          <div className="space-y-2">
+            <div>
+              <p className="text-xs font-medium text-gray-500">하이라이트 (선택)</p>
+              <p className="text-[11px] text-gray-400">카드 맨 위에 강조되어 보입니다</p>
+            </div>
+            <input
+              type="text"
+              placeholder="예: 장소 예약은 2주 전에"
+              aria-label="하이라이트"
+              value={formData.highlight ?? ''}
+              onChange={(e) => setFormData({ ...formData, highlight: e.target.value || undefined })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+            />
+          </div>
 
           {/* Cost */}
           <div className="space-y-2">

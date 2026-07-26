@@ -20,23 +20,24 @@ interface ChinbaHeatmapGridProps {
   totalParticipants: number;
 }
 
+// 전원 불가: red-500 바탕 + 회색 사선 빗금
+const FULL_UNAVAIL_BG =
+  'bg-[repeating-linear-gradient(45deg,#ef4444_0px,#ef4444_9px,#d1d5db_9px,#d1d5db_10px)]';
+
 function getHeatColor(unavailCount: number, total: number): string {
   if (total === 0) return 'bg-gray-50';
-  if (unavailCount === 0) return 'bg-[#008f72]';
+  if (unavailCount === 0) return 'bg-[#21a278]';
   const ratio = unavailCount / total;
-  if (ratio <= 0.25) return 'bg-[#62c784]';
-  if (ratio <= 0.5) return 'bg-[#c4fe95]';
-  if (ratio <= 0.75) return 'bg-orange-100 ring-1 ring-inset ring-orange-300';
-  if (ratio < 1) return 'bg-red-200 ring-1 ring-inset ring-red-400';
-  return 'bg-red-400';
+  if (ratio <= 0.25) return 'bg-[#41b47e]';
+  if (ratio <= 0.5) return 'bg-[#62c784]';
+  if (ratio <= 0.75) return 'bg-[#a3ec8f]';
+  if (ratio < 1) return 'bg-[#c4fe95]';
+  return FULL_UNAVAIL_BG;
 }
 
 function getTextColor(unavailCount: number, total: number): string {
   if (total === 0) return 'text-gray-300';
-  if (unavailCount === 0) return 'text-white';
-  const ratio = unavailCount / total;
-  if (ratio < 1) return 'text-gray-800';
-  return 'text-white';
+  return 'text-gray-800';
 }
 
 export default function ChinbaHeatmapGrid({
@@ -234,12 +235,12 @@ export default function ChinbaHeatmapGrid({
       {/* Legend */}
       <div className="flex items-center justify-center gap-2 mt-3 px-2">
         <span className="text-[10px] text-gray-400">가능</span>
-        <div className="w-4 h-3 rounded-sm bg-[#008f72]" />
+        <div className="w-4 h-3 rounded-sm bg-[#21a278]" />
+        <div className="w-4 h-3 rounded-sm bg-[#41b47e]" />
         <div className="w-4 h-3 rounded-sm bg-[#62c784]" />
+        <div className="w-4 h-3 rounded-sm bg-[#a3ec8f]" />
         <div className="w-4 h-3 rounded-sm bg-[#c4fe95]" />
-        <div className="w-4 h-3 rounded-sm bg-orange-100 ring-1 ring-inset ring-orange-300" />
-        <div className="w-4 h-3 rounded-sm bg-red-200 ring-1 ring-inset ring-red-400" />
-        <div className="w-4 h-3 rounded-sm bg-red-400" />
+        <div className={`w-4 h-3 rounded-sm ${FULL_UNAVAIL_BG}`} />
         <span className="text-[10px] text-gray-400">불가</span>
       </div>
     </div>

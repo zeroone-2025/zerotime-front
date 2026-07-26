@@ -17,9 +17,11 @@ interface MyScheduleTabProps {
   startHour: number;
   endHour: number;
   isLoggedIn: boolean;
+  // 제공되면 저장 성공 시 URL 리다이렉트(/chinba/event?tab=team&toast=save) 대신 호출된다 — 임베드용
+  onAfterSave?: () => void;
 }
 
-export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLoggedIn }: MyScheduleTabProps) {
+export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLoggedIn, onAfterSave }: MyScheduleTabProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: participation, isLoading } = useMyParticipation(isLoggedIn ? eventId : undefined);
@@ -92,10 +94,14 @@ export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLo
       await updateMutation.mutateAsync({
         unavailable_slots: Array.from(selectedSlots),
       });
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('tab', 'team');
-      params.set('toast', 'save');
-      router.replace(`/chinba/event?${params.toString()}`);
+      if (onAfterSave) {
+        onAfterSave();
+      } else {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', 'team');
+        params.set('toast', 'save');
+        router.replace(`/chinba/event?${params.toString()}`);
+      }
       try {
         localStorage.removeItem(draftKey);
       } catch {

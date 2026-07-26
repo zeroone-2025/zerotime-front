@@ -33,3 +33,8 @@ export function canRegenerateInvitation(role: TeamRole): boolean {
 export function canTransferCaptain(role: TeamRole): boolean {
   return role === 'captain';
 }
+
+// 구독 생성·해지는 서버가 회장·부회장만 허용한다 (LEADER_ROLES)
+export function canManageSubscription(role: TeamRole): boolean {
+  return role === 'captain' || role === 'vice_captain';
+}

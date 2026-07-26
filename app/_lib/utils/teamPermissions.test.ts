@@ -8,6 +8,7 @@ import {
   canViewInvitation,
   canRegenerateInvitation,
   canTransferCaptain,
+  canManageSubscription,
 } from './teamPermissions';
 
 describe('canEditTeam', () => {
@@ -191,5 +192,23 @@ describe('canTransferCaptain', () => {
 
   it('member cannot transfer captain', () => {
     expect(canTransferCaptain('member')).toBe(false);
+  });
+});
+
+describe('canManageSubscription', () => {
+  it('captain can manage subscription', () => {
+    expect(canManageSubscription('captain')).toBe(true);
+  });
+
+  it('vice_captain can manage subscription', () => {
+    expect(canManageSubscription('vice_captain')).toBe(true);
+  });
+
+  it('executive cannot manage subscription', () => {
+    expect(canManageSubscription('executive')).toBe(false);
+  });
+
+  it('member cannot manage subscription', () => {
+    expect(canManageSubscription('member')).toBe(false);
   });
 });

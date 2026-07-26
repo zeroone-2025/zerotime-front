@@ -72,6 +72,9 @@ export default function SubscriptionSection({ teamId, canManage }: SubscriptionS
 
   const isSubscribed = sub.status === 'active';
   const isCancelled = sub.status === 'cancelled';
+
+  // 관리 권한도 없고 구독도 없으면 보여줄 것이 없다 (요금제 안내만 남은 막다른 화면 방지)
+  if (!canManage && !isSubscribed && !isCancelled) return null;
   const statusInfo = STATUS_LABELS[sub.status ?? ''] ?? { label: '미구독', className: 'bg-gray-50 text-gray-400' };
 
   // 현재 멤버 수 기반으로 해당하는 티어 찾기

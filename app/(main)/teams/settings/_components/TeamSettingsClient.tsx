@@ -23,6 +23,7 @@ import { getCategoryOptions } from '@/_lib/utils/teamDisplay';
 import {
   canEditTeam,
   canDeleteTeam,
+  canManageSubscription,
   canRegenerateInvitation,
 } from '@/_lib/utils/teamPermissions';
 import type { TeamRole } from '@/_types/team';
@@ -330,7 +331,7 @@ export default function TeamSettingsClient() {
         {/* Section 5: 구독 관리 */}
         <SubscriptionSection
           teamId={teamId}
-          canManage={canEditTeam(myRole)}
+          canManage={canManageSubscription(myRole)}
         />
       </div>
 

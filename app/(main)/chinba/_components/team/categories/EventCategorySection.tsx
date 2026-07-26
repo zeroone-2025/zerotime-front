@@ -13,6 +13,7 @@ import {
   useDeleteEventCategory,
 } from '@/_lib/hooks/useCategories';
 
+// UI 용어는 '해시태그' — 코드·API 식별자는 event category 유지 (개명 범위: UI 문구만)
 interface EventCategorySectionProps {
   teamId: number;
   canManage: boolean;
@@ -44,11 +45,11 @@ export default function EventCategorySection({ teamId, canManage, embedded = fal
     }
     try {
       await createCategory.mutateAsync({ name: trimmed });
-      showToast('카테고리가 추가되었습니다', 'success');
+      showToast('해시태그가 추가되었습니다', 'success');
       setAddName('');
       setShowAdd(false);
     } catch (err: any) {
-      showToast(err.response?.data?.detail || '카테고리 추가에 실패했습니다', 'error');
+      showToast(err.response?.data?.detail || '해시태그 추가에 실패했습니다', 'error');
     }
   };
 
@@ -87,7 +88,7 @@ export default function EventCategorySection({ teamId, canManage, embedded = fal
     if (deleteConfirmId === null) return;
     try {
       await deleteCategoryMutation.mutateAsync(deleteConfirmId);
-      showToast('카테고리가 삭제되었습니다', 'success');
+      showToast('해시태그가 삭제되었습니다', 'success');
     } catch (err: any) {
       showToast(err.response?.data?.detail || '삭제에 실패했습니다', 'error');
     }
@@ -98,7 +99,7 @@ export default function EventCategorySection({ teamId, canManage, embedded = fal
     <section className={embedded ? 'p-4' : 'mb-6'}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          {!embedded && <h2 className="text-sm font-bold text-gray-800">일정 카테고리</h2>}
+          {!embedded && <h2 className="text-sm font-bold text-gray-800">해시태그</h2>}
           {categories.length > 0 && (
             <span className="text-xs text-gray-400">{categories.length}개</span>
           )}
@@ -123,7 +124,7 @@ export default function EventCategorySection({ teamId, canManage, embedded = fal
               onChange={(e) => setAddName(e.target.value)}
               maxLength={30}
               autoFocus
-              placeholder="카테고리 이름"
+              placeholder="해시태그 이름"
               className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-800 outline-none focus:border-gray-900 transition-colors"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAdd();
@@ -148,13 +149,13 @@ export default function EventCategorySection({ teamId, canManage, embedded = fal
 
         {categories.length === 0 && !showAdd ? (
           <div className="flex flex-col items-center justify-center py-10">
-            <p className="text-sm text-gray-400 mb-3">아직 카테고리가 없습니다</p>
+            <p className="text-sm text-gray-400 mb-3">아직 해시태그가 없습니다</p>
             {canManage && (
               <button
                 onClick={() => setShowAdd(true)}
                 className="rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 active:scale-95"
               >
-                카테고리 추가
+                해시태그 추가
               </button>
             )}
           </div>
@@ -222,14 +223,14 @@ export default function EventCategorySection({ teamId, canManage, embedded = fal
         isOpen={deleteConfirmId !== null}
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirmId(null)}
-        title="카테고리 삭제"
+        title="해시태그 삭제"
         confirmLabel="삭제"
         cancelLabel="취소"
         variant="danger"
       >
-        <p>&ldquo;{deleteTarget?.name}&rdquo; 카테고리를 삭제하시겠습니까?</p>
+        <p>&ldquo;#{deleteTarget?.name}&rdquo; 해시태그를 삭제하시겠습니까?</p>
         <p className="mt-1 text-xs text-gray-400">
-          이 카테고리를 쓰는 일정·활동 기록에서는 카테고리만 해제되고 기록은 유지됩니다
+          이 해시태그를 쓰는 일정·활동 기록에서는 해시태그만 해제되고 기록은 유지됩니다
         </p>
       </ConfirmModal>
     </section>

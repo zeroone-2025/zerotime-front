@@ -109,7 +109,7 @@ export default function TeamOpsPanel({
           <span className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">운영 도구</span>
           <PanelButton icon={FiUsers} label="멤버 관리" onClick={onOpenMembers} trailing="modal" />
           <PanelButton icon={FiGrid} label="조 / 그룹 관리" onClick={onOpenGroups} trailing="modal" />
-          <PanelButton icon={FiTag} label="카테고리 관리" onClick={onOpenCategories} trailing="modal" />
+          <PanelButton icon={FiTag} label="해시태그 관리" onClick={onOpenCategories} trailing="modal" />
           <PanelButton icon={FiLink} label="초대링크 복사" onClick={handleCopyInvite} trailing="copy" />
         </section>
 

@@ -287,7 +287,7 @@ export default function ActivityTab({
           {/* Category */}
           {categories.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-500">카테고리 (선택)</p>
+              <p className="text-xs font-medium text-gray-500">해시태그 (선택)</p>
               <div className="flex flex-wrap gap-1.5">
                 {categories.map((category) => {
                   const isSelected = formData.category_id === category.id;
@@ -304,7 +304,7 @@ export default function ActivityTab({
                           : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                       }`}
                     >
-                      {category.name}
+                      #{category.name}
                     </button>
                   );
                 })}

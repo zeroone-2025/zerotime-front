@@ -390,10 +390,6 @@ export interface ActivityListResponse {
   total: number
 }
 
-export interface ActivityPhotoUploadResponse {
-  url: string
-}
-
 // ==================== Rankings Types ====================
 
 export interface RankingItem {

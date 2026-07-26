@@ -22,20 +22,20 @@ interface ChinbaHeatmapGridProps {
 
 function getHeatColor(unavailCount: number, total: number): string {
   if (total === 0) return 'bg-gray-50';
-  if (unavailCount === 0) return 'bg-emerald-300';
+  if (unavailCount === 0) return 'bg-[#008f72]';
   const ratio = unavailCount / total;
-  if (ratio <= 0.25) return 'bg-emerald-200';
-  if (ratio <= 0.5) return 'bg-emerald-100';
-  if (ratio <= 0.75) return 'bg-red-300';
-  if (ratio < 1) return 'bg-red-500';
-  return 'bg-red-800';
+  if (ratio <= 0.25) return 'bg-[#62c784]';
+  if (ratio <= 0.5) return 'bg-[#c4fe95]';
+  if (ratio <= 0.75) return 'bg-orange-100 ring-1 ring-inset ring-orange-300';
+  if (ratio < 1) return 'bg-red-200 ring-1 ring-inset ring-red-400';
+  return 'bg-red-400';
 }
 
 function getTextColor(unavailCount: number, total: number): string {
   if (total === 0) return 'text-gray-300';
-  if (unavailCount === 0) return 'text-emerald-700';
+  if (unavailCount === 0) return 'text-white';
   const ratio = unavailCount / total;
-  if (ratio <= 0.5) return 'text-gray-700';
+  if (ratio < 1) return 'text-gray-800';
   return 'text-white';
 }
 
@@ -234,12 +234,12 @@ export default function ChinbaHeatmapGrid({
       {/* Legend */}
       <div className="flex items-center justify-center gap-2 mt-3 px-2">
         <span className="text-[10px] text-gray-400">가능</span>
-        <div className="w-4 h-3 rounded-sm bg-emerald-300" />
-        <div className="w-4 h-3 rounded-sm bg-emerald-200" />
-        <div className="w-4 h-3 rounded-sm bg-emerald-100" />
-        <div className="w-4 h-3 rounded-sm bg-red-300" />
-        <div className="w-4 h-3 rounded-sm bg-red-500" />
-        <div className="w-4 h-3 rounded-sm bg-red-800" />
+        <div className="w-4 h-3 rounded-sm bg-[#008f72]" />
+        <div className="w-4 h-3 rounded-sm bg-[#62c784]" />
+        <div className="w-4 h-3 rounded-sm bg-[#c4fe95]" />
+        <div className="w-4 h-3 rounded-sm bg-orange-100 ring-1 ring-inset ring-orange-300" />
+        <div className="w-4 h-3 rounded-sm bg-red-200 ring-1 ring-inset ring-red-400" />
+        <div className="w-4 h-3 rounded-sm bg-red-400" />
         <span className="text-[10px] text-gray-400">불가</span>
       </div>
     </div>

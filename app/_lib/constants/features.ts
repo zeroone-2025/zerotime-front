@@ -13,3 +13,10 @@
  * 이미 기록된 점수 데이터는 그대로 살아 있고, '랭킹' 탭도 그대로 노출된다.
  */
 export const CHINBA_GROUP_SCORING_ENABLED: boolean = false;
+
+/**
+ * 팀 상세의 '랭킹'(잡아봐) 탭.
+ * 추후 업데이트로 재공개 예정(2026-07 결정) — 탭 버튼은 그대로 두되 진입을 막고
+ * "추후 업데이트 예정입니다" 안내만 띄운다. 백엔드 랭킹 API·데이터는 그대로 살아 있다.
+ */
+export const CHINBA_RANKING_TAB_ENABLED: boolean = false;

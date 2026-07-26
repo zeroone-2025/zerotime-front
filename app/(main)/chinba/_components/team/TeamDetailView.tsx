@@ -22,11 +22,15 @@ import JababwaTab from '@/(main)/teams/detail/_components/JababwaTab';
 import MannajaTab from '@/(main)/teams/detail/_components/MannajaTab';
 import FullPageModal from '@/_components/layout/FullPageModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useToast } from '@/_context/ToastContext';
+import { CHINBA_RANKING_TAB_ENABLED } from '@/_lib/constants/features';
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
 import { useTeamDetail } from '@/_lib/hooks/useTeam';
+import { useUserStore } from '@/_lib/store/useUserStore';
 import { setLastTeamId } from '@/_lib/utils/chinbaSelection';
+import { hasSeenFreeNotice, markFreeNoticeSeen } from '@/_lib/utils/freeNotice';
 import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import { DESKTOP_MEDIA_QUERY, isDesktopViewport } from '@/_lib/utils/viewport';
 import { useAuthInitialized } from '@/providers';
@@ -38,7 +42,10 @@ export default function TeamDetailView() {
 
   const teamId = Number(searchParams.get('id'));
   const tabParam = searchParams.get('tab') as TeamSegment | null;
-  const initialTab: TeamSegment = tabParam === 'mwoheni' || tabParam === 'jabahbwa' ? tabParam : 'mannaja';
+  const initialTab: TeamSegment =
+    tabParam === 'mwoheni' || (tabParam === 'jabahbwa' && CHINBA_RANKING_TAB_ENABLED)
+      ? tabParam
+      : 'mannaja';
 
   // 데스크톱 임베드 뷰 (?view=create | ?view=event&eventId=..) — 만들기/이벤트 상세를
   // 팀 상세 프레임(세그먼트 탭 + 운영 패널) 안에서 렌더한다. 모바일은 풀페이지 라우트 유지.
@@ -53,12 +60,18 @@ export default function TeamDetailView() {
     viewCategoryIdRaw && Number.isFinite(Number(viewCategoryIdRaw)) ? Number(viewCategoryIdRaw) : null;
 
   const isAuthReady = useAuthInitialized();
+  const { showToast } = useToast();
+  const user = useUserStore((state) => state.user);
   const { data: team, isLoading, isError } = useTeamDetail(teamId);
   const { data: groupSetsData } = useGroupSets(teamId || undefined);
   const [activeTab, setActiveTab] = useState<TeamSegment>(initialTab);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [pendingTab, setPendingTab] = useState<TeamSegment | null>(null);
   const [freeNoticeSeen, setFreeNoticeSeen] = useState(false);
+  // (사용자, 동아리)별 1회 노출 기억 — 클라이언트에서만 읽어 hydration mismatch 방지
+  useEffect(() => {
+    setFreeNoticeSeen(hasSeenFreeNotice(user?.id, teamId));
+  }, [user?.id, teamId]);
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -130,7 +143,8 @@ export default function TeamDetailView() {
   // Sync tab state when URL changes (e.g. browser back/forward)
   useEffect(() => {
     const tab = searchParams.get('tab') as TeamSegment | null;
-    const resolved: TeamSegment = tab === 'mwoheni' || tab === 'jabahbwa' ? tab : 'mannaja';
+    const resolved: TeamSegment =
+      tab === 'mwoheni' || (tab === 'jabahbwa' && CHINBA_RANKING_TAB_ENABLED) ? tab : 'mannaja';
     if (resolved !== activeTab) {
       setActiveTab(resolved);
     }
@@ -147,6 +161,10 @@ export default function TeamDetailView() {
   };
 
   const handleTabChange = (tab: TeamSegment) => {
+    if (tab === 'jabahbwa' && !CHINBA_RANKING_TAB_ENABLED) {
+      showToast('추후 업데이트 예정입니다');
+      return;
+    }
     if (isPaidTab(tab) && needsSubscription && !freeNoticeSeen) {
       setPendingTab(tab);
       setShowUpgrade(true);
@@ -269,6 +287,7 @@ export default function TeamDetailView() {
         teamId={teamId}
         terminology="club"
         onConfirm={() => {
+          markFreeNoticeSeen(user?.id, teamId);
           setFreeNoticeSeen(true);
           if (pendingTab) goToTab(pendingTab);
           setPendingTab(null);

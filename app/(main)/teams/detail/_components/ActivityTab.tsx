@@ -3,9 +3,11 @@
 import { useState, useMemo, useEffect } from 'react';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { LuPlus, LuClock, LuCalendar, LuTrash2, LuPencil } from 'react-icons/lu';
+import { LuPlus, LuClock, LuCalendar, LuTrash2, LuPencil, LuX, LuUsers } from 'react-icons/lu';
 
+import MemberPickerSheet from '@/(main)/chinba/_components/team/groups/MemberPickerSheet';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useToast } from '@/_context/ToastContext';
 import { CHINBA_GROUP_SCORING_ENABLED } from '@/_lib/constants/features';
 import {
   useActivities,
@@ -15,9 +17,13 @@ import {
 } from '@/_lib/hooks/useActivities';
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
+import { useTeamMembers } from '@/_lib/hooks/useTeam';
+import { resolveAssetUrl } from '@/_lib/utils/assetUrl';
 import { getRoleBadgeLabel, buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
 import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import type { TeamRole, Activity, ActivityCreateRequest } from '@/_types/team';
+
+import MoneyInput, { formatMoney } from './MoneyInput';
 
 interface ActivityTabProps {
   teamId: number;
@@ -45,10 +51,13 @@ export default function ActivityTab({
   });
   const { data: groupsData } = useGroups(teamId);
   const { data: categoriesData } = useEventCategories(teamId);
+  const { data: membersData } = useTeamMembers(teamId);
+  const teamMembers = useMemo(() => membersData?.members ?? [], [membersData]);
   const categories = categoriesData?.categories ?? [];
   const createMutation = useCreateActivity(teamId);
   const updateMutation = useUpdateActivity(teamId);
   const deleteMutation = useDeleteActivity(teamId);
+  const { showToast } = useToast();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -57,6 +66,15 @@ export default function ActivityTab({
     activity_date: new Date().toISOString().slice(0, 10),
   });
   const [formScores, setFormScores] = useState<{ group_id: number; score: number }[]>([]);
+  const [participantIds, setParticipantIds] = useState<number[]>([]);
+  const [showMemberPicker, setShowMemberPicker] = useState(false);
+
+  const participantMembers = useMemo(
+    () => participantIds
+      .map((id) => teamMembers.find((m) => m.id === id))
+      .filter((m): m is (typeof teamMembers)[number] => m !== undefined),
+    [participantIds, teamMembers],
+  );
 
   const hasRole = canEditTeam(myRole);
   const isGroupSelected = selectedGroupId !== null && selectedGroupId !== undefined;
@@ -140,6 +158,8 @@ export default function ActivityTab({
     setEditingId(null);
     setFormData({ title: '', activity_date: new Date().toISOString().slice(0, 10) });
     setFormScores([]);
+    setParticipantIds([]);
+    setShowMemberPicker(false);
   };
 
   const handleEdit = (activity: Activity) => {
@@ -151,10 +171,13 @@ export default function ActivityTab({
       end_time: activity.end_time ?? undefined,
       description: activity.description ?? undefined,
       highlight: activity.highlight ?? undefined,
+      total_cost: activity.total_cost ?? undefined,
+      cost_note: activity.cost_note ?? undefined,
     });
     // 화면에 보이지 않는 조의 점수도 유지해야 하므로 전체 점수를 그대로 담는다
     // (수정 요청의 scores는 기존 점수를 통째로 대체한다)
     setFormScores(activity.scores.map((s) => ({ group_id: s.group_id, score: s.score })));
+    setParticipantIds(activity.participants.map((p) => p.member_id));
     setShowForm(true);
   };
 
@@ -178,8 +201,13 @@ export default function ActivityTab({
             highlight: formData.highlight ?? '',
             start_time: formData.start_time ?? '',
             end_time: formData.end_time ?? '',
+            cost_note: formData.cost_note ?? '',
+            // 숫자는 빈 문자열로 못 지운다 — null을 보내야 해제된다
+            total_cost: formData.total_cost ?? null,
             category_id: submitCategoryId,
             scores: formScores,
+            // 배열은 통째 대체라 현재 상태를 항상 보낸다 (빈 배열 = 전체 해제)
+            participant_member_ids: participantIds,
           },
         });
       } else {
@@ -187,11 +215,12 @@ export default function ActivityTab({
           ...formData,
           scores: formScores.length > 0 ? formScores : undefined,
           category_id: submitCategoryId,
+          participant_member_ids: participantIds.length > 0 ? participantIds : undefined,
         });
       }
       closeForm();
     } catch {
-      // error handled by mutation
+      showToast('활동 기록 저장에 실패했어요', 'error');
     }
   };
 
@@ -269,20 +298,89 @@ export default function ActivityTab({
               className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
             />
           </div>
-          <textarea
-            placeholder="활동 설명 (선택)"
-            value={formData.description ?? ''}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value || undefined })}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none resize-none"
-            rows={2}
-          />
-          <input
-            type="text"
-            placeholder="하이라이트 (선택)"
-            value={formData.highlight ?? ''}
-            onChange={(e) => setFormData({ ...formData, highlight: e.target.value || undefined })}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-          />
+          {/* Description */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-gray-500">활동 설명 (선택)</p>
+            <textarea
+              placeholder="무엇을 했는지 적어주세요"
+              aria-label="활동 설명"
+              value={formData.description ?? ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value || undefined })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none resize-none"
+              rows={2}
+            />
+          </div>
+
+          {/* Highlight — 자유 텍스트 칸이 둘이라 무엇을 어디에 쓰는지 라벨·예시로 구분한다 */}
+          <div className="space-y-2">
+            <div>
+              <p className="text-xs font-medium text-gray-500">하이라이트 (선택)</p>
+              <p className="text-[11px] text-gray-400">카드 맨 위에 강조되어 보입니다</p>
+            </div>
+            <input
+              type="text"
+              placeholder="예: 장소 예약은 2주 전에"
+              aria-label="하이라이트"
+              value={formData.highlight ?? ''}
+              onChange={(e) => setFormData({ ...formData, highlight: e.target.value || undefined })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+            />
+          </div>
+
+          {/* Cost */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-gray-500">사용 금액 (선택)</p>
+            <MoneyInput
+              value={formData.total_cost}
+              onChange={(value) => setFormData({ ...formData, total_cost: value })}
+            />
+            <input
+              type="text"
+              placeholder="용도 메모 (예: 회식비 + 다과)"
+              aria-label="용도 메모"
+              value={formData.cost_note ?? ''}
+              onChange={(e) => setFormData({ ...formData, cost_note: e.target.value || undefined })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              maxLength={100}
+            />
+          </div>
+
+          {/* Participants */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-500">
+                참여 인원 (선택){participantIds.length > 0 && ` · 총 ${participantIds.length}명`}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowMemberPicker(true)}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <LuUsers size={12} />
+                팀원 선택
+              </button>
+            </div>
+            {participantMembers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {participantMembers.map((member) => (
+                  <span
+                    key={member.id}
+                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white py-1 pl-2.5 pr-1.5 text-xs text-gray-600"
+                  >
+                    {member.nickname ?? '알 수 없음'}
+                    <button
+                      type="button"
+                      onClick={() => setParticipantIds(participantIds.filter((id) => id !== member.id))}
+                      aria-label={`${member.nickname ?? '팀원'} 제외`}
+                      className="rounded-full p-0.5 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    >
+                      <LuX size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Category */}
           {categories.length > 0 && (
@@ -374,6 +472,26 @@ export default function ActivityTab({
             </button>
           </div>
         </div>
+      )}
+
+      {/* 참여 인원 선택 시트 — 기존 선택을 이어받고, 제외는 폼의 칩에서 한다 */}
+      {showMemberPicker && (
+        <MemberPickerSheet
+          title="참여 인원 선택"
+          members={teamMembers.map((m) => ({
+            member_id: m.id,
+            nickname: m.nickname ?? '알 수 없음',
+            profile_image: m.profile_image,
+            role: m.role,
+          }))}
+          initialSelected={participantIds}
+          confirmLabel="선택 완료"
+          onConfirm={(memberIds) => {
+            setParticipantIds(memberIds);
+            setShowMemberPicker(false);
+          }}
+          onCancel={() => setShowMemberPicker(false)}
+        />
       )}
 
       {/* Activity List */}
@@ -489,6 +607,50 @@ function ActivityCard({
       {/* Description */}
       {activity.description && (
         <p className="mt-2 text-xs text-gray-500 line-clamp-2">{activity.description}</p>
+      )}
+
+      {/* Cost */}
+      {activity.total_cost != null && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-gray-900 px-2.5 py-1 text-xs font-semibold text-white">
+            {formatMoney(activity.total_cost)}원
+          </span>
+          {activity.cost_note && (
+            <span className="text-xs text-gray-400">{activity.cost_note}</span>
+          )}
+        </div>
+      )}
+
+      {/* Participants */}
+      {activity.participants.length > 0 && (
+        <div className="mt-3 flex items-center gap-2">
+          <div className="flex -space-x-2">
+            {activity.participants.slice(0, 5).map((participant) => (
+              participant.profile_image ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  key={participant.member_id}
+                  src={resolveAssetUrl(participant.profile_image)}
+                  alt={participant.nickname ?? ''}
+                  title={participant.nickname ?? undefined}
+                  className="h-6 w-6 rounded-full border border-white bg-gray-50 object-cover"
+                />
+              ) : (
+                <span
+                  key={participant.member_id}
+                  title={participant.nickname ?? undefined}
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-gray-100 text-[10px] font-medium text-gray-500"
+                >
+                  {(participant.nickname ?? '?').slice(0, 1)}
+                </span>
+              )
+            ))}
+          </div>
+          <span className="text-xs text-gray-400">
+            {activity.participants.length > 5 && `+${activity.participants.length - 5} · `}
+            총 {activity.participants.length}명 참여
+          </span>
+        </div>
       )}
 
       {/* Scores */}

@@ -26,6 +26,8 @@ interface MemberPickerSheetProps {
   onCancel: () => void;
   singleSelect?: boolean;
   confirmLabel?: string;
+  /** 열릴 때 이미 선택돼 있을 멤버 — 수정 화면에서 기존 선택을 이어받는다 */
+  initialSelected?: number[];
 }
 
 /**
@@ -40,9 +42,10 @@ export default function MemberPickerSheet({
   onCancel,
   singleSelect = false,
   confirmLabel,
+  initialSelected,
 }: MemberPickerSheetProps) {
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<number>>(() => new Set(initialSelected ?? []));
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

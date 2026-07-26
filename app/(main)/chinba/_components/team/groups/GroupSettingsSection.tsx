@@ -82,7 +82,7 @@ export default function GroupSettingsSection({ teamId, canManage, embedded = fal
             className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
           >
             <FiPlus size={14} />
-            새 조 편성
+            새 그룹 생성
           </button>
         )}
       </div>
@@ -172,7 +172,7 @@ export default function GroupSettingsSection({ teamId, canManage, embedded = fal
                         onClick={() => router.push(`/chinba/team/groups?id=${teamId}&mode=edit&setId=${set.id}`)}
                         className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 transition-colors hover:bg-gray-50"
                       >
-                        조 수정
+                        조 수정/추가
                       </button>
                     )}
                     <button

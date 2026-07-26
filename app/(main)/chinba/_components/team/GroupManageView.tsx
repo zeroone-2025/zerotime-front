@@ -44,9 +44,19 @@ export default function GroupManageView() {
   // 데이터 로딩 완료 후 초기 step 결정
   useEffect(() => {
     if (!isLoading && !setsLoading && step === null) {
-      if (initialMode === 'edit' && hasExistingGroups) {
-        setSelectedGroupSetId(initialSetId ? Number(initialSetId) : null);
-        setStep('edit');
+      if (initialMode === 'new') {
+        setStep('set-select');
+      } else if (initialMode === 'edit' && hasExistingGroups) {
+        if (initialSetId) {
+          setSelectedGroupSetId(Number(initialSetId));
+          setStep('edit');
+        } else if (groupSets.length === 0) {
+          // 세트 없는 레거시 편성 — 세트 미지정 편집 허용
+          setStep('edit');
+        } else {
+          // 세트가 있는데 setId가 없으면 세트 미지정 저장(NULL 버킷 덮어쓰기) 위험 — 현황에서 다시 선택
+          setStep('current');
+        }
       } else if (initialMode === 'recompose' && initialSetId) {
         setSelectedGroupSetId(Number(initialSetId));
         setStep('method');
@@ -54,7 +64,7 @@ export default function GroupManageView() {
         setStep(hasExistingGroups ? 'current' : 'set-select');
       }
     }
-  }, [isLoading, setsLoading, hasExistingGroups, step, initialMode, initialSetId]);
+  }, [isLoading, setsLoading, hasExistingGroups, groupSets.length, step, initialMode, initialSetId]);
 
   const handleSetSelect = async () => {
     setError(null);
@@ -97,6 +107,11 @@ export default function GroupManageView() {
 
   const handleConfirm = async (groups: GroupInput[]) => {
     setError(null);
+    // 세트가 존재하는 팀에서 세트 미지정으로 저장하면 백엔드가 세트 미지정(NULL) 조 전체를 덮어쓴다
+    if (groupSets.length > 0 && selectedGroupSetId == null) {
+      setError('저장할 그룹세트가 지정되지 않았습니다. 처음부터 다시 시도해주세요.');
+      return;
+    }
     try {
       await saveGroups.mutateAsync({ groups, group_set_id: selectedGroupSetId ?? undefined });
       router.replace(`/chinba/team/detail?id=${teamId}&tab=mannaja`);
@@ -182,7 +197,7 @@ export default function GroupManageView() {
             </div>
           </div>
 
-          <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100">
+          <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100 space-y-2">
             <button
               onClick={handleSetSelect}
               disabled={!selectedGroupSetId && !newSetName.trim()}
@@ -190,6 +205,19 @@ export default function GroupManageView() {
             >
               {createGroupSet.isPending ? '생성 중...' : '다음'}
             </button>
+            {hasExistingGroups && (
+              <button
+                onClick={() => {
+                  setError(null);
+                  setSelectedGroupSetId(null);
+                  setNewSetName('');
+                  setStep('current');
+                }}
+                className="w-full rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                돌아가기
+              </button>
+            )}
           </div>
         </div>
       )}

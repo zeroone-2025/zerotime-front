@@ -20,10 +20,6 @@ interface ChinbaHeatmapGridProps {
   totalParticipants: number;
 }
 
-// 전원 불가: red-500 바탕 + 회색 사선 빗금
-const FULL_UNAVAIL_BG =
-  'bg-[repeating-linear-gradient(45deg,#ef4444_0px,#ef4444_9px,#d1d5db_9px,#d1d5db_10px)]';
-
 function getHeatColor(unavailCount: number, total: number): string {
   if (total === 0) return 'bg-gray-50';
   if (unavailCount === 0) return 'bg-[#21a278]';
@@ -32,7 +28,7 @@ function getHeatColor(unavailCount: number, total: number): string {
   if (ratio <= 0.5) return 'bg-[#62c784]';
   if (ratio <= 0.75) return 'bg-[#a3ec8f]';
   if (ratio < 1) return 'bg-[#c4fe95]';
-  return FULL_UNAVAIL_BG;
+  return 'bg-red-500';
 }
 
 function getTextColor(unavailCount: number, total: number): string {
@@ -240,7 +236,7 @@ export default function ChinbaHeatmapGrid({
         <div className="w-4 h-3 rounded-sm bg-[#62c784]" />
         <div className="w-4 h-3 rounded-sm bg-[#a3ec8f]" />
         <div className="w-4 h-3 rounded-sm bg-[#c4fe95]" />
-        <div className={`w-4 h-3 rounded-sm ${FULL_UNAVAIL_BG}`} />
+        <div className="w-4 h-3 rounded-sm bg-red-500" />
         <span className="text-[10px] text-gray-400">불가</span>
       </div>
     </div>

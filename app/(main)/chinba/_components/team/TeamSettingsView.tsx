@@ -19,6 +19,7 @@ import {
   useRemoveMember,
   useRegenerateInviteCode,
 } from '@/_lib/hooks/useTeam';
+import { clearLastTeamId } from '@/_lib/utils/chinbaSelection';
 import { getCategoryOptions } from '@/_lib/utils/teamDisplay';
 import {
   canEditTeam,
@@ -116,6 +117,8 @@ export default function TeamSettingsView() {
     try {
       await deleteTeam.mutateAsync(teamId);
       showToast('동아리가 삭제되었습니다', 'success');
+      // 마지막 선택 동아리 기억을 지운다 — 남겨두면 목록 화면이 삭제된 동아리 상세로 재진입한다
+      clearLastTeamId();
       router.replace('/chinba/team');
     } catch (err: any) {
       showToast(err.response?.data?.detail || '삭제에 실패했습니다', 'error');

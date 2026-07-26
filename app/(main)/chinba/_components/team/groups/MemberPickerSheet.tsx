@@ -24,10 +24,13 @@ interface MemberPickerSheetProps {
   members: PickableMember[];
   onConfirm: (memberIds: number[]) => void;
   onCancel: () => void;
+  singleSelect?: boolean;
+  confirmLabel?: string;
 }
 
 /**
  * 멤버를 눌러서 고르는 다중 선택 시트 (카톡 초대 화면 대응).
+ * singleSelect면 한 명만 고르는 라디오 동작 — 회장 위임처럼 대상이 하나인 경우.
  * 오버레이 z-[60] — FullPageModal 안에서 열려도 위로 올라온다.
  */
 export default function MemberPickerSheet({
@@ -35,6 +38,8 @@ export default function MemberPickerSheet({
   members,
   onConfirm,
   onCancel,
+  singleSelect = false,
+  confirmLabel,
 }: MemberPickerSheetProps) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -47,6 +52,9 @@ export default function MemberPickerSheet({
 
   const toggle = (memberId: number) => {
     setSelected((prev) => {
+      if (singleSelect) {
+        return prev.has(memberId) ? new Set<number>() : new Set([memberId]);
+      }
       const next = new Set(prev);
       if (next.has(memberId)) next.delete(memberId);
       else next.add(memberId);
@@ -102,9 +110,9 @@ export default function MemberPickerSheet({
                   }`}
                 >
                   <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-xs ${
-                      isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300'
-                    }`}
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center border text-xs ${
+                      singleSelect ? 'rounded-full' : 'rounded'
+                    } ${isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300'}`}
                   >
                     {isSelected && '✓'}
                   </span>
@@ -150,7 +158,7 @@ export default function MemberPickerSheet({
             disabled={selected.size === 0}
             className="flex-1 rounded-xl bg-gray-900 py-3 text-sm font-semibold text-white transition-all hover:bg-gray-800 active:scale-95 disabled:opacity-50"
           >
-            {selected.size > 0 ? `${selected.size}명 추가` : '추가'}
+            {confirmLabel ?? (selected.size > 0 ? `${selected.size}명 추가` : '추가')}
           </button>
         </div>
       </div>

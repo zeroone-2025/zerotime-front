@@ -3,7 +3,13 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
+import { buildChinbaGridLayout } from './chinbaGridColumns';
+
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 시간 라벨 열(w-7)과 클러스터 구분선 열의 폭
+const TIME_LABEL_WIDTH = 28;
+const GAP_COL_WIDTH = 16;
 
 interface ChinbaScheduleGridProps {
   dates: string[];
@@ -26,7 +32,6 @@ export default function ChinbaScheduleGrid({
   const isDragging = useRef(false);
   const dragAction = useRef<'add' | 'remove'>('add');
   const lastDragKey = useRef<string | null>(null);
-  const [, forceUpdate] = useState(0);
 
   // Time slots
   const timeSlots = useMemo(() => {
@@ -38,15 +43,26 @@ export default function ChinbaScheduleGrid({
     return slots;
   }, [startHour, endHour]);
 
-  // Date info
-  const dateInfos = useMemo(() => dates.map((d) => {
-    const dt = new Date(d);
-    return {
-      dateStr: d,
-      label: `${dt.getMonth() + 1}/${dt.getDate()}`,
-      day: DAY_LABELS[dt.getDay()],
-    };
-  }), [dates]);
+  // 7열 고정 레이아웃 — 후보일 + 비활성 패딩일 + 클러스터 구분선
+  const { columns, isScroll } = useMemo(() => buildChinbaGridLayout(dates), [dates]);
+  const gapCount = useMemo(() => columns.filter((c) => c.type === 'gap').length, [columns]);
+
+  const columnInfos = useMemo(
+    () =>
+      columns.map((col, i) => {
+        if (col.type === 'gap') return { key: `gap-${i}`, gap: true as const };
+        const dt = new Date(col.dateStr);
+        return {
+          key: col.dateStr,
+          gap: false as const,
+          dateStr: col.dateStr,
+          selectable: col.selectable,
+          label: `${dt.getMonth() + 1}/${dt.getDate()}`,
+          day: DAY_LABELS[dt.getDay()],
+        };
+      }),
+    [columns]
+  );
 
   const [cellWidth, setCellWidth] = useState(40);
 
@@ -55,14 +71,18 @@ export default function ChinbaScheduleGrid({
     if (!el) return;
     const calculate = () => {
       const containerWidth = el.clientWidth;
-      // 28px for time label column, remaining space divided by number of dates
-      setCellWidth(Math.floor((containerWidth - 28) / dates.length));
+      // 열 폭은 항상 ÷7 고정 — 날짜 수와 무관하게 컨테이너 양끝에 맞춘다
+      setCellWidth(
+        isScroll
+          ? (containerWidth - TIME_LABEL_WIDTH) / 7
+          : (containerWidth - TIME_LABEL_WIDTH - gapCount * GAP_COL_WIDTH) / 7
+      );
     };
     calculate();
     const observer = new ResizeObserver(calculate);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [dates.length]);
+  }, [isScroll, gapCount]);
 
   const toggleSlot = useCallback((slotKey: string, action: 'add' | 'remove') => {
     const newSlots = new Set(selectedSlots);
@@ -110,6 +130,8 @@ export default function ChinbaScheduleGrid({
     }
   };
 
+  const timeLabelClass = `w-7 shrink-0 ${isScroll ? 'sticky left-0 z-10 bg-white' : ''}`;
+
   return (
     <div
       ref={gridRef}
@@ -117,54 +139,92 @@ export default function ChinbaScheduleGrid({
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className="overflow-hidden select-none"
+      className={`select-none ${isScroll ? 'overflow-x-auto' : 'overflow-hidden'}`}
     >
       <div className="inline-block min-w-full">
         {/* Header */}
-        <div className="flex justify-center">
-          <div className="w-7 shrink-0" />
-          {dateInfos.map((info) => (
-            <div
-              key={info.dateStr}
-              className="flex flex-col items-center justify-center py-1"
-              style={{ width: cellWidth }}
-            >
-              <span className="text-[10px] text-gray-400">{info.day}</span>
-              <span className="text-xs font-medium text-gray-700">{info.label}</span>
-            </div>
-          ))}
+        <div className="flex">
+          <div className={timeLabelClass} />
+          {columnInfos.map((info) =>
+            info.gap ? (
+              <div
+                key={info.key}
+                className="shrink-0 flex items-end justify-center pb-1"
+                style={{ width: GAP_COL_WIDTH }}
+              >
+                <span className="text-[10px] text-gray-300">⋯</span>
+              </div>
+            ) : (
+              <div
+                key={info.key}
+                className="flex flex-col items-center justify-center py-1"
+                style={{ width: cellWidth }}
+              >
+                <span className={`text-[10px] ${info.selectable ? 'text-gray-400' : 'text-gray-300'}`}>
+                  {info.day}
+                </span>
+                <span className={`text-xs font-medium ${info.selectable ? 'text-gray-700' : 'text-gray-300'}`}>
+                  {info.label}
+                </span>
+              </div>
+            )
+          )}
         </div>
 
         {/* Grid */}
-        {timeSlots.map((time) => (
-          <div key={time} className="flex justify-center">
-            {/* Time label */}
-            <div className="w-7 shrink-0 flex items-center justify-start">
-              {time.endsWith(':00') && (
-                <span className="text-[10px] text-gray-400 -mt-2">{parseInt(time)}시</span>
-              )}
+        {timeSlots.map((time) => {
+          const isHourBorder = time.endsWith(':00');
+          return (
+            <div key={time} className="flex">
+              {/* Time label */}
+              <div className={`${timeLabelClass} flex items-center justify-start`}>
+                {isHourBorder && (
+                  <span className="text-[10px] text-gray-400 -mt-2">{parseInt(time)}시</span>
+                )}
+              </div>
+              {/* Cells */}
+              {columnInfos.map((info) => {
+                if (info.gap) {
+                  return (
+                    <div
+                      key={info.key}
+                      className="shrink-0 flex justify-center"
+                      style={{ width: GAP_COL_WIDTH, height: 22 }}
+                    >
+                      <div className="h-full border-l border-dashed border-gray-200" />
+                    </div>
+                  );
+                }
+                const hourBorderClass = isHourBorder
+                  ? 'border-t border-t-gray-200'
+                  : 'border-t border-t-gray-100/50';
+                if (!info.selectable) {
+                  // 패딩/사이 날짜 — 맥락용 비활성 칸 (선택 불가)
+                  return (
+                    <div
+                      key={`${info.dateStr}-${time}`}
+                      className={`shrink-0 border-r border-gray-100 bg-gray-50 ${hourBorderClass}`}
+                      style={{ width: cellWidth, height: 22 }}
+                    />
+                  );
+                }
+                const key = getSlotKey(info.dateStr, time);
+                const isSelected = selectedSlots.has(key);
+                return (
+                  <div
+                    key={key}
+                    data-slot-key={key}
+                    onPointerDown={(event) => handlePointerDown(event, info.dateStr, time)}
+                    className={`shrink-0 flex items-center justify-center border-r border-gray-100 transition-colors cursor-pointer ${
+                      isSelected ? 'bg-red-400' : 'bg-white hover:bg-gray-50'
+                    } ${hourBorderClass}`}
+                    style={{ width: cellWidth, height: 22, touchAction: 'none' }}
+                  />
+                );
+              })}
             </div>
-            {/* Cells */}
-            {dateInfos.map((info) => {
-              const key = getSlotKey(info.dateStr, time);
-              const isSelected = selectedSlots.has(key);
-              const isHourBorder = time.endsWith(':00');
-
-              return (
-                <div
-                  key={key}
-                  data-slot-key={key}
-                  onPointerDown={(event) => handlePointerDown(event, info.dateStr, time)}
-                  className={`flex items-center justify-center border-r border-gray-100 transition-colors cursor-pointer ${isSelected ? 'bg-red-400' : 'bg-white hover:bg-gray-50'
-                    } ${isHourBorder ? 'border-t border-t-gray-200' : 'border-t border-t-gray-100/50'
-                    }`}
-                  // 셀 크기 조정
-                  style={{ width: cellWidth, height: 22, touchAction: 'none' }}
-                />
-              );
-            })}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Legend */}

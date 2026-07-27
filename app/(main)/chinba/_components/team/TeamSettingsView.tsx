@@ -19,15 +19,18 @@ import {
   useRemoveMember,
   useRegenerateInviteCode,
 } from '@/_lib/hooks/useTeam';
+import { clearLastTeamId } from '@/_lib/utils/chinbaSelection';
 import { getCategoryOptions } from '@/_lib/utils/teamDisplay';
 import {
   canEditTeam,
   canDeleteTeam,
+  canManageSubscription,
   canRegenerateInvitation,
 } from '@/_lib/utils/teamPermissions';
 import type { TeamRole } from '@/_types/team';
 import InviteSection from '@/(main)/teams/_components/InviteSection';
 import MemberList from '@/(main)/teams/_components/MemberList';
+import CaptainTransferSection from '@/(main)/chinba/_components/team/CaptainTransferSection';
 import EventCategorySection from '@/(main)/chinba/_components/team/categories/EventCategorySection';
 import GroupSettingsSection from '@/(main)/chinba/_components/team/groups/GroupSettingsSection';
 import SubscriptionSection from '@/(main)/chinba/_components/team/SubscriptionSection';
@@ -114,7 +117,9 @@ export default function TeamSettingsView() {
     try {
       await deleteTeam.mutateAsync(teamId);
       showToast('동아리가 삭제되었습니다', 'success');
-      router.replace('/chinba/team');
+      // 마지막 선택 동아리 기억을 지운다 — 남겨두면 동아리 탭이 삭제된 동아리 상세로 재진입한다
+      clearLastTeamId();
+      router.replace('/chinba');
     } catch (err: any) {
       showToast(err.response?.data?.detail || '삭제에 실패했습니다', 'error');
     }
@@ -251,7 +256,7 @@ export default function TeamSettingsView() {
         {/* Section 2: 구독 관리 */}
         <SubscriptionSection
           teamId={teamId}
-          canManage={canEditTeam(myRole)}
+          canManage={canManageSubscription(myRole)}
         />
 
         {/* Section 3: Invite */}
@@ -310,6 +315,11 @@ export default function TeamSettingsView() {
           teamId={teamId}
           canManage={canEditTeam(myRole)}
         />
+
+        {/* Section 5: 회장 위임 */}
+        {!isEditing && (
+          <CaptainTransferSection teamId={teamId} members={members} myRole={myRole} />
+        )}
 
         {/* Section 6: 동아리 삭제 (Danger Zone) */}
         {canDeleteTeam(myRole) && !isEditing && (

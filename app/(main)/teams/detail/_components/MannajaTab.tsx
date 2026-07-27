@@ -10,7 +10,9 @@ import { FiPlus, FiCalendar, FiUsers, FiLayers } from 'react-icons/fi';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useTeamEvents } from '@/_lib/hooks/useTeamEvents';
+import { formatDateRanges } from '@/_lib/utils/dateRange';
 import { buildGroupSetNameMap, groupDisplayName } from '@/_lib/utils/teamDisplay';
+import { canEditTeam } from '@/_lib/utils/teamPermissions';
 import type { TeamRole, TeamEvent } from '@/_types/team';
 
 import TeamSetupGuide from './TeamSetupGuide';
@@ -23,6 +25,9 @@ interface MannajaTabProps {
   selectedGroupId?: number | null;
   selectedCategoryId?: number | null;
   terminology?: 'team' | 'club';
+  // 호스트(TeamDetailView)가 임베드 뷰로 열고 싶을 때 제공 — 미제공 시 기존 라우트 이동
+  onCreateEvent?: () => void;
+  onOpenEvent?: (eventId: string) => void;
 }
 
 export default function MannajaTab({
@@ -34,6 +39,8 @@ export default function MannajaTab({
   selectedGroupId,
   selectedCategoryId,
   terminology = 'team',
+  onCreateEvent,
+  onOpenEvent,
 }: MannajaTabProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -44,13 +51,17 @@ export default function MannajaTab({
   // 현재 위치(pathname)를 그대로 쓰므로 /teams/detail·/chinba/team/detail 어디서든 동작.
   const openEvent = useCallback(
     (eventId: string) => {
+      if (onOpenEvent) {
+        onOpenEvent(eventId);
+        return;
+      }
       const returnTo = encodeURIComponent(`${pathname}?id=${teamId}&tab=mwoheni`);
       router.push(`/chinba/event?id=${eventId}&returnTo=${returnTo}`);
     },
-    [router, pathname, teamId],
+    [onOpenEvent, router, pathname, teamId],
   );
 
-  const canCreate = myRole === 'captain' || myRole === 'executive';
+  const canCreate = canEditTeam(myRole);
   const groupSets = groupSetsData?.group_sets ?? [];
   const groupSetNameMap = useMemo(() => buildGroupSetNameMap(groupSets), [groupSets]);
 
@@ -71,7 +82,8 @@ export default function MannajaTab({
     }
     if (!selectedGroupIds && !selectedGroupId) return list;
     return list.filter((event) => {
-      if (event.target_groups.length === 0) return false;
+      // 대상 조 없음 = 전체 일정 → 모든 조에 해당하므로 필터와 무관하게 표시
+      if (event.target_groups.length === 0) return true;
       if (selectedGroupId) {
         return event.target_groups.some((g) => g.id === selectedGroupId);
       }
@@ -97,7 +109,6 @@ export default function MannajaTab({
   }, [events]);
 
   const hasGroups = groupSets.length > 0;
-  const isFilterActive = !!selectedSetId || !!selectedGroupId;
 
   if (isLoading) {
     return (
@@ -124,6 +135,10 @@ export default function MannajaTab({
       {canCreate && (
         <button
           onClick={() => {
+            if (onCreateEvent) {
+              onCreateEvent();
+              return;
+            }
             const params = new URLSearchParams({ id: String(teamId) });
             if (selectedSetId) params.set('setId', String(selectedSetId));
             if (selectedGroupId) params.set('groupId', String(selectedGroupId));
@@ -140,25 +155,21 @@ export default function MannajaTab({
       {hasGroups ? (
         /* 섹션 분리 레이아웃 */
         <>
-          {!isFilterActive && (
-            <>
-              <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
-              {teamWideEvents.length > 0 ? (
-                teamWideEvents.map((event) => (
-                  <EventCard
-                    key={event.event_id}
-                    event={event}
-                    groupSetNameMap={groupSetNameMap}
-                    onClick={() => openEvent(event.event_id)}
-                  />
-                ))
-              ) : (
-                <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
-              )}
-            </>
+          <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
+          {teamWideEvents.length > 0 ? (
+            teamWideEvents.map((event) => (
+              <EventCard
+                key={event.event_id}
+                event={event}
+                groupSetNameMap={groupSetNameMap}
+                onClick={() => openEvent(event.event_id)}
+              />
+            ))
+          ) : (
+            <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
           )}
 
-          {!isFilterActive && <SectionHeader icon={FiLayers} label="조별 일정" />}
+          <SectionHeader icon={FiLayers} label="조별 일정" />
           {groupEvents.length > 0 ? (
             groupEvents.map((event) => (
               <EventCard
@@ -235,7 +246,7 @@ function EventCard({ event, groupSetNameMap, onClick }: { event: TeamEvent; grou
       <div className="flex items-center gap-1.5 mb-2">
         <FiCalendar size={12} className="text-gray-400" />
         <p className="text-xs text-gray-500 truncate">
-          {event.dates.join(', ')}
+          {formatDateRanges(event.dates)}
         </p>
       </div>
 

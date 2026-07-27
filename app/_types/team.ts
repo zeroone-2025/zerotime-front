@@ -1,4 +1,4 @@
-export type TeamRole = 'captain' | 'executive' | 'member'
+export type TeamRole = 'captain' | 'vice_captain' | 'executive' | 'member'
 export type TeamStatus = 'active' | 'archived'
 
 export interface Team {
@@ -327,6 +327,14 @@ export interface ActivityRecorder {
   role_badge: string
 }
 
+export interface ActivityParticipant {
+  member_id: number
+  user_id: number
+  nickname: string | null
+  profile_image: string | null
+  role: TeamRole
+}
+
 export interface Activity {
   id: number
   title: string
@@ -339,6 +347,9 @@ export interface Activity {
   category: EventCategoryRef | null
   recorder: ActivityRecorder
   scores: ActivityScore[]
+  total_cost: number | null
+  cost_note: string | null
+  participants: ActivityParticipant[]
   created_at: string
 }
 
@@ -352,6 +363,9 @@ export interface ActivityCreateRequest {
   photo_urls?: string[]
   scores?: { group_id: number; score: number }[]
   category_id?: number | null
+  total_cost?: number | null
+  cost_note?: string
+  participant_member_ids?: number[]
 }
 
 export interface ActivityUpdateRequest {
@@ -364,6 +378,11 @@ export interface ActivityUpdateRequest {
   photo_urls?: string[]
   scores?: { group_id: number; score: number }[]
   category_id?: number | null
+  // 숫자라 빈 문자열로 해제를 표현할 수 없다 — null을 보내야 서버에서 지워진다
+  total_cost?: number | null
+  cost_note?: string
+  // 전달하면 기존 참여자를 통째로 대체 (빈 배열 = 전체 해제)
+  participant_member_ids?: number[]
 }
 
 export interface ActivityListResponse {

@@ -95,13 +95,12 @@ export function useSelectedCategories() {
         // 학교가 바뀌었거나, 캐시가 아예 없거나(첫 방문/파싱 실패), 예전에 API 실패로
         // []가 잘못 저장돼 있던 경우(자동 복구 대상)엔 새로 받아온다.
         if (schoolChanged || parsedSaved === null) {
-          let confirmedCategories: string[] | null = null;
+          let fetchSucceeded = false;
+          let codes: string[] = [];
           try {
             const boards = await getBoards(requestedSchool);
-            const codes = getDefaultBoardCodes(boards);
-            // 빈 결과는 "확정된 게시판 없음"이 아니라 API 이상 신호로 취급 — 성공해도
-            // 1개 이상일 때만 새 학교 캐시로 확정한다.
-            if (codes.length > 0) confirmedCategories = codes;
+            codes = getDefaultBoardCodes(boards);
+            fetchSucceeded = true;
           } catch (error) {
             console.error('Failed to fetch default boards, falling back:', error);
           }
@@ -112,18 +111,20 @@ export function useSelectedCategories() {
             return;
           }
 
-          if (confirmedCategories) {
-            // API 성공 + 기본 게시판 1개 이상일 때만 새 학교 캐시를 확정 저장한다.
-            localStorage.setItem(GUEST_FILTER_KEY, JSON.stringify(confirmedCategories));
+          if (fetchSucceeded) {
+            // API 성공이면 결과가 0건이어도(예: 경상국립대처럼 "본부" 카테고리 게시판이
+            // 아예 없는 학교) 새 학교로 확정한다 — 0건과 API 실패를 같은 것으로 취급하면
+            // 학교를 바꿔도 이전 학교의 board_codes가 그대로 남는 버그가 생긴다.
+            localStorage.setItem(GUEST_FILTER_KEY, JSON.stringify(codes));
             localStorage.setItem(GUEST_FILTER_SCHOOL_KEY, requestedSchool);
-            setSelectedCategories(confirmedCategories);
+            setSelectedCategories(codes);
           } else if (requestedSchool === DEFAULT_GUEST_SCHOOL && parsedSaved === null) {
             // 유지할 기존 캐시가 전혀 없고 전북대인 경우에만 하드코딩 폴백을 쓴다.
             // 이 폴백은 API 확정 결과가 아니므로 localStorage엔 저장하지 않는다 —
             // 다음 로드 때 다시 API를 시도한다.
             setSelectedCategories([...GUEST_DEFAULT_BOARDS]);
           }
-          // 그 외(실패/빈 응답 + 유지할 기존 캐시 없음 + 전북대도 아님)엔 아무것도
+          // 그 외(API 실패 + 유지할 기존 캐시 없음 + 전북대도 아님)엔 아무것도
           // 하지 않는다 — 기존 selectedCategories를 그대로 두어 화면이 갑자기
           // 비워지지 않게 하고, localStorage에도 실패를 "확정"으로 남기지 않아
           // 다음 로드(새로고침)에서 API를 다시 시도하게 한다.

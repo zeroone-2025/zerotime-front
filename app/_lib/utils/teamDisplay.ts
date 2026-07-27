@@ -1,6 +1,9 @@
+import type { TeamRole } from '@/_types/team';
+
 export function getRoleBadgeLabel(role?: string): string {
   switch (role) {
     case 'captain': return '팀장';
+    case 'vice_captain': return '부팀장';
     case 'executive': return '임원';
     case 'member': return '팀원';
     default: return '팀원';
@@ -10,11 +13,20 @@ export function getRoleBadgeLabel(role?: string): string {
 export function getRoleBadgeColor(role?: string): string {
   switch (role) {
     case 'captain': return 'red';
+    case 'vice_captain': return 'orange';
     case 'executive': return 'blue';
     case 'member': return 'gray';
     default: return 'gray';
   }
 }
+
+/** club 용어(terminology === 'club')일 때의 역할 라벨 — 컴포넌트별 사본 금지, 여기서만 관리 */
+export const CLUB_ROLE_LABELS: Record<TeamRole, string> = {
+  captain: '회장',
+  vice_captain: '부회장',
+  executive: '운영진',
+  member: '회원',
+};
 
 export function formatInviteUrl(inviteCode: string): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://chinba.app';

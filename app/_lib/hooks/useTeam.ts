@@ -19,6 +19,7 @@ import { hasAccessToken } from '@/_lib/auth/tokenStore';
 import type {
   TeamCreateRequest,
   TeamUpdateRequest,
+  TeamListItem,
   JoinTeamRequest,
   CaptainTransferRequest,
 } from '@/_types/team';
@@ -74,7 +75,12 @@ export function useDeleteTeam() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (teamId: number) => deleteTeam(teamId),
-    onSuccess: () => {
+    onSuccess: (_data, teamId) => {
+      // 재조회가 끝나기 전에 목록 화면이 낡은 캐시로 삭제된 팀에 재진입하지 않도록 즉시 제거
+      qc.setQueryData<{ teams: TeamListItem[] }>(['teams'], (old) =>
+        old ? { ...old, teams: old.teams.filter((t) => t.id !== teamId) } : old,
+      );
+      qc.removeQueries({ queryKey: ['teams', teamId] });
       qc.invalidateQueries({ queryKey: ['teams'] });
     },
   });

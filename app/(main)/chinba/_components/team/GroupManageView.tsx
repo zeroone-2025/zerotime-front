@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { FiClipboard, FiUsers } from 'react-icons/fi';
 
 import FullPageModal from '@/_components/layout/FullPageModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
@@ -14,7 +15,7 @@ import GroupTextInput from './groups/GroupTextInput';
 import GroupParsePreview from './groups/GroupParsePreview';
 import GroupInlineEditor from './groups/GroupInlineEditor';
 
-type Step = 'current' | 'set-select' | 'input' | 'preview' | 'edit';
+type Step = 'current' | 'set-select' | 'method' | 'compose' | 'input' | 'preview' | 'edit';
 
 export default function GroupManageView() {
   const router = useRouter();
@@ -43,17 +44,27 @@ export default function GroupManageView() {
   // 데이터 로딩 완료 후 초기 step 결정
   useEffect(() => {
     if (!isLoading && !setsLoading && step === null) {
-      if (initialMode === 'edit' && hasExistingGroups) {
-        setSelectedGroupSetId(initialSetId ? Number(initialSetId) : null);
-        setStep('edit');
+      if (initialMode === 'new') {
+        setStep('set-select');
+      } else if (initialMode === 'edit' && hasExistingGroups) {
+        if (initialSetId) {
+          setSelectedGroupSetId(Number(initialSetId));
+          setStep('edit');
+        } else if (groupSets.length === 0) {
+          // 세트 없는 레거시 편성 — 세트 미지정 편집 허용
+          setStep('edit');
+        } else {
+          // 세트가 있는데 setId가 없으면 세트 미지정 저장(NULL 버킷 덮어쓰기) 위험 — 현황에서 다시 선택
+          setStep('current');
+        }
       } else if (initialMode === 'recompose' && initialSetId) {
         setSelectedGroupSetId(Number(initialSetId));
-        setStep('input');
+        setStep('method');
       } else {
         setStep(hasExistingGroups ? 'current' : 'set-select');
       }
     }
-  }, [isLoading, setsLoading, hasExistingGroups, step, initialMode, initialSetId]);
+  }, [isLoading, setsLoading, hasExistingGroups, groupSets.length, step, initialMode, initialSetId]);
 
   const handleSetSelect = async () => {
     setError(null);
@@ -66,14 +77,14 @@ export default function GroupManageView() {
       try {
         const created = await createGroupSet.mutateAsync({ name: newSetName.trim() });
         setSelectedGroupSetId(created.id);
-        setStep('input');
+        setStep('method');
       } catch (err: any) {
         setError(err.response?.data?.detail || '그룹세트 생성에 실패했습니다.');
       }
       return;
     }
 
-    setStep('input');
+    setStep('method');
   };
 
   const handleParse = async (text: string) => {
@@ -96,6 +107,11 @@ export default function GroupManageView() {
 
   const handleConfirm = async (groups: GroupInput[]) => {
     setError(null);
+    // 세트가 존재하는 팀에서 세트 미지정으로 저장하면 백엔드가 세트 미지정(NULL) 조 전체를 덮어쓴다
+    if (groupSets.length > 0 && selectedGroupSetId == null) {
+      setError('저장할 그룹세트가 지정되지 않았습니다. 처음부터 다시 시도해주세요.');
+      return;
+    }
     try {
       await saveGroups.mutateAsync({ groups, group_set_id: selectedGroupSetId ?? undefined });
       router.replace(`/chinba/team/detail?id=${teamId}&tab=mannaja`);
@@ -127,7 +143,7 @@ export default function GroupManageView() {
           groupSets={groupSets}
           onRecompose={(setId?: number) => {
             setSelectedGroupSetId(setId ?? null);
-            setStep(setId ? 'input' : 'set-select');
+            setStep(setId ? 'method' : 'set-select');
           }}
           onEdit={(setId?: number) => {
             setSelectedGroupSetId(setId ?? null);
@@ -181,7 +197,7 @@ export default function GroupManageView() {
             </div>
           </div>
 
-          <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100">
+          <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100 space-y-2">
             <button
               onClick={handleSetSelect}
               disabled={!selectedGroupSetId && !newSetName.trim()}
@@ -189,14 +205,78 @@ export default function GroupManageView() {
             >
               {createGroupSet.isPending ? '생성 중...' : '다음'}
             </button>
+            {hasExistingGroups && (
+              <button
+                onClick={() => {
+                  setError(null);
+                  setSelectedGroupSetId(null);
+                  setNewSetName('');
+                  setStep('current');
+                }}
+                className="w-full rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                돌아가기
+              </button>
+            )}
           </div>
         </div>
+      )}
+      {step === 'method' && (
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-800">편성 방식 선택</h3>
+              <p className="text-xs text-gray-500 mt-0.5">조를 어떻게 만들지 고르세요.</p>
+            </div>
+
+            <button
+              onClick={() => { setError(null); setStep('compose'); }}
+              className="w-full text-left rounded-xl border border-gray-200 p-4 transition-colors hover:border-gray-300 active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <FiUsers size={16} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-800">직접 선택하기</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">멤버를 눌러 조에 배정합니다</p>
+            </button>
+
+            <button
+              onClick={() => { setError(null); setStep('input'); }}
+              className="w-full text-left rounded-xl border border-gray-200 p-4 transition-colors hover:border-gray-300 active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <FiClipboard size={16} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-800">텍스트 붙여넣기 (AI)</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">엑셀·카톡 명단을 붙여넣어 자동 분석합니다</p>
+            </button>
+          </div>
+
+          <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100">
+            <button
+              onClick={() => { setError(null); setStep(hasExistingGroups ? 'current' : 'set-select'); }}
+              className="w-full rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              돌아가기
+            </button>
+          </div>
+        </div>
+      )}
+      {step === 'compose' && (
+        <GroupInlineEditor
+          teamId={teamId}
+          groupSetId={selectedGroupSetId ?? undefined}
+          mode="compose"
+          onSave={handleConfirm}
+          onBack={() => { setError(null); setStep('method'); }}
+          isSaving={saveGroups.isPending}
+        />
       )}
       {step === 'input' && (
         <GroupTextInput
           onParse={handleParse}
           isParsing={parseGroups.isPending}
-          onBack={() => { setError(null); setStep('set-select'); }}
+          onBack={() => { setError(null); setStep('method'); }}
         />
       )}
       {step === 'preview' && parseResult && (

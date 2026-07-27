@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
+import { useRouter } from 'next/navigation';
 import { FiPlus } from 'react-icons/fi';
 
 import ConfirmModal from '@/_components/ui/ConfirmModal';
@@ -12,9 +12,11 @@ import { useGroupSets, useUpdateGroupSet, useDeleteGroupSet } from '@/_lib/hooks
 interface GroupSettingsSectionProps {
   teamId: number;
   canManage: boolean;
+  /** 모달 등에 임베드될 때 자체 제목/외부 여백을 숨긴다 */
+  embedded?: boolean;
 }
 
-export default function GroupSettingsSection({ teamId, canManage }: GroupSettingsSectionProps) {
+export default function GroupSettingsSection({ teamId, canManage, embedded = false }: GroupSettingsSectionProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const { data: groupSetsData } = useGroupSets(teamId);
@@ -66,21 +68,21 @@ export default function GroupSettingsSection({ teamId, canManage }: GroupSetting
     setDeleteConfirmId(null);
   };
 
-  const navigateToGroups = () => {
-    router.push(`/chinba/team/groups?id=${teamId}`);
+  const navigateToGroups = (mode?: 'new') => {
+    router.push(`/chinba/team/groups?id=${teamId}${mode ? `&mode=${mode}` : ''}`);
   };
 
   return (
-    <section className="mb-6">
+    <section className={embedded ? 'p-4' : 'mb-6'}>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-gray-800">그룹/조 관리</h2>
+        {!embedded && <h2 className="text-sm font-bold text-gray-800">그룹/조 관리</h2>}
         {showActions && groupSets.length > 0 && (
           <button
-            onClick={navigateToGroups}
+            onClick={() => navigateToGroups('new')}
             className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
           >
             <FiPlus size={14} />
-            새 조 편성
+            새 그룹 생성
           </button>
         )}
       </div>
@@ -91,7 +93,7 @@ export default function GroupSettingsSection({ teamId, canManage }: GroupSetting
             <p className="text-sm text-gray-400 mb-3">아직 조가 편성되지 않았습니다</p>
             {showActions && (
               <button
-                onClick={navigateToGroups}
+                onClick={() => navigateToGroups()}
                 className="rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 active:scale-95"
               >
                 조 편성하기
@@ -170,7 +172,7 @@ export default function GroupSettingsSection({ teamId, canManage }: GroupSetting
                         onClick={() => router.push(`/chinba/team/groups?id=${teamId}&mode=edit&setId=${set.id}`)}
                         className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 transition-colors hover:bg-gray-50"
                       >
-                        조 수정
+                        조 수정/추가
                       </button>
                     )}
                     <button

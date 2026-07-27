@@ -31,6 +31,16 @@ const CHOSEONG = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ',
 const normalizeSearchText = (text: string) => text.toLowerCase().replace(/\s+/g, '');
 
 /**
+ * 필터 화면 표시용(label)으로만 쓰는 이름 — 게시판을 구분하는 정보가 아니라 모든
+ * 항목에 공통으로 붙는 "공지" 접미사를 뗀다("컴퓨터공학부 공지" -> "컴퓨터공학부").
+ * 실제 board.name(검색·저장·API 전송에 쓰는 원본 값)은 건드리지 않는다.
+ */
+export const displayBoardName = (name: string) => {
+  const stripped = name.replace(/\s*공지$/, '');
+  return stripped.length > 0 ? stripped : name;
+};
+
+/**
  * 저장한 그룹을 적용할 때, 현재 학교의 게시판 목록에 실재하는 board_code만 남긴다.
  * (학교 A에서 저장한 그룹을 학교 B에서 불러오면 타 학교 코드는 화면에 안 뜨지만
  * tempSelection에 남아 그대로 저장되는 버그가 있었다 — 여기서 걸러낸다.)
@@ -285,7 +295,7 @@ export default function BoardFilterContent({
                   onClick={() => toggleBoard(board.board_code)}
                   className="rounded-full border-2 border-gray-900 bg-white px-4 py-2 text-sm font-bold text-gray-900 shadow-md transition-all hover:bg-gray-50 active:scale-95"
                 >
-                  {board.name}
+                  {displayBoardName(board.name)}
                 </button>
               ))}
             </div>
@@ -452,7 +462,7 @@ export default function BoardFilterContent({
                           onClick={() => toggleBoard(board.board_code)}
                           className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-100 active:scale-95"
                         >
-                          {board.name}
+                          {displayBoardName(board.name)}
                         </button>
                       ))}
                     </div>

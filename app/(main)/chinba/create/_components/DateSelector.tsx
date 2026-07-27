@@ -122,7 +122,7 @@ export default function DateSelector({ selectedDates, onChange }: DateSelectorPr
     <div
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
-      className="select-none"
+      className="select-none mx-auto w-full max-w-[26rem]"
     >
       {/* Month Navigation */}
       <div className="flex items-center justify-between mb-3">

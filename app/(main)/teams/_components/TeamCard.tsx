@@ -2,7 +2,7 @@
 
 import { FiUsers } from 'react-icons/fi';
 
-import { getRoleBadgeLabel, getRoleBadgeColor, formatMemberCount } from '@/_lib/utils/teamDisplay';
+import { getRoleBadgeLabel, getRoleBadgeColor, formatMemberCount, CLUB_ROLE_LABELS } from '@/_lib/utils/teamDisplay';
 import type { TeamListItem } from '@/_types/team';
 
 interface TeamCardProps {
@@ -14,13 +14,12 @@ interface TeamCardProps {
 export default function TeamCard({ team, onClick, terminology = 'team' }: TeamCardProps) {
   const defaultRoleLabel = getRoleBadgeLabel(team.my_role);
   const roleLabel =
-    terminology === 'club'
-      ? ({ captain: '회장', executive: '운영진', member: '회원' }[team.my_role] ?? defaultRoleLabel)
-      : defaultRoleLabel;
+    terminology === 'club' ? CLUB_ROLE_LABELS[team.my_role] : defaultRoleLabel;
   const roleColor = getRoleBadgeColor(team.my_role);
 
   const roleBadgeStyles: Record<string, string> = {
     red: 'bg-red-100 text-red-700',
+    orange: 'bg-orange-100 text-orange-700',
     blue: 'bg-blue-100 text-blue-700',
     gray: 'bg-gray-100 text-gray-500',
   };

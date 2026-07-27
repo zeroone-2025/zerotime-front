@@ -134,7 +134,13 @@ export default function GroupCurrentView({ teamId, groupSets = [], onRecompose, 
         )}
       </div>
 
-      {!hasGroupSets && (
+      {hasGroupSets ? (
+        <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100">
+          <Button variant="primary" size="md" onClick={() => onRecompose()} className="w-full">
+            새 그룹세트 추가
+          </Button>
+        </div>
+      ) : (
         <div className="shrink-0 px-4 py-3 pb-safe border-t border-gray-100 flex gap-2">
           {onEdit && groups.length > 0 && (
             <Button variant="secondary" size="md" onClick={() => onEdit()} className="flex-1">

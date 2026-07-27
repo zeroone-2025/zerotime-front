@@ -1,6 +1,7 @@
 'use client';
 
 import { FiUsers, FiCheck, FiTrash2 } from 'react-icons/fi';
+import { formatDateRanges } from '@/_lib/utils/dateRange';
 import type { ChinbaEventListItem } from '@/_types/chinba';
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -8,18 +9,6 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   completed: { label: '완료', className: 'bg-emerald-100 text-emerald-700' },
   expired: { label: '만료', className: 'bg-gray-100 text-gray-500' },
 };
-
-function formatDates(dates: string[]): string {
-  if (dates.length <= 2) {
-    return dates.map((d) => {
-      const dt = new Date(d);
-      return `${dt.getMonth() + 1}/${dt.getDate()}`;
-    }).join(', ');
-  }
-  const first = new Date(dates[0]);
-  const last = new Date(dates[dates.length - 1]);
-  return `${first.getMonth() + 1}/${first.getDate()} ~ ${last.getMonth() + 1}/${last.getDate()} (${dates.length}일)`;
-}
 
 interface ChinbaEventListItemProps {
   event: ChinbaEventListItem;
@@ -68,7 +57,7 @@ export function ChinbaEventListItem({ event, onClick, onDelete, compact = false 
         </div>
 
         <p className="text-[10px] text-gray-500 mb-1.5">
-          {formatDates(event.dates)}
+          {formatDateRanges(event.dates)}
         </p>
 
         <div className="flex items-center justify-between">
@@ -123,7 +112,7 @@ export function ChinbaEventListItem({ event, onClick, onDelete, compact = false 
       </div>
 
       <p className="text-xs text-gray-500 mb-2">
-        {formatDates(event.dates)}
+        {formatDateRanges(event.dates)}
       </p>
 
       <div className="flex items-center justify-between">

@@ -20,7 +20,7 @@ interface TeamEventCreateBodyProps {
   onSuccess: () => void;
 }
 
-// 동아리 친바 만들기 폼 본문 — 풀페이지(/chinba/team/event-create)와
+// 동아리 '일정 잡기' 폼 본문 — 풀페이지(/chinba/team/event-create)와
 // 팀 상세 임베드(?view=create) 양쪽에서 재사용한다.
 export default function TeamEventCreateBody({
   teamId,

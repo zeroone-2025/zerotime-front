@@ -5,6 +5,7 @@ import type {
   ChinbaEventListItem,
   ChinbaEventCreateRequest,
   ChinbaEventCreateResponse,
+  ChinbaEventTeamJoinResponse,
   ChinbaUnavailabilityUpdateRequest,
 } from '@/_types/chinba';
 
@@ -15,6 +16,13 @@ export async function createChinbaEvent(data: ChinbaEventCreateRequest): Promise
 
 export async function getChinbaEventDetail(eventId: string): Promise<ChinbaEventDetail> {
   const res = await api.get(`/chinba/events/${eventId}`);
+  return res.data;
+}
+
+// 동아리 일정 링크만 받은 사람이 그 동아리에 가입하고 일정에 참여한다.
+// 초대 코드 없이 event_id로 가입 대상이 정해지며, 이미 멤버여도 200(already_member=true)이다.
+export async function joinChinbaEventTeam(eventId: string): Promise<ChinbaEventTeamJoinResponse> {
+  const res = await api.post(`/chinba/events/${eventId}/join-team`);
   return res.data;
 }
 

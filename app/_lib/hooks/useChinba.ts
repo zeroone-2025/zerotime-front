@@ -10,6 +10,7 @@ import {
   importChinbaTimetable,
   deleteChinbaEvent,
   completeChinbaEvent,
+  joinChinbaEventTeam,
 } from '@/_lib/api/chinba';
 import type {
   ChinbaEventCreateRequest,
@@ -75,6 +76,21 @@ export function useImportTimetable(eventId: string) {
       queryClient.invalidateQueries({ queryKey: ['chinba', 'event', eventId] });
       queryClient.invalidateQueries({ queryKey: ['chinba', 'participation', eventId] });
       queryClient.invalidateQueries({ queryKey: ['chinba', 'my-events'] });
+    },
+  });
+}
+
+// 동아리 일정 링크에서 가입 확인 -> 가입 + 그 일정 참여가 한 번에 끝난다.
+// 가입으로 동아리 목록·상세가 바뀌므로 teams 캐시도 함께 비운다.
+export function useJoinChinbaEventTeam(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => joinChinbaEventTeam(eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chinba', 'event', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['chinba', 'participation', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['chinba', 'my-events'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
     },
   });
 }

@@ -13,6 +13,7 @@ import { useUser } from '@/_lib/hooks/useUser';
 import { formatDateRanges } from '@/_lib/utils/dateRange';
 
 import MyScheduleTab from './MyScheduleTab';
+import TeamJoinGate from './TeamJoinGate';
 import TeamScheduleTab from './TeamScheduleTab';
 
 interface ChinbaEventDetailBodyProps {
@@ -205,6 +206,12 @@ export default function ChinbaEventDetailBody({
         <LoadingSpinner size="lg" />
       </div>
     );
+  }
+
+  // 동아리 일정인데 아직 멤버가 아님 — 공유 링크만 받고 들어온 경우.
+  // 여기서 끝내므로 헤더의 공유·삭제 버튼과 탭이 아예 렌더되지 않는다.
+  if (event && event.team_id && !event.is_team_member) {
+    return <TeamJoinGate eventId={eventId} event={event} />;
   }
 
   // Error state

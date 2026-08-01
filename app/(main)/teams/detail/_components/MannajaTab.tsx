@@ -148,7 +148,7 @@ export default function MannajaTab({
           className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-4 text-sm font-medium text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-500 active:scale-[0.98]"
         >
           <FiPlus size={18} />
-          <span>{terminology === 'club' ? '동아리 친바 만들기' : '팀 친바 만들기'}</span>
+          <span>일정 잡기</span>
         </button>
       )}
 

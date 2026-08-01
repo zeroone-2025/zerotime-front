@@ -119,7 +119,7 @@ export default function TeamOpsPanel({
         {/* 3) 그냥 있는 페이지 = 바로가기 */}
         <section className="flex flex-col border-t border-gray-100 pt-5">
           <span className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">바로가기</span>
-          <PanelButton icon={FiCalendar} label="일정 만들기" onClick={onCreateEvent} />
+          <PanelButton icon={FiCalendar} label="일정 잡기" onClick={onCreateEvent} />
           <PanelButton icon={FiEdit3} label="활동 기록하기" onClick={onRecordActivity} />
         </section>
       </div>

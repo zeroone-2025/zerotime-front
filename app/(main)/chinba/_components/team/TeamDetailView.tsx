@@ -337,7 +337,7 @@ export default function TeamDetailView() {
                 <LuChevronLeft size={22} strokeWidth={2.5} className="transition-transform group-hover:-translate-x-0.5" />
               </button>
               <span className="text-base font-bold text-gray-800">
-                {view === 'create' ? '동아리 친바 만들기' : team.name}
+                {view === 'create' ? '일정 잡기' : team.name}
               </span>
             </div>
             <div className="flex min-h-0 flex-1 flex-col pt-2">

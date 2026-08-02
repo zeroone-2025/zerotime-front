@@ -8,6 +8,8 @@ import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import Toast from '@/_components/ui/Toast';
 import ConfirmModal from '@/_components/ui/ConfirmModal';
 import ChinbaScheduleGrid from './ChinbaScheduleGrid';
+import ChinbaScheduleList from './ChinbaScheduleList';
+import ScheduleInputModeTabs, { type ScheduleInputMode } from './ScheduleInputModeTabs';
 import { getLoginUrl } from '@/_lib/utils/requireLogin';
 import { useMyParticipation, useUpdateUnavailability, useImportTimetable } from '@/_lib/hooks/useChinba';
 
@@ -29,7 +31,9 @@ export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLo
   const importMutation = useImportTimetable(eventId);
 
   const draftKey = `chinba:event:${eventId}:draft-unavailable`;
+  const modeKey = `chinba:event:${eventId}:input-mode`;
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
+  const [mode, setMode] = useState<ScheduleInputMode>('drag');
   const [hasDraft, setHasDraft] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [showNoTimetableModal, setShowNoTimetableModal] = useState(false);
@@ -63,6 +67,25 @@ export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLo
       setDraftLoaded(true);
     }
   }, [draftKey]);
+
+  // 입력 방식은 마지막 선택을 기억한다 (탭 복원과 같은 방식)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(modeKey);
+      if (stored === 'drag' || stored === 'manual') setMode(stored);
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [modeKey]);
+
+  const handleModeChange = useCallback((next: ScheduleInputMode) => {
+    setMode(next);
+    try {
+      localStorage.setItem(modeKey, next);
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [modeKey]);
 
   const handleSlotsChange = useCallback((slots: Set<string>) => {
     setSelectedSlots(slots);
@@ -167,12 +190,17 @@ export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLo
     <div className="px-4 pb-20">
       {/* Info + Actions */}
       <div className="mb-4 space-y-2">
-        {/* Instruction banner */}
-        <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5">
-          <p className="text-[11px] text-blue-700 font-medium leading-tight">
-            불가능한 시간을 드래그로 선택해주세요
-          </p>
-          <p className="text-[10px] text-blue-500 mt-0.5">빨간색으로 표시된 시간이 불가능한 시간입니다</p>
+        {/* Instruction banner + 입력 방식 전환 — 문구는 세그먼트 라벨과 겹치지 않게 짧게 둔다 */}
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-100 border border-emerald-200 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[11px] text-emerald-900 font-semibold leading-tight">
+              {mode === 'drag' ? '불가능한 시간을 칠하세요' : '불가능한 시간을 추가하세요'}
+            </p>
+            <p className="text-[10px] text-emerald-700 mt-0.5">
+              {mode === 'drag' ? '빨간색이 불가능한 시간입니다' : '날짜별 30분 단위로 넣습니다'}
+            </p>
+          </div>
+          <ScheduleInputModeTabs mode={mode} onModeChange={handleModeChange} />
         </div>
 
         {/* Action buttons */}
@@ -203,16 +231,28 @@ export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLo
         </div>
       </div>
 
-      {/* Schedule Grid */}
-      <div className="mb-4 rounded-xl border border-gray-200 p-2 overflow-hidden">
-        <ChinbaScheduleGrid
-          dates={dates}
-          startHour={startHour}
-          endHour={endHour}
-          selectedSlots={selectedSlots}
-          onSlotsChange={handleSlotsChange}
-        />
-      </div>
+      {/* Schedule input — 두 모드가 같은 selectedSlots를 읽고 쓴다 */}
+      {mode === 'drag' ? (
+        <div className="mb-4 rounded-xl border border-gray-200 p-2 overflow-hidden">
+          <ChinbaScheduleGrid
+            dates={dates}
+            startHour={startHour}
+            endHour={endHour}
+            selectedSlots={selectedSlots}
+            onSlotsChange={handleSlotsChange}
+          />
+        </div>
+      ) : (
+        <div className="mb-4">
+          <ChinbaScheduleList
+            dates={dates}
+            startHour={startHour}
+            endHour={endHour}
+            selectedSlots={selectedSlots}
+            onSlotsChange={handleSlotsChange}
+          />
+        </div>
+      )}
 
       {/* Sticky bottom bar with save button */}
       <div className="sticky bottom-0 z-10 -mx-4 border-t border-gray-100 bg-white px-4 py-3 pb-safe">

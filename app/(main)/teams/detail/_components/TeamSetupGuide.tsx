@@ -60,12 +60,12 @@ export default function TeamSetupGuide({
   };
 
   return (
-    <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 space-y-3">
+    <div className="rounded-xl bg-gradient-to-r from-emerald-100 to-teal-50 p-4 space-y-3">
       {/* Step 1 */}
       {!isStep1Done ? (
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
-            <span className="text-xs font-bold text-blue-600">①</span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-200">
+            <span className="text-xs font-bold text-emerald-700">①</span>
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-700">
@@ -96,8 +96,9 @@ export default function TeamSetupGuide({
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100">
-            <FiCheck size={12} className="text-green-600" />
+          {/* 카드 자체가 초록이라 완료 표시는 흰 원으로 띄운다 */}
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white">
+            <FiCheck size={12} className="text-emerald-600" />
           </div>
           <p className="text-sm font-medium text-gray-500">
             {terminology === 'club' ? '회원' : '팀원'} 초대 완료 ({memberCount}명)
@@ -114,8 +115,8 @@ export default function TeamSetupGuide({
         </div>
       ) : (
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
-            <FiUsers size={14} className="text-blue-600" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-200">
+            <FiUsers size={14} className="text-emerald-700" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-700">조를 편성해보세요</p>
@@ -124,7 +125,7 @@ export default function TeamSetupGuide({
             </p>
             <button
               onClick={() => router.push(`/chinba/team/groups?id=${teamId}`)}
-              className="mt-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
+              className="mt-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
             >
               조 편성하러 가기 →
             </button>

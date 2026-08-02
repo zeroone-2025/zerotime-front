@@ -50,8 +50,8 @@ export default function ChinbaHomePage() {
         {/* 제목 카드 */}
         <header className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-center gap-1.5">
-            <span className="text-lg font-bold tracking-tight text-blue-700">TIMELINE</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-lg font-bold tracking-tight text-emerald-500">TIMELINE</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-700" />
           </div>
 
           {!isAuthLoaded ? (
@@ -76,7 +76,7 @@ export default function ChinbaHomePage() {
           )}
 
           {typeof stats?.total_teams === 'number' && (
-            <p className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+            <p className="mt-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">
               {stats.total_teams.toLocaleString('ko-KR')}개의 동아리가 함께하고 있어요
             </p>
           )}

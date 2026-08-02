@@ -191,12 +191,12 @@ export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLo
       {/* Info + Actions */}
       <div className="mb-4 space-y-2">
         {/* Instruction banner + 입력 방식 전환 — 문구는 세그먼트 라벨과 겹치지 않게 짧게 둔다 */}
-        <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-100 border border-emerald-200 px-3 py-2.5">
           <div className="min-w-0">
-            <p className="text-[11px] text-emerald-800 font-medium leading-tight">
+            <p className="text-[11px] text-emerald-900 font-semibold leading-tight">
               {mode === 'drag' ? '불가능한 시간을 칠하세요' : '불가능한 시간을 추가하세요'}
             </p>
-            <p className="text-[10px] text-emerald-600 mt-0.5">
+            <p className="text-[10px] text-emerald-700 mt-0.5">
               {mode === 'drag' ? '빨간색이 불가능한 시간입니다' : '날짜별 30분 단위로 넣습니다'}
             </p>
           </div>

@@ -374,9 +374,12 @@ export default function TeamDetailView() {
   }
 
   return (
+    // 동아리 메인은 하단 탭바(홈·동아리·MY)가 떠 있는 경로라 뒤로가기가 없어도 나갈 수 있다
+    // (chinba/layout.tsx의 BOTTOM_TAB_PATHS). 일정 상세·일정 잡기는 탭바가 없으므로 그대로 둔다.
     <FullPageModal
       isOpen={true}
       onClose={goBack}
+      showBackButton={false}
       title={<ClubSwitcher currentTeamId={teamId} currentName={team.name} />}
       headerRight={settingsButton}
     >

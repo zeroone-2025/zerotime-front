@@ -53,10 +53,10 @@ describe('ChinbaScheduleList', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '8/2 (일) 시간 추가' }));
 
-    const start = screen.getByLabelText('시작') as HTMLSelectElement;
-    const end = screen.getByLabelText('종료') as HTMLSelectElement;
-    fireEvent.change(start, { target: { value: '09:00' } });
-    fireEvent.change(end, { target: { value: '10:30' } });
+    const start = screen.getByRole('listbox', { name: '시작' });
+    const end = screen.getByRole('listbox', { name: '종료' });
+    fireEvent.click(within(start).getByRole('option', { name: '09:00' }));
+    fireEvent.click(within(end).getByRole('option', { name: '10:30' }));
     fireEvent.click(screen.getByRole('button', { name: '추가' }));
 
     const next: Set<string> = onSlotsChange.mock.calls.at(-1)![0];
@@ -79,13 +79,13 @@ describe('ChinbaScheduleList', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '8/2 (일) 시간 추가' }));
 
-    const start = screen.getByLabelText('시작');
-    expect(within(start).queryByText('09:30')).not.toBeInTheDocument();
-    expect(within(start).getByText('10:00')).toBeInTheDocument();
+    const start = screen.getByRole('listbox', { name: '시작' });
+    expect(within(start).queryByRole('option', { name: '09:30' })).not.toBeInTheDocument();
+    expect(within(start).getByRole('option', { name: '10:00' })).toBeInTheDocument();
 
-    const end = screen.getByLabelText('종료');
-    expect(within(end).queryByText('14:30')).not.toBeInTheDocument();
-    expect(within(end).getByText('14:00')).toBeInTheDocument();
+    const end = screen.getByRole('listbox', { name: '종료' });
+    expect(within(end).queryByRole('option', { name: '14:30' })).not.toBeInTheDocument();
+    expect(within(end).getByRole('option', { name: '14:00' })).toBeInTheDocument();
   });
 
   it('날짜 헤더를 누르면 접히고 다시 누르면 펼쳐진다', () => {

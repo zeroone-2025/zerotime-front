@@ -190,22 +190,18 @@ export default function MyScheduleTab({ eventId, dates, startHour, endHour, isLo
     <div className="px-4 pb-20">
       {/* Info + Actions */}
       <div className="mb-4 space-y-2">
-        {/* Instruction banner */}
-        <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5">
-          <p className="text-[11px] text-blue-700 font-medium leading-tight">
-            {mode === 'drag'
-              ? '불가능한 시간을 드래그로 선택해주세요'
-              : '불가능한 시간을 직접 입력해주세요'}
-          </p>
-          <p className="text-[10px] text-blue-500 mt-0.5">
-            {mode === 'drag'
-              ? '빨간색으로 표시된 시간이 불가능한 시간입니다'
-              : '날짜별로 시작·종료 시각을 추가합니다'}
-          </p>
+        {/* Instruction banner + 입력 방식 전환 — 문구는 세그먼트 라벨과 겹치지 않게 짧게 둔다 */}
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[11px] text-emerald-800 font-medium leading-tight">
+              {mode === 'drag' ? '불가능한 시간을 칠하세요' : '불가능한 시간을 추가하세요'}
+            </p>
+            <p className="text-[10px] text-emerald-600 mt-0.5">
+              {mode === 'drag' ? '빨간색이 불가능한 시간입니다' : '날짜별 30분 단위로 넣습니다'}
+            </p>
+          </div>
+          <ScheduleInputModeTabs mode={mode} onModeChange={handleModeChange} />
         </div>
-
-        {/* Input mode */}
-        <ScheduleInputModeTabs mode={mode} onModeChange={handleModeChange} />
 
         {/* Action buttons */}
         <div className="flex items-stretch gap-2">

@@ -1,13 +1,10 @@
 'use client';
 
-import type { IconType } from 'react-icons';
-import { FiClock, FiEdit2 } from 'react-icons/fi';
-
 export type ScheduleInputMode = 'drag' | 'manual';
 
-const TABS: { key: ScheduleInputMode; label: string; icon: IconType }[] = [
-  { key: 'drag', label: '드래그', icon: FiEdit2 },
-  { key: 'manual', label: '직접 입력', icon: FiClock },
+const TABS: { key: ScheduleInputMode; label: string }[] = [
+  { key: 'drag', label: '드래그' },
+  { key: 'manual', label: '직접 입력' },
 ];
 
 interface ScheduleInputModeTabsProps {
@@ -15,30 +12,28 @@ interface ScheduleInputModeTabsProps {
   onModeChange: (mode: ScheduleInputMode) => void;
 }
 
-/** "내 일정"의 입력 방식 전환. 스타일은 teams/TeamSegmentTabs의 밑줄형 세그먼트와 맞춘다. */
+/**
+ * "내 일정"의 입력 방식 전환. 안내 배너 안 오른쪽에 들어가므로 폭을 차지하지 않는 알약형이다
+ * (밑줄형 TeamSegmentTabs는 flex-1로 가로를 다 먹어 배너 안에서 쓸 수 없다).
+ */
 export default function ScheduleInputModeTabs({ mode, onModeChange }: ScheduleInputModeTabsProps) {
   return (
-    <div className="flex border-b border-gray-100">
+    <div className="inline-flex shrink-0 rounded-lg bg-white/70 p-0.5" role="group">
       {TABS.map((tab) => {
         const isActive = mode === tab.key;
-        const Icon = tab.icon;
         return (
           <button
             key={tab.key}
             type="button"
             onClick={() => onModeChange(tab.key)}
             aria-pressed={isActive}
-            className={`relative flex-1 py-2.5 text-center text-[13px] font-medium transition-colors ${
-              isActive ? 'font-bold text-gray-900' : 'text-gray-400 hover:text-gray-600'
+            className={`rounded-md px-2.5 py-1 text-[11px] whitespace-nowrap transition-colors ${
+              isActive
+                ? 'bg-white font-bold text-emerald-700 shadow-sm'
+                : 'font-medium text-emerald-600/70 hover:text-emerald-700'
             }`}
           >
-            <span className="inline-flex items-center justify-center gap-1.5">
-              <Icon size={14} />
-              {tab.label}
-            </span>
-            {isActive && (
-              <span className="absolute bottom-0 left-1/2 h-0.5 w-12 -translate-x-1/2 rounded-full bg-gray-900" />
-            )}
+            {tab.label}
           </button>
         );
       })}

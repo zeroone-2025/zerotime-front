@@ -155,20 +155,6 @@ export default function MannajaTab({
       {hasGroups ? (
         /* 섹션 분리 레이아웃 */
         <>
-          <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
-          {teamWideEvents.length > 0 ? (
-            teamWideEvents.map((event) => (
-              <EventCard
-                key={event.event_id}
-                event={event}
-                groupSetNameMap={groupSetNameMap}
-                onClick={() => openEvent(event.event_id)}
-              />
-            ))
-          ) : (
-            <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
-          )}
-
           <SectionHeader icon={FiLayers} label="조별 일정" />
           {groupEvents.length > 0 ? (
             groupEvents.map((event) => (
@@ -184,6 +170,20 @@ export default function MannajaTab({
               message="아직 조별 일정이 없습니다"
               submessage={canCreate ? '조별 일정을 만들어 보세요' : undefined}
             />
+          )}
+
+          <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
+          {teamWideEvents.length > 0 ? (
+            teamWideEvents.map((event) => (
+              <EventCard
+                key={event.event_id}
+                event={event}
+                groupSetNameMap={groupSetNameMap}
+                onClick={() => openEvent(event.event_id)}
+              />
+            ))
+          ) : (
+            <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
           )}
         </>
       ) : events.length === 0 ? (

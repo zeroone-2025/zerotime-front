@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import { buildChinbaGridLayout } from './chinbaGridColumns';
+import { getSlotKey } from './chinbaSlotRanges';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -93,8 +94,6 @@ export default function ChinbaScheduleGrid({
     }
     onSlotsChange(newSlots);
   }, [selectedSlots, onSlotsChange]);
-
-  const getSlotKey = (dateStr: string, time: string) => `${dateStr}T${time}:00`;
 
   const handlePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,

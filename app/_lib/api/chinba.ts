@@ -6,6 +6,7 @@ import type {
   ChinbaEventCreateRequest,
   ChinbaEventCreateResponse,
   ChinbaEventTeamJoinResponse,
+  ChinbaParticipantUnavailability,
   ChinbaUnavailabilityUpdateRequest,
 } from '@/_types/chinba';
 
@@ -28,6 +29,14 @@ export async function joinChinbaEventTeam(eventId: string): Promise<ChinbaEventT
 
 export async function getChinbaMyParticipation(eventId: string): Promise<ChinbaMyParticipation> {
   const res = await api.get(`/chinba/events/${eventId}/my-participation`);
+  return res.data;
+}
+
+export async function getChinbaParticipantUnavailability(
+  eventId: string,
+  userId: number,
+): Promise<ChinbaParticipantUnavailability> {
+  const res = await api.get(`/chinba/events/${eventId}/participants/${userId}/unavailability`);
   return res.data;
 }
 

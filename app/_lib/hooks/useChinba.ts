@@ -5,6 +5,7 @@ import {
   getMyChinbaEvents,
   getChinbaEventDetail,
   getChinbaMyParticipation,
+  getChinbaParticipantUnavailability,
   createChinbaEvent,
   updateChinbaUnavailability,
   importChinbaTimetable,
@@ -41,6 +42,19 @@ export function useMyParticipation(eventId: string | undefined) {
     queryKey: ['chinba', 'participation', eventId],
     queryFn: () => getChinbaMyParticipation(eventId!),
     enabled: !!eventId,
+    staleTime: 1000 * 30,
+  });
+}
+
+// 전체 일정에서 참여자 클릭 시 그 사람의 불가능 시간을 조회한다 (userId가 없으면 비활성)
+export function useParticipantUnavailability(
+  eventId: string | undefined,
+  userId: number | null,
+) {
+  return useQuery({
+    queryKey: ['chinba', 'participant-unavailability', eventId, userId],
+    queryFn: () => getChinbaParticipantUnavailability(eventId!, userId!),
+    enabled: !!eventId && userId !== null,
     staleTime: 1000 * 30,
   });
 }

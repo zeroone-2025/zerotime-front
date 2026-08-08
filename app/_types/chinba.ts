@@ -53,6 +53,14 @@ export interface ChinbaMyParticipation {
   unavailable_slots: string[];
 }
 
+/** 특정 참여자의 불가능 시간 — 전체 일정에서 참여자 클릭 시 개인 일정 강조용 */
+export interface ChinbaParticipantUnavailability {
+  user_id: number;
+  nickname: string | null;
+  has_submitted: boolean;
+  unavailable_slots: string[];
+}
+
 export interface ChinbaEventListItem {
   event_id: string;
   title: string;

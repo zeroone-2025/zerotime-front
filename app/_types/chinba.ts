@@ -58,6 +58,8 @@ export interface ChinbaEventListItem {
   title: string;
   dates: string[];
   status: 'active' | 'completed' | 'expired';
+  /** 동아리 일정이면 팀 id, 개인(동아리 없이 잡은) 일정이면 null */
+  team_id: number | null;
   creator_id: number;
   creator_nickname: string | null;
   participant_count: number;

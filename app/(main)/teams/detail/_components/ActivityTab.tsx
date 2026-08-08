@@ -7,6 +7,7 @@ import { LuPlus, LuClock, LuCalendar, LuTrash2, LuPencil, LuX, LuUsers } from 'r
 
 import MemberPickerSheet from '@/(main)/chinba/_components/team/groups/MemberPickerSheet';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import Modal from '@/_components/ui/Modal';
 import { useToast } from '@/_context/ToastContext';
 import { CHINBA_GROUP_SCORING_ENABLED } from '@/_lib/constants/features';
 import {
@@ -297,12 +298,16 @@ export default function ActivityTab({
         </p>
       )}
 
-      {/* Create / Edit Form */}
-      {showForm && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-          <p className="text-xs font-medium text-gray-500">
-            {isEditing ? '활동 기록 수정' : '활동 기록하기'}
-          </p>
+      {/* Create / Edit Form — 팝업 모달. X/배경 클릭으로 닫으면 아무것도 확정하지 않는다
+          (완료 흐름에서 온 경우에도 일정은 진행중 상태로 보존 — '기록하지 않기'와 다름) */}
+      <Modal
+        isOpen={showForm}
+        onClose={closeForm}
+        title={isEditing ? '활동 기록 수정' : '활동 기록하기'}
+        // 모바일은 기본 폭, 데스크톱(md+)은 기존 인라인 카드처럼 넓게 — 세로 스크롤을 줄인다
+        maxWidth="max-w-md md:max-w-2xl"
+      >
+        <div className="p-4 space-y-3">
           <input
             type="text"
             placeholder="활동 제목"
@@ -512,7 +517,7 @@ export default function ActivityTab({
             </button>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* 참여 인원 선택 시트 — 기존 선택을 이어받고, 제외는 폼의 칩에서 한다 */}
       {showMemberPicker && (

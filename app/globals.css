@@ -135,15 +135,17 @@ body {
   animation: slideInLeft 0.25s ease-out;
 }
 
-/* 사이드바 FOUC 방지 — React 로딩 전 인라인 스크립트가 클래스 추가 */
+/* 사이드바 FOUC 방지 — React 로딩 전 인라인 스크립트가 클래스 추가.
+   data-app-sidebar(왼쪽 앱 사이드바)로 한정 — 맨 aside 선택자는 오른쪽 운영 패널 같은
+   다른 aside까지 강제 접힘시켜 왼쪽이 접힌 동안 오른쪽이 안 펴지는 버그가 있었다 */
 @media (min-width: 52rem) {
-  .sidebar-collapsed aside {
+  .sidebar-collapsed aside[data-app-sidebar] {
     width: 60px !important;
   }
-  .sidebar-collapsed aside > div:first-child {
+  .sidebar-collapsed aside[data-app-sidebar] > div:first-child {
     opacity: 1 !important;
   }
-  .sidebar-collapsed aside > div:last-child {
+  .sidebar-collapsed aside[data-app-sidebar] > div:last-child {
     opacity: 0 !important;
     pointer-events: none !important;
   }

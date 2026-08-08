@@ -54,6 +54,7 @@ export default function DesktopSidebar({ collapsed, onToggle }: DesktopSidebarPr
 
   return (
     <aside
+      data-app-sidebar
       className={`hidden md:flex md:shrink-0 h-full border-r border-gray-100 bg-white overflow-hidden relative${
         transitionEnabled ? ' transition-[width] duration-300 ease-in-out' : ''
       } ${collapsed ? 'md:w-[60px]' : 'md:w-[260px]'}`}

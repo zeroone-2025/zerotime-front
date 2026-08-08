@@ -12,19 +12,9 @@ import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useMyChinbaEvents } from '@/_lib/hooks/useChinba';
 import { useMyTeams } from '@/_lib/hooks/useTeam';
 import { useUser } from '@/_lib/hooks/useUser';
+import { selectUpcoming } from '@/_lib/utils/chinbaUpcoming';
 
 import { ChinbaEventListItem } from './ChinbaEventListItem';
-
-/** dates 배열에서 오늘(자정) 이후의 가장 이른 날짜를 ms로 반환. 없으면 null. */
-function earliestUpcoming(dates: string[], todayMs: number): number | null {
-  let min: number | null = null;
-  for (const d of dates) {
-    const t = new Date(d).getTime();
-    if (Number.isNaN(t) || t < todayMs) continue;
-    if (min === null || t < min) min = t;
-  }
-  return min;
-}
 
 export default function MyTabContent() {
   const router = useRouter();
@@ -43,15 +33,10 @@ export default function MyTabContent() {
   );
 
   // 다가오는 일정: 오늘 이후 날짜를 가진 active 일정, 가장 이른 날짜 오름차순
-  const upcoming = useMemo(() => {
-    const todayMs = new Date(new Date().toDateString()).getTime();
-    return (events ?? [])
-      .filter((e) => e.status === 'active')
-      .map((e) => ({ event: e, when: earliestUpcoming(e.dates, todayMs) }))
-      .filter((x): x is { event: (typeof x)['event']; when: number } => x.when !== null)
-      .sort((a, b) => a.when - b.when)
-      .map((x) => x.event);
-  }, [events]);
+  const upcoming = useMemo(
+    () => selectUpcoming(events ?? []).map((x) => x.event),
+    [events],
+  );
 
   const teams = teamsData?.teams ?? [];
   const isLoading = !isAuthLoaded || (isLoggedIn && (isEventsLoading || isTeamsLoading));

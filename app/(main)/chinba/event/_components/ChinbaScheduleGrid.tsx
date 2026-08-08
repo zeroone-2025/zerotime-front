@@ -95,6 +95,39 @@ export default function ChinbaScheduleGrid({
     onSlotsChange(newSlots);
   }, [selectedSlots, onSlotsChange]);
 
+  // 열/행 머리글 클릭용 일괄 토글 — 묶음이 전부 선택돼 있으면 모두 해제, 아니면 모두 선택
+  const toggleKeys = useCallback(
+    (keys: string[]) => {
+      if (keys.length === 0) return;
+      const allSelected = keys.every((k) => selectedSlots.has(k));
+      const newSlots = new Set(selectedSlots);
+      if (allSelected) {
+        keys.forEach((k) => newSlots.delete(k));
+      } else {
+        keys.forEach((k) => newSlots.add(k));
+      }
+      onSlotsChange(newSlots);
+    },
+    [selectedSlots, onSlotsChange],
+  );
+
+  // 날짜 머리글 클릭 → 그 날짜의 전체 시간 토글
+  const toggleColumn = (dateStr: string) => {
+    toggleKeys(timeSlots.map((time) => getSlotKey(dateStr, time)));
+  };
+
+  // 'N시' 라벨 클릭 → 그 시각(:00 + :30) × 선택 가능한 모든 날짜 토글
+  const toggleHourRow = (time: string) => {
+    const hh = time.slice(0, 2);
+    const keys: string[] = [];
+    for (const info of columnInfos) {
+      if (info.gap || !info.selectable) continue;
+      keys.push(getSlotKey(info.dateStr, `${hh}:00`));
+      keys.push(getSlotKey(info.dateStr, `${hh}:30`));
+    }
+    toggleKeys(keys);
+  };
+
   const handlePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,
     dateStr: string,
@@ -153,18 +186,27 @@ export default function ChinbaScheduleGrid({
               >
                 <span className="text-[10px] text-gray-300">⋯</span>
               </div>
+            ) : info.selectable ? (
+              // 날짜 머리글 클릭 = 해당 열 전체 선택/해제
+              <button
+                key={info.key}
+                type="button"
+                onClick={() => toggleColumn(info.dateStr)}
+                className="flex cursor-pointer flex-col items-center justify-center rounded py-1 transition-colors hover:bg-gray-100 active:scale-95"
+                style={{ width: cellWidth }}
+                title="이 날짜 전체 선택/해제"
+              >
+                <span className="text-[10px] text-gray-400">{info.day}</span>
+                <span className="text-xs font-medium text-gray-700">{info.label}</span>
+              </button>
             ) : (
               <div
                 key={info.key}
                 className="flex flex-col items-center justify-center py-1"
                 style={{ width: cellWidth }}
               >
-                <span className={`text-[10px] ${info.selectable ? 'text-gray-400' : 'text-gray-300'}`}>
-                  {info.day}
-                </span>
-                <span className={`text-xs font-medium ${info.selectable ? 'text-gray-700' : 'text-gray-300'}`}>
-                  {info.label}
-                </span>
+                <span className="text-[10px] text-gray-300">{info.day}</span>
+                <span className="text-xs font-medium text-gray-300">{info.label}</span>
               </div>
             )
           )}
@@ -175,10 +217,17 @@ export default function ChinbaScheduleGrid({
           const isHourBorder = time.endsWith(':00');
           return (
             <div key={time} className="flex">
-              {/* Time label */}
+              {/* Time label — 클릭 = 그 시간대(1시간) × 전체 날짜 선택/해제 */}
               <div className={`${timeLabelClass} flex items-center justify-start`}>
                 {isHourBorder && (
-                  <span className="text-[10px] text-gray-400 -mt-2">{parseInt(time)}시</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleHourRow(time)}
+                    className="-mt-2 cursor-pointer rounded px-0.5 text-[10px] text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    title="이 시간대 전체 선택/해제"
+                  >
+                    {parseInt(time)}시
+                  </button>
                 )}
               </div>
               {/* Cells */}

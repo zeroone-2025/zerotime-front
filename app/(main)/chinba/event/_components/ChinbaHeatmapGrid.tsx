@@ -18,6 +18,8 @@ interface ChinbaHeatmapGridProps {
   startHour: number;
   endHour: number;
   totalParticipants: number;
+  // 특정 참여자의 불가능 슬롯 — 지정되면 해당 슬롯만 강조하고 나머지 히트맵은 흐리게 표시
+  focusSlots?: Set<string>;
 }
 
 function getHeatColor(unavailCount: number, total: number): string {
@@ -42,7 +44,9 @@ export default function ChinbaHeatmapGrid({
   startHour,
   endHour,
   totalParticipants,
+  focusSlots,
 }: ChinbaHeatmapGridProps) {
+  const isFocusMode = focusSlots !== undefined;
   const [tooltip, setTooltip] = useState<{ dt: string; members: string[]; count: number } | null>(null);
 
   // Build heatmap lookup
@@ -177,7 +181,13 @@ export default function ChinbaHeatmapGrid({
                 const dtKey = `${info.dateStr}T${time}:00`;
                 const slot = heatmapMap.get(dtKey);
                 const unavailCount = slot?.unavailable_count ?? 0;
-                const bgColor = getHeatColor(unavailCount, totalParticipants);
+                // focus 모드: 대상 참여자의 불가능 슬롯만 빨간색, 나머지는 기존 히트맵을 흐리게
+                const isFocusUnavailable = focusSlots?.has(dtKey) ?? false;
+                const bgColor = isFocusMode
+                  ? isFocusUnavailable
+                    ? 'bg-red-400'
+                    : `${getHeatColor(unavailCount, totalParticipants)} opacity-30`
+                  : getHeatColor(unavailCount, totalParticipants);
                 const txtColor = getTextColor(unavailCount, totalParticipants);
 
                 return (
@@ -198,7 +208,7 @@ export default function ChinbaHeatmapGrid({
                       }
                     }}
                   >
-                    {totalParticipants > 0 && (() => {
+                    {!isFocusMode && totalParticipants > 0 && (() => {
                       const availCount = totalParticipants - unavailCount;
                       return availCount > 0 ? (
                         <span className={`text-[9px] font-bold ${txtColor}`}>{availCount}</span>

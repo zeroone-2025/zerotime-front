@@ -8,6 +8,7 @@ import { FiShare2, FiTrash2, FiCheckCircle, FiLink } from 'react-icons/fi';
 import ConfirmModal from '@/_components/ui/ConfirmModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import Toast from '@/_components/ui/Toast';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { useChinbaEventDetail, useDeleteChinbaEvent, useCompleteChinbaEvent } from '@/_lib/hooks/useChinba';
 import { useUser } from '@/_lib/hooks/useUser';
 import { formatDateRanges } from '@/_lib/utils/dateRange';
@@ -192,7 +193,7 @@ export default function ChinbaEventDetailBody({
       recordParams.set('recordEventId', eventId);
       if (event.title) recordParams.set('recordTitle', event.title);
       if (event.dates?.[0]) recordParams.set('recordDate', String(event.dates[0]).slice(0, 10));
-      if (event.category) recordParams.set('recordCategoryId', String(event.category.id));
+      if (CHINBA_HASHTAG_ENABLED && event.category) recordParams.set('recordCategoryId', String(event.category.id));
       onCompleted(recordParams.toString());
       return;
     }

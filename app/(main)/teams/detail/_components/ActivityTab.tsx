@@ -9,7 +9,7 @@ import MemberPickerSheet from '@/(main)/chinba/_components/team/groups/MemberPic
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import Modal from '@/_components/ui/Modal';
 import { useToast } from '@/_context/ToastContext';
-import { CHINBA_GROUP_SCORING_ENABLED } from '@/_lib/constants/features';
+import { CHINBA_GROUP_SCORING_ENABLED, CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import {
   useActivities,
   useCreateActivity,
@@ -52,7 +52,7 @@ export default function ActivityTab({
     category_id: selectedCategoryId ?? undefined,
   });
   const { data: groupsData } = useGroups(teamId);
-  const { data: categoriesData } = useEventCategories(teamId);
+  const { data: categoriesData } = useEventCategories(CHINBA_HASHTAG_ENABLED ? teamId : undefined);
   const { data: membersData } = useTeamMembers(teamId);
   const teamMembers = useMemo(() => membersData?.members ?? [], [membersData]);
   const categories = categoriesData?.categories ?? [];
@@ -135,7 +135,7 @@ export default function ActivityTab({
       setFormData({
         title: recordTitle ?? '',
         activity_date: recordDate || new Date().toISOString().slice(0, 10),
-        category_id: recordCategoryId,
+        category_id: CHINBA_HASHTAG_ENABLED ? recordCategoryId : undefined,
       });
       setFormScores([]);
       setCompletingEventId(recordEventId);
@@ -183,7 +183,6 @@ export default function ActivityTab({
       start_time: activity.start_time ?? undefined,
       end_time: activity.end_time ?? undefined,
       description: activity.description ?? undefined,
-      highlight: activity.highlight ?? undefined,
       total_cost: activity.total_cost ?? undefined,
       cost_note: activity.cost_note ?? undefined,
     });
@@ -224,8 +223,8 @@ export default function ActivityTab({
           data: {
             ...formData,
             // 비워둔 항목은 빈 문자열로 보내야 서버에서 지워진다 (undefined는 기존 값 유지)
+            // highlight는 입력 UI 폐지로 아예 보내지 않는다 — 기존 값은 서버에 그대로 남는다
             description: formData.description ?? '',
-            highlight: formData.highlight ?? '',
             start_time: formData.start_time ?? '',
             end_time: formData.end_time ?? '',
             cost_note: formData.cost_note ?? '',
@@ -348,22 +347,6 @@ export default function ActivityTab({
               onChange={(e) => setFormData({ ...formData, description: e.target.value || undefined })}
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none resize-none"
               rows={2}
-            />
-          </div>
-
-          {/* Highlight — 자유 텍스트 칸이 둘이라 무엇을 어디에 쓰는지 라벨·예시로 구분한다 */}
-          <div className="space-y-2">
-            <div>
-              <p className="text-xs font-medium text-gray-500">하이라이트 (선택)</p>
-              <p className="text-[11px] text-gray-400">카드 맨 위에 강조되어 보입니다</p>
-            </div>
-            <input
-              type="text"
-              placeholder="예: 장소 예약은 2주 전에"
-              aria-label="하이라이트"
-              value={formData.highlight ?? ''}
-              onChange={(e) => setFormData({ ...formData, highlight: e.target.value || undefined })}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
             />
           </div>
 
@@ -600,7 +583,7 @@ function ActivityCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <h3 className="text-sm font-semibold text-gray-800 truncate">{activity.title}</h3>
-            {activity.category && (
+            {CHINBA_HASHTAG_ENABLED && activity.category && (
               <span className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
                 #{activity.category.name}
               </span>
@@ -642,16 +625,9 @@ function ActivityCard({
         </div>
       </div>
 
-      {/* Highlight */}
-      {activity.highlight && (
-        <p className="mt-2 text-xs text-gray-500 bg-yellow-50 rounded-lg px-2.5 py-1.5 border border-yellow-100">
-          {activity.highlight}
-        </p>
-      )}
-
-      {/* Description */}
+      {/* Description — 하이라이트 입력 폐지로 유일한 자유 텍스트: 검정에 가까운 초록으로 본문 대접 */}
       {activity.description && (
-        <p className="mt-2 text-xs text-gray-500 line-clamp-2">{activity.description}</p>
+        <p className="mt-2 text-xs text-emerald-950 line-clamp-2">{activity.description}</p>
       )}
 
       {/* Cost */}

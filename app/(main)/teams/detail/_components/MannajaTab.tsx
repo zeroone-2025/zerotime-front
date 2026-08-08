@@ -8,6 +8,7 @@ import type { IconType } from 'react-icons';
 import { FiPlus, FiCalendar, FiUsers, FiLayers } from 'react-icons/fi';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useTeamEvents } from '@/_lib/hooks/useTeamEvents';
 import { formatDateRanges } from '@/_lib/utils/dateRange';
@@ -252,7 +253,7 @@ function EventCard({ event, groupSetNameMap, onClick }: { event: TeamEvent; grou
 
       {/* Target groups - 항상 표시 */}
       <div className="flex flex-wrap gap-1 mb-2">
-        {event.category && (
+        {CHINBA_HASHTAG_ENABLED && event.category && (
           <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-500">
             #{event.category.name}
           </span>

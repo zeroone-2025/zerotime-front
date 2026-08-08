@@ -9,7 +9,7 @@ import MemberPickerSheet from '@/(main)/chinba/_components/team/groups/MemberPic
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import Modal from '@/_components/ui/Modal';
 import { useToast } from '@/_context/ToastContext';
-import { CHINBA_GROUP_SCORING_ENABLED } from '@/_lib/constants/features';
+import { CHINBA_GROUP_SCORING_ENABLED, CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import {
   useActivities,
   useCreateActivity,
@@ -52,7 +52,7 @@ export default function ActivityTab({
     category_id: selectedCategoryId ?? undefined,
   });
   const { data: groupsData } = useGroups(teamId);
-  const { data: categoriesData } = useEventCategories(teamId);
+  const { data: categoriesData } = useEventCategories(CHINBA_HASHTAG_ENABLED ? teamId : undefined);
   const { data: membersData } = useTeamMembers(teamId);
   const teamMembers = useMemo(() => membersData?.members ?? [], [membersData]);
   const categories = categoriesData?.categories ?? [];
@@ -135,7 +135,7 @@ export default function ActivityTab({
       setFormData({
         title: recordTitle ?? '',
         activity_date: recordDate || new Date().toISOString().slice(0, 10),
-        category_id: recordCategoryId,
+        category_id: CHINBA_HASHTAG_ENABLED ? recordCategoryId : undefined,
       });
       setFormScores([]);
       setCompletingEventId(recordEventId);
@@ -600,7 +600,7 @@ function ActivityCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <h3 className="text-sm font-semibold text-gray-800 truncate">{activity.title}</h3>
-            {activity.category && (
+            {CHINBA_HASHTAG_ENABLED && activity.category && (
               <span className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
                 #{activity.category.name}
               </span>

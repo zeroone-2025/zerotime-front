@@ -9,6 +9,7 @@ import ConfirmModal from '@/_components/ui/ConfirmModal';
 import FullPageModal from '@/_components/layout/FullPageModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useToast } from '@/_context/ToastContext';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
 import {
   useTeamDetail,
@@ -310,11 +311,13 @@ export default function TeamSettingsView() {
           canManage={canEditTeam(myRole)}
         />
 
-        {/* 일정 카테고리 관리 */}
-        <EventCategorySection
-          teamId={teamId}
-          canManage={canEditTeam(myRole)}
-        />
+        {/* 일정 카테고리(해시태그) 관리 */}
+        {CHINBA_HASHTAG_ENABLED && (
+          <EventCategorySection
+            teamId={teamId}
+            canManage={canEditTeam(myRole)}
+          />
+        )}
 
         {/* Section 5: 회장 위임 */}
         {!isEditing && (

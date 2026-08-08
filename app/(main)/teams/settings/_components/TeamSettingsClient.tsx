@@ -9,6 +9,7 @@ import { LuChevronLeft } from 'react-icons/lu';
 import ConfirmModal from '@/_components/ui/ConfirmModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useToast } from '@/_context/ToastContext';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
 import {
   useTeamDetail,
@@ -322,11 +323,13 @@ export default function TeamSettingsClient() {
           canManage={canEditTeam(myRole)}
         />
 
-        {/* 일정 카테고리 관리 */}
-        <EventCategorySection
-          teamId={teamId}
-          canManage={canEditTeam(myRole)}
-        />
+        {/* 일정 카테고리(해시태그) 관리 */}
+        {CHINBA_HASHTAG_ENABLED && (
+          <EventCategorySection
+            teamId={teamId}
+            canManage={canEditTeam(myRole)}
+          />
+        )}
 
         {/* Section 5: 구독 관리 */}
         <SubscriptionSection

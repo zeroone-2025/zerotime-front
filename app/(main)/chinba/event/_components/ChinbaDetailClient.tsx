@@ -20,11 +20,17 @@ export default function ChinbaDetailClient() {
   const { data: event } = useChinbaEventDetail(eventId);
 
   const handleCompleted = (recordQuery: string) => {
-    // 완료 처리 후, 넘어온 경로(팀 상세 '기록' 탭)로 이동하면서
-    // 완료된 일정 정보를 넘겨 '활동 기록하기' 폼이 자동으로 열리게 한다.
+    // 팀 상세 '기록' 탭으로 이동하면서 일정 정보를 넘겨 '활동 기록하기' 폼이 자동으로 열리게 한다.
+    // 완료는 그 폼에서 '기록하기/기록하지 않기'를 선택해야 확정된다.
+    // returnTo 없이 진입한 경우(공유 링크·사이드바 등)도 팀 일정이면 팀 상세로 보낸다 —
+    // 여기서 끊기면 완료를 확정할 경로가 없다.
     const returnTo = searchParams.get('returnTo');
-    if (!returnTo) return;
-    const dest = decodeURIComponent(returnTo);
+    const dest = returnTo
+      ? decodeURIComponent(returnTo)
+      : event?.team_id
+        ? `/chinba/team/detail?id=${event.team_id}&tab=mwoheni`
+        : null;
+    if (!dest) return;
     router.replace(recordQuery ? `${dest}${dest.includes('?') ? '&' : '?'}${recordQuery}` : dest);
   };
 

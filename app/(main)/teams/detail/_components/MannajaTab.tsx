@@ -238,7 +238,7 @@ function EventCard({ event, groupSetNameMap, onClick }: { event: TeamEvent; grou
                 : 'bg-gray-50 text-gray-400'
           }`}
         >
-          {event.status === 'active' ? '진행 중' : event.status === 'completed' ? '완료' : '만료'}
+          {event.status === 'active' ? '진행 중' : event.status === 'completed' ? '완료됨' : '지난 일정'}
         </span>
       </div>
 

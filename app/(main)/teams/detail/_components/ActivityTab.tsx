@@ -15,6 +15,7 @@ import {
   useUpdateActivity,
   useDeleteActivity,
 } from '@/_lib/hooks/useActivities';
+import { useCompleteChinbaEvent } from '@/_lib/hooks/useChinba';
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
 import { useTeamMembers } from '@/_lib/hooks/useTeam';
@@ -57,10 +58,14 @@ export default function ActivityTab({
   const createMutation = useCreateActivity(teamId);
   const updateMutation = useUpdateActivity(teamId);
   const deleteMutation = useDeleteActivity(teamId);
+  const completeEventMutation = useCompleteChinbaEvent();
   const { showToast } = useToast();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  // 일정 완료 처리 흐름에서 넘어온 경우의 대상 일정 id — 이 값이 있으면
+  // '기록하기/기록하지 않기' 선택 시점에 해당 일정의 완료가 확정된다.
+  const [completingEventId, setCompletingEventId] = useState<string | null>(null);
   const [formData, setFormData] = useState<ActivityCreateRequest>({
     title: '',
     activity_date: new Date().toISOString().slice(0, 10),
@@ -109,11 +114,14 @@ export default function ActivityTab({
     setEditingId(null);
   }, [selectedGroupId]);
 
-  // 일정 완료 처리에서 넘어온 경우: 활동 기록 폼을 완료된 일정 정보로 미리 채워 자동 오픈.
-  // (URL의 recordTitle/recordDate 파라미터를 1회 소비하고 즉시 제거해 재오픈 방지)
+  // 일정 완료 처리에서 넘어온 경우: 활동 기록 폼을 일정 정보로 미리 채워 자동 오픈.
+  // 이 시점에 일정은 아직 완료되지 않았다 — 폼의 '기록하기/기록하지 않기'를 눌러야 완료가
+  // 확정되고, 아무 버튼 없이 이탈하면 일정은 이전 상태 그대로 보존된다.
+  // (URL의 record* 파라미터를 1회 소비하고 즉시 제거해 재오픈 방지)
   useEffect(() => {
     const recordTitle = searchParams.get('recordTitle');
-    if (recordTitle === null) return;
+    const recordEventId = searchParams.get('recordEventId');
+    if (recordTitle === null && recordEventId === null) return;
 
     if (hasRole) {
       const recordDate = searchParams.get('recordDate');
@@ -124,11 +132,12 @@ export default function ActivityTab({
           ? Number(recordCategoryIdRaw)
           : undefined;
       setFormData({
-        title: recordTitle,
+        title: recordTitle ?? '',
         activity_date: recordDate || new Date().toISOString().slice(0, 10),
         category_id: recordCategoryId,
       });
       setFormScores([]);
+      setCompletingEventId(recordEventId);
       setShowForm(true);
     }
 
@@ -136,6 +145,7 @@ export default function ActivityTab({
     params.delete('recordTitle');
     params.delete('recordDate');
     params.delete('recordCategoryId');
+    params.delete('recordEventId');
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,6 +166,7 @@ export default function ActivityTab({
   const closeForm = () => {
     setShowForm(false);
     setEditingId(null);
+    setCompletingEventId(null);
     setFormData({ title: '', activity_date: new Date().toISOString().slice(0, 10) });
     setFormScores([]);
     setParticipantIds([]);
@@ -164,6 +175,7 @@ export default function ActivityTab({
 
   const handleEdit = (activity: Activity) => {
     setEditingId(activity.id);
+    setCompletingEventId(null);
     setFormData({
       title: activity.title,
       activity_date: activity.activity_date,
@@ -179,6 +191,20 @@ export default function ActivityTab({
     setFormScores(activity.scores.map((s) => ({ group_id: s.group_id, score: s.score })));
     setParticipantIds(activity.participants.map((p) => p.member_id));
     setShowForm(true);
+  };
+
+  const isCompletionMode = completingEventId !== null && !isEditing;
+
+  // '기록하지 않기' — 기록 없이 일정 완료만 확정
+  const handleSkipRecord = async () => {
+    if (!completingEventId) return;
+    try {
+      await completeEventMutation.mutateAsync(completingEventId);
+      showToast('일정이 완료 처리되었습니다');
+      closeForm();
+    } catch {
+      showToast('일정 완료 처리에 실패했어요', 'error');
+    }
   };
 
   const handleSubmit = async () => {
@@ -217,6 +243,15 @@ export default function ActivityTab({
           category_id: submitCategoryId,
           participant_member_ids: participantIds.length > 0 ? participantIds : undefined,
         });
+        // 일정 완료 흐름에서 온 기록이면 이 시점에 일정 완료를 확정한다
+        if (completingEventId) {
+          try {
+            await completeEventMutation.mutateAsync(completingEventId);
+          } catch {
+            // 기록은 이미 저장됨 — 완료만 실패했으니 일정 상세에서 다시 완료 처리하면 된다
+            showToast('기록은 저장됐지만 일정 완료 처리에 실패했어요', 'error');
+          }
+        }
       }
       closeForm();
     } catch {
@@ -450,10 +485,15 @@ export default function ActivityTab({
 
           <div className="flex gap-2 pt-1">
             <button
-              onClick={closeForm}
-              className="flex-1 rounded-lg bg-gray-200 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-300"
+              onClick={isCompletionMode ? handleSkipRecord : closeForm}
+              disabled={isCompletionMode && completeEventMutation.isPending}
+              className="flex-1 rounded-lg bg-gray-200 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-300 disabled:opacity-50"
             >
-              취소
+              {isCompletionMode
+                ? completeEventMutation.isPending
+                  ? '처리 중...'
+                  : '기록하지 않기'
+                : '취소'}
             </button>
             <button
               onClick={handleSubmit}

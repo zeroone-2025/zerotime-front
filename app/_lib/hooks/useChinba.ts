@@ -95,12 +95,15 @@ export function useJoinChinbaEventTeam(eventId: string) {
   });
 }
 
+// 삭제·완료는 팀 상세의 일정 탭 목록(['teams', teamId, 'events', ...])에도 반영되어야 한다 —
+// teams 캐시를 함께 비우지 않으면 목록이 옛 상태(진행중/존재)로 남는다.
 export function useDeleteChinbaEvent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (eventId: string) => deleteChinbaEvent(eventId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chinba', 'my-events'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
     },
   });
 }
@@ -112,6 +115,7 @@ export function useCompleteChinbaEvent() {
     onSuccess: (_data, eventId) => {
       queryClient.invalidateQueries({ queryKey: ['chinba', 'event', eventId] });
       queryClient.invalidateQueries({ queryKey: ['chinba', 'my-events'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
     },
   });
 }

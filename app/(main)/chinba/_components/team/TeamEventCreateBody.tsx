@@ -6,6 +6,7 @@ import { FiPlus, FiXCircle } from 'react-icons/fi';
 
 import DateSelector from '@/(main)/chinba/create/_components/DateSelector';
 import Button from '@/_components/ui/Button';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { useCreateEventCategory, useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroups, useGroupSets } from '@/_lib/hooks/useGroups';
 import { useTeamDetail } from '@/_lib/hooks/useTeam';
@@ -20,7 +21,7 @@ interface TeamEventCreateBodyProps {
   onSuccess: () => void;
 }
 
-// 동아리 친바 만들기 폼 본문 — 풀페이지(/chinba/team/event-create)와
+// 동아리 '일정 잡기' 폼 본문 — 풀페이지(/chinba/team/event-create)와
 // 팀 상세 임베드(?view=create) 양쪽에서 재사용한다.
 export default function TeamEventCreateBody({
   teamId,
@@ -32,12 +33,14 @@ export default function TeamEventCreateBody({
   const { data: groupsData } = useGroups(teamId);
   const { data: groupSetsData } = useGroupSets(teamId);
   const { data: team } = useTeamDetail(teamId || undefined);
-  const { data: categoriesData } = useEventCategories(teamId || undefined);
+  const { data: categoriesData } = useEventCategories(
+    CHINBA_HASHTAG_ENABLED && teamId ? teamId : undefined
+  );
   const createEvent = useCreateTeamEvent(teamId);
   const createCategory = useCreateEventCategory(teamId);
 
   const categories = categoriesData?.categories ?? [];
-  const canManageCategory = team ? canEditTeam(team.my_role) : false;
+  const canManageCategory = CHINBA_HASHTAG_ENABLED && !!team && canEditTeam(team.my_role);
 
   const allGroups = groupsData?.groups ?? [];
   const groupSets = groupSetsData?.group_sets ?? [];
@@ -61,7 +64,9 @@ export default function TeamEventCreateBody({
   const [title, setTitle] = useState('');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(preCategoryId);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
+    CHINBA_HASHTAG_ENABLED ? preCategoryId : null
+  );
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddName, setQuickAddName] = useState('');
   const [quickAddError, setQuickAddError] = useState<string | null>(null);

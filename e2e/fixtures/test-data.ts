@@ -153,6 +153,7 @@ export const MOCK_CHINBA_EVENTS = [
     title: '조별과제 회의',
     dates: ['2024-07-10', '2024-07-11', '2024-07-12'],
     status: 'active' as const,
+    team_id: null,
     creator_id: 1,
     creator_nickname: '테스트유저',
     participant_count: 3,

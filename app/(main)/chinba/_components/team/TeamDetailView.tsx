@@ -23,7 +23,7 @@ import MannajaTab from '@/(main)/teams/detail/_components/MannajaTab';
 import FullPageModal from '@/_components/layout/FullPageModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useToast } from '@/_context/ToastContext';
-import { CHINBA_RANKING_TAB_ENABLED } from '@/_lib/constants/features';
+import { CHINBA_HASHTAG_ENABLED, CHINBA_RANKING_TAB_ENABLED } from '@/_lib/constants/features';
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
@@ -82,7 +82,9 @@ export default function TeamDetailView() {
   const groupSets = groupSetsData?.group_sets ?? [];
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
 
-  const { data: categoriesData } = useEventCategories(teamId || undefined);
+  const { data: categoriesData } = useEventCategories(
+    CHINBA_HASHTAG_ENABLED && teamId ? teamId : undefined
+  );
   const categories = categoriesData?.categories ?? [];
 
   // 선택 중이던 카테고리가 삭제되면 필터 자동 해제 (로딩 중 오리셋 방지 위해 데이터 존재 가드)
@@ -309,12 +311,14 @@ export default function TeamDetailView() {
             teamId={teamId}
             myRole={team.my_role}
           />
-          <TeamCategoriesModal
-            isOpen={showCategories}
-            onClose={() => setShowCategories(false)}
-            teamId={teamId}
-            myRole={team.my_role}
-          />
+          {CHINBA_HASHTAG_ENABLED && (
+            <TeamCategoriesModal
+              isOpen={showCategories}
+              onClose={() => setShowCategories(false)}
+              teamId={teamId}
+              myRole={team.my_role}
+            />
+          )}
         </>
       )}
     </>
@@ -337,7 +341,7 @@ export default function TeamDetailView() {
                 <LuChevronLeft size={22} strokeWidth={2.5} className="transition-transform group-hover:-translate-x-0.5" />
               </button>
               <span className="text-base font-bold text-gray-800">
-                {view === 'create' ? '동아리 친바 만들기' : team.name}
+                {view === 'create' ? '일정 잡기' : team.name}
               </span>
             </div>
             <div className="flex min-h-0 flex-1 flex-col pt-2">
@@ -374,9 +378,12 @@ export default function TeamDetailView() {
   }
 
   return (
+    // 동아리 메인은 하단 탭바(홈·동아리·MY)가 떠 있는 경로라 뒤로가기가 없어도 나갈 수 있다
+    // (chinba/layout.tsx의 BOTTOM_TAB_PATHS). 일정 상세·일정 잡기는 탭바가 없으므로 그대로 둔다.
     <FullPageModal
       isOpen={true}
       onClose={goBack}
+      showBackButton={false}
       title={<ClubSwitcher currentTeamId={teamId} currentName={team.name} />}
       headerRight={settingsButton}
     >

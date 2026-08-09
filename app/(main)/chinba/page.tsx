@@ -1,13 +1,18 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import { useRouter } from 'next/navigation';
 import { FiCalendar, FiClock, FiGrid, FiLink, FiPlus, FiUsers } from 'react-icons/fi';
 
+import { ChinbaEventListItem } from '@/(main)/chinba/_components/ChinbaEventListItem';
 import TeamCard from '@/(main)/teams/_components/TeamCard';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { useMyChinbaEvents } from '@/_lib/hooks/useChinba';
 import { useMyTeams } from '@/_lib/hooks/useTeam';
 import { useTeamStats } from '@/_lib/hooks/useTeamStats';
 import { useUser } from '@/_lib/hooks/useUser';
+import { selectUpcoming, formatUpcomingDate } from '@/_lib/utils/chinbaUpcoming';
 import type { TeamListItem } from '@/_types/team';
 
 const CONCEPTS = [
@@ -35,6 +40,14 @@ export default function ChinbaHomePage() {
   const { isAuthLoaded, isLoggedIn } = useUser();
   const { data: stats } = useTeamStats();
   const { data: teamsData, isLoading: isTeamsLoading } = useMyTeams();
+  // 다가오는 일정 카드 — my-events 기반이라 동아리 일정과 '동아리 없이 잡은' 개인 일정을 모두 포함
+  const { data: myEvents } = useMyChinbaEvents(isAuthLoaded && isLoggedIn);
+  const upcoming = useMemo(() => selectUpcoming(myEvents ?? []), [myEvents]);
+  // 동아리 없이 잡은 개인 일정 — 완료 처리 전(진행중·지난 일정)까지 목록에 보여준다
+  const personalEvents = useMemo(
+    () => (myEvents ?? []).filter((e) => e.team_id == null && e.status !== 'completed'),
+    [myEvents],
+  );
 
   const teams = teamsData?.teams ?? [];
 
@@ -47,11 +60,12 @@ export default function ChinbaHomePage() {
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
       <div className="space-y-5 px-5 pt-6 pb-10">
-        {/* 제목 카드 */}
-        <header className="rounded-2xl bg-white p-4 shadow-sm">
+        {/* 제목 카드 + 다가오는 일정 카드 (로그인 시) */}
+        <div className="flex items-stretch gap-3">
+        <header className="min-w-0 flex-1 rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-center gap-1.5">
-            <span className="text-lg font-bold tracking-tight text-blue-700">TIMELINE</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-lg font-bold tracking-tight text-emerald-500">TIMELINE</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-700" />
           </div>
 
           {!isAuthLoaded ? (
@@ -76,11 +90,63 @@ export default function ChinbaHomePage() {
           )}
 
           {typeof stats?.total_teams === 'number' && (
-            <p className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+            <p className="mt-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">
               {stats.total_teams.toLocaleString('ko-KR')}개의 동아리가 함께하고 있어요
             </p>
           )}
         </header>
+
+        {/* 다가오는 일정 — 데스크톱 전용(모바일 홈에는 표시하지 않음).
+            앱 폴더처럼 2×2 미니 타일: 일정 최대 3개는 각각 상세로, 남으면 +N이 MY로 이동 */}
+        {isAuthLoaded && isLoggedIn && (
+          <div className="hidden w-44 shrink-0 flex-col rounded-2xl bg-white p-3.5 shadow-sm md:flex">
+            <button
+              type="button"
+              onClick={() => router.push('/chinba/my')}
+              className="flex items-center gap-1 text-xs font-bold text-gray-900 transition active:scale-[0.98]"
+            >
+              <FiClock size={13} className="shrink-0 text-emerald-500" />
+              다가오는 일정
+            </button>
+            {upcoming.length > 0 ? (
+              <div className="mt-2 grid flex-1 grid-cols-2 gap-1.5">
+                {upcoming.slice(0, 3).map(({ event, when }) => (
+                  <button
+                    key={event.event_id}
+                    type="button"
+                    onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+                    className="flex aspect-square flex-col rounded-lg bg-gray-50 p-1.5 text-left transition hover:bg-gray-100 active:scale-95"
+                  >
+                    <span className="line-clamp-2 text-[10px] font-semibold leading-tight text-gray-700 break-keep">
+                      {event.title}
+                    </span>
+                    <span className="mt-auto text-[10px] font-semibold text-emerald-600">
+                      {formatUpcomingDate(when)}
+                    </span>
+                  </button>
+                ))}
+                {upcoming.length > 3 ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push('/chinba/my')}
+                    className="flex aspect-square items-center justify-center rounded-lg bg-gray-50 text-xs font-bold text-gray-500 transition hover:bg-gray-100 active:scale-95"
+                  >
+                    +{upcoming.length - 3}
+                  </button>
+                ) : (
+                  Array.from({ length: 4 - upcoming.length }).map((_, i) => (
+                    <div key={i} className="aspect-square rounded-lg bg-gray-50/60" />
+                  ))
+                )}
+              </div>
+            ) : (
+              <p className="my-auto text-center text-[11px] leading-relaxed text-gray-400 break-keep">
+                예정된 일정이 없어요
+              </p>
+            )}
+          </div>
+        )}
+        </div>
 
         {/* 타임라인 동아리 선택 — 목록을 펼친 채로 + 만들기/참여 */}
         <section className="rounded-2xl bg-white p-4 shadow-sm">
@@ -133,14 +199,43 @@ export default function ChinbaHomePage() {
           </div>
         </section>
 
-        {/* 동아리 없이 일정 잡기 — 항상 노출 (텍스트 버튼) */}
-        <button
-          type="button"
-          onClick={() => router.push('/chinba/create')}
-          className="w-full py-1 text-center text-sm font-bold text-gray-900 transition active:scale-[0.99]"
-        >
-          동아리 없이 일정 잡기 →
-        </button>
+        {/* 동아리 없이 잡은 일정 — 동아리 선택 섹션과 같은 형태로 목록 노출 + 잡기 버튼 */}
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-gray-900">동아리 없이 잡은 일정</h2>
+            <button
+              type="button"
+              onClick={() => router.push('/chinba/create')}
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-800 active:scale-95"
+            >
+              <FiPlus size={13} />
+              일정 잡기
+            </button>
+          </div>
+
+          <div className="mt-3">
+            {!isAuthLoaded ? null : !isLoggedIn ? (
+              <p className="py-6 text-center text-xs text-gray-400 break-keep">
+                로그인하면 동아리 없이 잡은 일정을 모아볼 수 있어요.
+              </p>
+            ) : personalEvents.length === 0 ? (
+              <p className="py-6 text-center text-xs text-gray-400 break-keep">
+                동아리 없이 잡은 일정이 없어요. 링크 공유로 누구와도 시간을 맞출 수 있어요.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {personalEvents.map((event) => (
+                  <ChinbaEventListItem
+                    key={event.event_id}
+                    event={event}
+                    compact
+                    onClick={() => router.push(`/chinba/event?id=${event.event_id}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* 소개 모드일 때만: 친바가 하는 일 / 이럴 때 써요 */}
         {isAuthLoaded && isNewcomer && (

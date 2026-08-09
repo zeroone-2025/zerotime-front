@@ -20,7 +20,7 @@ export default function TeamEventCreateView() {
   const goBack = useSmartBack(`/chinba/team/detail?id=${teamId}&tab=mannaja`);
 
   return (
-    <FullPageModal isOpen={true} onClose={goBack} title="동아리 친바 만들기">
+    <FullPageModal isOpen={true} onClose={goBack} title="일정 잡기">
       <TeamEventCreateBody
         teamId={teamId}
         preSetId={preSetId}

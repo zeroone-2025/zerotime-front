@@ -15,6 +15,7 @@ import {
 
 import TeamResponsePanel from '@/(main)/chinba/_components/team/TeamResponsePanel';
 import { useToast } from '@/_context/ToastContext';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { formatInviteUrl } from '@/_lib/utils/teamDisplay';
 
 const COLLAPSE_KEY = 'team_ops_panel_collapsed';
@@ -109,7 +110,9 @@ export default function TeamOpsPanel({
           <span className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">운영 도구</span>
           <PanelButton icon={FiUsers} label="멤버 관리" onClick={onOpenMembers} trailing="modal" />
           <PanelButton icon={FiGrid} label="조 / 그룹 관리" onClick={onOpenGroups} trailing="modal" />
-          <PanelButton icon={FiTag} label="해시태그 관리" onClick={onOpenCategories} trailing="modal" />
+          {CHINBA_HASHTAG_ENABLED && (
+            <PanelButton icon={FiTag} label="해시태그 관리" onClick={onOpenCategories} trailing="modal" />
+          )}
           <PanelButton icon={FiLink} label="초대링크 복사" onClick={handleCopyInvite} trailing="copy" />
         </section>
 
@@ -119,7 +122,7 @@ export default function TeamOpsPanel({
         {/* 3) 그냥 있는 페이지 = 바로가기 */}
         <section className="flex flex-col border-t border-gray-100 pt-5">
           <span className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">바로가기</span>
-          <PanelButton icon={FiCalendar} label="일정 만들기" onClick={onCreateEvent} />
+          <PanelButton icon={FiCalendar} label="일정 잡기" onClick={onCreateEvent} />
           <PanelButton icon={FiEdit3} label="활동 기록하기" onClick={onRecordActivity} />
         </section>
       </div>

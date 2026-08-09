@@ -8,7 +8,7 @@ import { LuChevronLeft } from 'react-icons/lu';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useToast } from '@/_context/ToastContext';
-import { CHINBA_RANKING_TAB_ENABLED } from '@/_lib/constants/features';
+import { CHINBA_HASHTAG_ENABLED, CHINBA_RANKING_TAB_ENABLED } from '@/_lib/constants/features';
 import { useEventCategories } from '@/_lib/hooks/useCategories';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
@@ -55,7 +55,7 @@ export default function TeamDetailClient() {
   // 세트 1개일 때 자동 선택
   const effectiveSetId = groupSets.length === 1 ? groupSets[0].id : selectedSetId;
 
-  const { data: categoriesData } = useEventCategories(teamId);
+  const { data: categoriesData } = useEventCategories(CHINBA_HASHTAG_ENABLED ? teamId : undefined);
   const categories = categoriesData?.categories ?? [];
 
   // 선택 중이던 카테고리가 삭제되면 필터 자동 해제 (로딩 중 오리셋 방지 위해 데이터 존재 가드)

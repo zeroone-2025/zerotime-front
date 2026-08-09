@@ -8,11 +8,13 @@ import { FiShare2, FiTrash2, FiCheckCircle, FiLink } from 'react-icons/fi';
 import ConfirmModal from '@/_components/ui/ConfirmModal';
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import Toast from '@/_components/ui/Toast';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { useChinbaEventDetail, useDeleteChinbaEvent, useCompleteChinbaEvent } from '@/_lib/hooks/useChinba';
 import { useUser } from '@/_lib/hooks/useUser';
 import { formatDateRanges } from '@/_lib/utils/dateRange';
 
 import MyScheduleTab from './MyScheduleTab';
+import TeamJoinGate from './TeamJoinGate';
 import TeamScheduleTab from './TeamScheduleTab';
 
 interface ChinbaEventDetailBodyProps {
@@ -182,16 +184,22 @@ export default function ChinbaEventDetailBody({
   };
 
   const handleComplete = async () => {
-    try {
-      await completeMutation.mutateAsync(eventId);
+    // 팀 일정: 여기서 완료를 확정하지 않는다. 활동 기록 화면으로 넘기고,
+    // 거기서 '기록하기/기록하지 않기'를 선택하는 시점에 완료 API가 호출된다.
+    // (버튼 없이 이탈하면 아무것도 확정되지 않아 일정이 진행중으로 보존된다)
+    if (event?.team_id) {
       setShowCompleteModal(false);
-      // 완료된 일정 정보(제목/날짜)를 넘겨 '활동 기록하기' 폼이 자동으로 열리게 한다.
       const recordParams = new URLSearchParams();
-      if (event?.title) recordParams.set('recordTitle', event.title);
-      if (event?.dates?.[0]) recordParams.set('recordDate', String(event.dates[0]).slice(0, 10));
-      if (event?.category) recordParams.set('recordCategoryId', String(event.category.id));
+      recordParams.set('recordEventId', eventId);
+      if (event.title) recordParams.set('recordTitle', event.title);
+      if (event.dates?.[0]) recordParams.set('recordDate', String(event.dates[0]).slice(0, 10));
+      if (CHINBA_HASHTAG_ENABLED && event.category) recordParams.set('recordCategoryId', String(event.category.id));
       onCompleted(recordParams.toString());
       return;
+    }
+    // 개인 친바: 활동 기록 개념이 없으므로 즉시 완료 확정
+    try {
+      await completeMutation.mutateAsync(eventId);
     } catch {
       alert('완료 처리에 실패했습니다');
     }
@@ -205,6 +213,12 @@ export default function ChinbaEventDetailBody({
         <LoadingSpinner size="lg" />
       </div>
     );
+  }
+
+  // 동아리 일정인데 아직 멤버가 아님 — 공유 링크만 받고 들어온 경우.
+  // 여기서 끝내므로 헤더의 공유·삭제 버튼과 탭이 아예 렌더되지 않는다.
+  if (event && event.team_id && !event.is_team_member) {
+    return <TeamJoinGate eventId={eventId} event={event} />;
   }
 
   // Error state
@@ -238,7 +252,7 @@ export default function ChinbaEventDetailBody({
           )}
 
           <div className="flex items-center gap-1 shrink-0">
-            {isCreator && isActive && (
+            {isCreator && (isActive || isExpired) && (
               <button
                 onClick={() => setShowCompleteModal(true)}
                 className="rounded-full p-2 text-emerald-600 hover:bg-emerald-50 transition-colors"
@@ -281,7 +295,9 @@ export default function ChinbaEventDetailBody({
       )}
       {isExpired && (
         <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-          <p className="text-xs text-gray-500 text-center font-medium">만료된 일정입니다</p>
+          <p className="text-xs text-gray-500 text-center font-medium">
+            날짜가 지난 일정입니다{isCreator ? ' — 완료 처리하고 활동을 기록할 수 있습니다' : ''}
+          </p>
         </div>
       )}
 
@@ -379,7 +395,11 @@ export default function ChinbaEventDetailBody({
       >
         이 일정을 완료 처리하시겠습니까?
         <br />
-        <span className="text-xs text-gray-400">완료 후에는 일정 수정이 불가합니다</span>
+        <span className="text-xs text-gray-400">
+          {event?.team_id
+            ? '다음 화면에서 기록 여부를 선택하면 완료가 확정됩니다'
+            : '완료 후에는 일정 수정이 불가합니다'}
+        </span>
       </ConfirmModal>
     </>
   );

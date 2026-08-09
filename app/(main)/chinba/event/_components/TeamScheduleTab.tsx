@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+
 import { FiCheck, FiClock, FiChevronDown, FiChevronUp } from 'react-icons/fi';
-import ChinbaHeatmapGrid from './ChinbaHeatmapGrid';
+
+import { useParticipantUnavailability } from '@/_lib/hooks/useChinba';
 import type { ChinbaEventDetail, ChinbaRecommendedTime } from '@/_types/chinba';
+
+import ChinbaHeatmapGrid from './ChinbaHeatmapGrid';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -21,6 +25,22 @@ export default function TeamScheduleTab({ event }: TeamScheduleTabProps) {
   const [showParticipants, setShowParticipants] = useState(true);
   const submittedCount = event.participants.filter((p) => p.has_submitted).length;
   const totalCount = event.participants.length;
+
+  // 참여자 클릭 → 그 사람의 불가능 시간을 히트맵 위에 강조 (재클릭 = 해제, 다른 사람 = 전환)
+  // 선택 표시는 참여자 알약이 검정으로 바뀌는 것으로 충분하다 — 별도 배지 없음
+  const [focusedUserId, setFocusedUserId] = useState<number | null>(null);
+  const { data: focusData } = useParticipantUnavailability(event.event_id, focusedUserId);
+  const focusSlots = useMemo(
+    () =>
+      focusedUserId !== null && focusData?.user_id === focusedUserId
+        ? new Set(focusData.unavailable_slots)
+        : undefined,
+    [focusedUserId, focusData],
+  );
+
+  const handleParticipantClick = (userId: number) => {
+    setFocusedUserId((prev) => (prev === userId ? null : userId));
+  };
 
   return (
     <div className="px-4 pb-6">
@@ -40,18 +60,28 @@ export default function TeamScheduleTab({ event }: TeamScheduleTabProps) {
 
         {showParticipants && (
           <div className="flex flex-wrap gap-2 animate-fadeIn">
-            {event.participants.map((p) => (
-              <div
-                key={p.user_id}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${p.has_submitted
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-gray-100 text-gray-500'
+            {event.participants.map((p) => {
+              const isFocused = focusedUserId === p.user_id;
+              return (
+                <button
+                  key={p.user_id}
+                  type="button"
+                  onClick={() => handleParticipantClick(p.user_id)}
+                  disabled={!p.has_submitted}
+                  title={p.has_submitted ? '클릭하면 이 사람의 일정을 히트맵에 표시합니다' : '아직 일정을 제출하지 않았어요'}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
+                    isFocused
+                      ? 'bg-gray-900 text-white'
+                      : p.has_submitted
+                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:scale-95 cursor-pointer'
+                        : 'bg-gray-100 text-gray-500 cursor-default'
                   }`}
-              >
-                {p.has_submitted && <FiCheck size={10} />}
-                <span>{p.nickname || `유저${p.user_id}`}</span>
-              </div>
-            ))}
+                >
+                  {p.has_submitted && <FiCheck size={10} />}
+                  <span>{p.nickname || `유저${p.user_id}`}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -72,6 +102,7 @@ export default function TeamScheduleTab({ event }: TeamScheduleTabProps) {
               startHour={event.start_hour}
               endHour={event.end_hour}
               totalParticipants={submittedCount}
+              focusSlots={focusSlots}
             />
           </div>
         )}

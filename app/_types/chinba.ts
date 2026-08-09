@@ -32,9 +32,31 @@ export interface ChinbaEventDetail {
   heatmap: ChinbaHeatmapSlot[];
   recommended_times: ChinbaRecommendedTime[];
   created_at: string;
+  // 동아리(팀) 일정 여부 — 개인 친바는 null
+  team_id: number | null;
+  team_name: string | null;
+  // false면 동아리 일정인데 아직 멤버가 아니라는 뜻 — participants·heatmap이 비어 오고
+  // 가입 확인 화면(TeamJoinGate)을 띄운다
+  is_team_member: boolean;
+}
+
+export interface ChinbaEventTeamJoinResponse {
+  team_id: number;
+  team_name: string;
+  my_role: string;
+  already_member: boolean;
+  message: string;
 }
 
 export interface ChinbaMyParticipation {
+  has_submitted: boolean;
+  unavailable_slots: string[];
+}
+
+/** 특정 참여자의 불가능 시간 — 전체 일정에서 참여자 클릭 시 개인 일정 강조용 */
+export interface ChinbaParticipantUnavailability {
+  user_id: number;
+  nickname: string | null;
   has_submitted: boolean;
   unavailable_slots: string[];
 }
@@ -44,6 +66,8 @@ export interface ChinbaEventListItem {
   title: string;
   dates: string[];
   status: 'active' | 'completed' | 'expired';
+  /** 동아리 일정이면 팀 id, 개인(동아리 없이 잡은) 일정이면 null */
+  team_id: number | null;
   creator_id: number;
   creator_nickname: string | null;
   participant_count: number;

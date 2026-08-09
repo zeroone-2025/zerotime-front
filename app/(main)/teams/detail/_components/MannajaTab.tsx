@@ -8,6 +8,7 @@ import type { IconType } from 'react-icons';
 import { FiPlus, FiCalendar, FiUsers, FiLayers } from 'react-icons/fi';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
+import { CHINBA_HASHTAG_ENABLED } from '@/_lib/constants/features';
 import { useGroupSets } from '@/_lib/hooks/useGroups';
 import { useTeamEvents } from '@/_lib/hooks/useTeamEvents';
 import { formatDateRanges } from '@/_lib/utils/dateRange';
@@ -148,27 +149,13 @@ export default function MannajaTab({
           className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-4 text-sm font-medium text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-500 active:scale-[0.98]"
         >
           <FiPlus size={18} />
-          <span>{terminology === 'club' ? '동아리 친바 만들기' : '팀 친바 만들기'}</span>
+          <span>일정 잡기</span>
         </button>
       )}
 
       {hasGroups ? (
         /* 섹션 분리 레이아웃 */
         <>
-          <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
-          {teamWideEvents.length > 0 ? (
-            teamWideEvents.map((event) => (
-              <EventCard
-                key={event.event_id}
-                event={event}
-                groupSetNameMap={groupSetNameMap}
-                onClick={() => openEvent(event.event_id)}
-              />
-            ))
-          ) : (
-            <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
-          )}
-
           <SectionHeader icon={FiLayers} label="조별 일정" />
           {groupEvents.length > 0 ? (
             groupEvents.map((event) => (
@@ -184,6 +171,20 @@ export default function MannajaTab({
               message="아직 조별 일정이 없습니다"
               submessage={canCreate ? '조별 일정을 만들어 보세요' : undefined}
             />
+          )}
+
+          <SectionHeader icon={FiUsers} label={terminology === 'club' ? '동아리 전체 일정' : '팀 전체 일정'} />
+          {teamWideEvents.length > 0 ? (
+            teamWideEvents.map((event) => (
+              <EventCard
+                key={event.event_id}
+                event={event}
+                groupSetNameMap={groupSetNameMap}
+                onClick={() => openEvent(event.event_id)}
+              />
+            ))
+          ) : (
+            <SectionEmptyState message={terminology === 'club' ? '동아리 전체 일정이 없습니다' : '팀 전체 일정이 없습니다'} />
           )}
         </>
       ) : events.length === 0 ? (
@@ -238,7 +239,7 @@ function EventCard({ event, groupSetNameMap, onClick }: { event: TeamEvent; grou
                 : 'bg-gray-50 text-gray-400'
           }`}
         >
-          {event.status === 'active' ? '진행 중' : event.status === 'completed' ? '완료' : '만료'}
+          {event.status === 'active' ? '진행 중' : event.status === 'completed' ? '완료됨' : '지난 일정'}
         </span>
       </div>
 
@@ -252,7 +253,7 @@ function EventCard({ event, groupSetNameMap, onClick }: { event: TeamEvent; grou
 
       {/* Target groups - 항상 표시 */}
       <div className="flex flex-wrap gap-1 mb-2">
-        {event.category && (
+        {CHINBA_HASHTAG_ENABLED && event.category && (
           <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-500">
             #{event.category.name}
           </span>

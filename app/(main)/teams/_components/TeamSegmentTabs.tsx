@@ -3,6 +3,8 @@
 import type { IconType } from 'react-icons';
 import { LuCalendar, LuPencil, LuMedal } from 'react-icons/lu';
 
+import { CHINBA_RANKING_TAB_VISIBLE } from '@/_lib/constants/features';
+
 export type TeamSegment = 'mannaja' | 'mwoheni' | 'jabahbwa';
 
 interface TeamSegmentTabsProps {
@@ -13,7 +15,9 @@ interface TeamSegmentTabsProps {
 const TABS: { key: TeamSegment; label: string; icon: IconType }[] = [
   { key: 'mannaja', label: '일정', icon: LuCalendar },
   { key: 'mwoheni', label: '기록', icon: LuPencil },
-  { key: 'jabahbwa', label: '랭킹', icon: LuMedal },
+  ...(CHINBA_RANKING_TAB_VISIBLE
+    ? [{ key: 'jabahbwa' as const, label: '랭킹', icon: LuMedal }]
+    : []),
 ];
 
 export default function TeamSegmentTabs({ activeTab, onTabChange }: TeamSegmentTabsProps) {

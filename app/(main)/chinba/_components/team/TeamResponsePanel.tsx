@@ -6,6 +6,7 @@ import { FiChevronDown, FiChevronUp, FiCopy, FiBell } from 'react-icons/fi';
 
 import LoadingSpinner from '@/_components/ui/LoadingSpinner';
 import { useToast } from '@/_context/ToastContext';
+import { CHINBA_UNSUBMITTED_NOTIFY_ENABLED } from '@/_lib/constants/features';
 import { useTeamEvents, useTeamEventDetail } from '@/_lib/hooks/useTeamEvents';
 
 interface TeamResponsePanelProps {
@@ -126,13 +127,15 @@ export default function TeamResponsePanel({ teamId }: TeamResponsePanelProps) {
                                 <FiCopy size={11} />
                                 복사
                               </button>
-                              <button
-                                onClick={handleNotify}
-                                className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gray-900 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-gray-800"
-                              >
-                                <FiBell size={11} />
-                                알림
-                              </button>
+                              {CHINBA_UNSUBMITTED_NOTIFY_ENABLED && (
+                                <button
+                                  onClick={handleNotify}
+                                  className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gray-900 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-gray-800"
+                                >
+                                  <FiBell size={11} />
+                                  알림
+                                </button>
+                              )}
                             </div>
                           </>
                         )}

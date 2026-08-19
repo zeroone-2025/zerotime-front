@@ -13,6 +13,7 @@ import {
   FiMail,
   FiExternalLink,
   FiChevronsLeft,
+  FiBookOpen,
 } from 'react-icons/fi';
 import { SiNaver } from 'react-icons/si';
 
@@ -109,6 +110,13 @@ export default function SidebarContent({
     if (item.matchPath === '/') return pathname === '/';
     return pathname.startsWith(item.matchPath);
   };
+
+  // 타임라인 설명서 — 타임라인(/chinba/*) 안에 있을 때만 노출하는 컨텍스트 메뉴
+  // trailingSlash: true라 pathname에 후행 슬래시가 붙을 수 있어 정규화 후 비교한다
+  const normalizedPath = pathname.replace(/\/$/, '') || '/';
+  const isChinbaSection =
+    normalizedPath === '/chinba' || normalizedPath.startsWith('/chinba/');
+  const isGuideActive = normalizedPath === '/chinba/guide';
 
   const handleServiceClick = (item: ServiceItem) => {
     if (item.isDisabled) {
@@ -297,6 +305,26 @@ export default function SidebarContent({
             <FiExternalLink size={13} className="ml-auto text-gray-300" />
           </a>
         </div>
+
+        {/* 타임라인 설명서 — 타임라인 경로에서만 노출 */}
+        {isChinbaSection && (
+          <button
+            onClick={() => onNavigate('/chinba/guide')}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+              isGuideActive
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-500 hover:bg-gray-50 active:bg-gray-100'
+            }`}
+          >
+            <FiBookOpen size={16} />
+            <span className="text-sm font-medium">타임라인 설명서</span>
+            {isGuideActive && (
+              <span className="ml-auto rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-500">
+                현재
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Spacer */}

@@ -9,7 +9,7 @@ import MobileSidebar from '@/_components/layout/MobileSidebar';
 import SharedHeader from '@/_components/layout/SharedHeader';
 
 const MAIN_PAGES = new Set(['/', '/profile', '/chinba', '/flow']);
-const CHINBA_HEADER_PATHS = new Set(['/chinba', '/chinba/team', '/chinba/my']);
+const CHINBA_HEADER_PATHS = new Set(['/chinba', '/chinba/team', '/chinba/my', '/chinba/guide']);
 const FLOW_HEADER_PATHS = new Set(['/flow', '/flow/career', '/flow/companies', '/flow/profile']);
 
 /**

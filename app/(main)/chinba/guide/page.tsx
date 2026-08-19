@@ -131,6 +131,14 @@ export default function ChinbaGuidePage() {
               </p>
             </div>
           </div>
+          <div className="mt-10 flex justify-center">
+            <Link
+              href="/chinba/guide/tutorial/"
+              className="inline-flex items-center gap-2 bg-gray-900 px-6 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98]"
+            >
+              🎮 타임라인 튜토리얼 들어가기
+            </Link>
+          </div>
         </section>
       </div>
     </main>

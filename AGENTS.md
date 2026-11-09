@@ -164,8 +164,10 @@ axios interceptor가 401 시 큐 기반 자동 리프레시 — `Authorization` 
 - **AI 세션은 항상 worktree에서 작업한다**: `git worktree add .worktrees/<슬러그> -b <브랜치> origin/develop`
   으로 시작 — checkout된 브랜치에 직접 커밋 금지 (`.worktrees/`는 gitignore됨).
 - **push = 배포다**: `develop` → dev, `beta`/`main` → 실서버 (환경·도메인 표는 하네스 `../AGENTS.md`).
-  beta·main promote는 하네스 `../AGENTS.md` "사람 개입 지점"이다 — release PR까지 만들고 승인을 기다린다
-  (GitHub ruleset `main`이 main·beta에 PR + 승인 1명을 요구한다 — 2026-11-09 `gh api .../rulesets` 확인).
+  develop→beta promote는 에이전트가 검증 후 한다(하네스 "자율 개발 루프" 8단계, 확인은
+  `https://beta.zerotime.kr`을 agent-browser로). beta→main(prod)은 하네스 "사람 개입 지점"이다.
+  ⚠️ GitHub ruleset `main`이 main·beta 모두에 PR + 승인 1명을 요구한다(2026-11-09 `gh api .../rulesets`
+  확인) — ruleset을 고치기 전까지 beta PR도 사람의 승인이 있어야 머지된다. admin bypass로 넘기지 않는다.
 
 ## 세션 간 지식 저장소 — 하네스 위키
 

@@ -166,8 +166,8 @@ axios interceptor가 401 시 큐 기반 자동 리프레시 — `Authorization` 
 - **push = 배포다**: `develop` → dev, `beta`/`main` → 실서버 (환경·도메인 표는 하네스 `../AGENTS.md`).
   develop→beta promote는 에이전트가 검증 후 한다(하네스 "자율 개발 루프" 8단계, 확인은
   `https://beta.zerotime.kr`을 agent-browser로). beta→main(prod)은 하네스 "사람 개입 지점"이다.
-  ⚠️ GitHub ruleset `main`이 main·beta 모두에 PR + 승인 1명을 요구한다(2026-11-09 `gh api .../rulesets`
-  확인) — ruleset을 고치기 전까지 beta PR도 사람의 승인이 있어야 머지된다. admin bypass로 넘기지 않는다.
+  GitHub ruleset: `main`만 PR + 승인 1명, `beta`·`develop`은 삭제·강제 push만 금지(2026-11-09 분리,
+  `gh api repos/zeroone-2025/zerotime-front/rulesets`). main 승인을 admin bypass로 넘기지 않는다.
 
 ## 세션 간 지식 저장소 — 하네스 위키
 

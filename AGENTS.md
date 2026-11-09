@@ -38,6 +38,7 @@ npm run test:e2e         # Playwright — chromium(Desktop) + mobile(Pixel 7), �
 ```
 
 - 백엔드가 필요하면 하네스의 `../dev.sh back` (백엔드는 :8080).
+- 모바일(iOS/Android 네이티브 빌드·스토어 릴리스)은 지금 자율 개발 범위 밖이다 — 아래 iOS·Android 규칙은 기존대로 둔다.
 - `./run-dev.sh` — 웹 개발 서버 (크로스 플랫폼: macOS/Linux). `.env.local` 준비(localhost 고정)
   후 `next dev`. 하네스 `../dev.sh front`가 이 스크립트로 위임한다.
 - iOS/Capacitor 작업은 `./run-ios.sh` (**Mac 전용** — xcrun·시뮬레이터 전제):
@@ -51,6 +52,39 @@ npm run test:e2e         # Playwright — chromium(Desktop) + mobile(Pixel 7), �
   API 환경 선택(인자로도 지정 가능, local/dev는 beta plane으로 강제) → 빌드 → `cap sync android`
   → 에뮬레이터 기동 → debug flavor 설치·실행. ⚠ out/은 플랫폼별 빌드라 iOS와 공유 불가 —
   동시 테스트 순서는 스크립트 상단 주석 참조.
+
+## 검증
+
+PR을 열기 전에 worktree 루트에서 전부 통과시킨다. **GitHub CI가 없는 repo**라 이 결과가 develop 머지의
+게이트다 — PR 본문에 통과 수를 붙인다. (운영 호스트 seodobi 실측, 2026-11-09)
+
+```bash
+npm ci && npm run lint && npm run test:run && npm run build   # test 350여 개 통과, build 수십 초
+```
+
+- Next 16은 Node 20.9 이상이 필요하다. seodobi의 시스템 node는 18이라 `~/.local/bin`을 PATH 앞에 둔다.
+- **디버깅 첫 경로 — Next 내장 dev MCP**: `npm run dev`가 떠 있으면 `POST /_next/mcp`(MCP JSON-RPC)로
+  빌드·런타임 에러와 라우트 정보를 바로 읽는다. 도구: `get_errors`, `get_logs`, `get_page_metadata`,
+  `get_project_metadata`, `get_routes`, `get_server_action_by_id`. `get_errors`는 브라우저가 페이지를 열고
+  있어야 값이 나온다(아래 agent-browser로 연다).
+
+```bash
+curl -s -X POST localhost:3000/_next/mcp -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_errors","arguments":{}}}'
+```
+
+- **UI 검증 — AI 브라우저 `agent-browser`**(vercel-labs, seodobi `~/.local/bin`): 화면은 직접 열어 본다.
+  새 UI 확인용 Playwright 스크립트는 쓰지 않고, 기존 `e2e/`(`npm run test:e2e`)는 회귀 테스트로 유지한다.
+
+```bash
+npx serve out -l 4173 &                                        # npm run build 뒤 정적 export 서빙 (또는 dev 서버 :3000)
+agent-browser --args --no-sandbox open http://localhost:4173   # Linux에서는 --no-sandbox 필수
+agent-browser snapshot -i                                      # 상호작용 요소 트리 — @ref로 click/fill
+agent-browser screenshot /tmp/zt.png && agent-browser close
+```
+
+  develop 머지(= Vercel dev 배포) 뒤에는 같은 명령으로 `https://dev.zerotime.kr`을 열어 확인한다.
 
 ## 백엔드 연결 — 환경변수 2개
 
@@ -124,13 +158,16 @@ axios interceptor가 401 시 큐 기반 자동 리프레시 — `Authorization` 
   type(영문): feat / fix / docs / style / refactor / perf / test / build / chore / ci.
   scope(영문, 선택): auth, alarm, chinba, ui, filter, keywords, profile, notification, timetable 등.
 - 브랜치: `<type>/<짧은-설명>`, 이슈 있으면 `<type>/#NN-<짧은-설명>`.
-  develop 반영은 로컬 develop에 merge commit으로 머지 → push (PR은 Epic 등 리뷰 필요 시 선택).
-  에이전트는 로컬 develop 머지까지 — push는 사람이 한다 (공유 설정이 차단).
+  develop 반영은 feature 브랜치 push → develop 대상 PR → "검증" 절 통과면 에이전트가
+  `gh pr merge --merge`(merge commit). develop 직접 push 금지. 절차는 하네스 `../AGENTS.md` "자율 개발 루프".
   Epic 단위 작업은 `develop`에서 Epic 브랜치를 따고 하위 브랜치를 Epic으로 머지한 뒤 Epic → `develop`.
 - **AI 세션은 항상 worktree에서 작업한다**: `git worktree add .worktrees/<슬러그> -b <브랜치> origin/develop`
   으로 시작 — checkout된 브랜치에 직접 커밋 금지 (`.worktrees/`는 gitignore됨).
 - **push = 배포다**: `develop` → dev, `beta`/`main` → 실서버 (환경·도메인 표는 하네스 `../AGENTS.md`).
-  promote는 배포 담당자가 한다.
+  develop→beta promote는 에이전트가 검증 후 한다(하네스 "자율 개발 루프" 8단계, 확인은
+  `https://beta.zerotime.kr`을 agent-browser로). beta→main(prod)은 하네스 "사람 개입 지점"이다.
+  GitHub ruleset: `main`만 PR + 승인 1명, `beta`·`develop`은 삭제·강제 push만 금지(2026-11-09 분리,
+  `gh api repos/zeroone-2025/zerotime-front/rulesets`). main 승인을 admin bypass로 넘기지 않는다.
 
 ## 세션 간 지식 저장소 — 하네스 위키
 
@@ -139,6 +176,6 @@ axios interceptor가 401 시 큐 기반 자동 리프레시 — `Authorization` 
 - **같은 에러·증상에 2회 이상 막히면** 계속 파기 전에 `grep -ri "<키워드·에러문자열>" ../wiki/` 먼저.
 - 배포·인프라 절차는 `../wiki/platform/`, "왜 이렇게 되어 있지?"는 `../wiki/decisions/`.
 - 신뢰·기록 규칙은 `../wiki/SCHEMA.md`, 색인은 `../wiki/index.md` — verified만 신뢰,
-  위키↔코드 불일치 시 코드가 맞다.
-- AI 세션은 하네스 루트 시작이 기본이다 — 이 repo에서 직접 시작하면 하네스 스킬·캡처 훅이
+  위키↔코드 불일치 시 코드가 맞다(발견하면 그 자리에서 문서를 고친다).
+- AI 세션은 하네스 루트 시작이 기본이다 — 이 repo에서 직접 시작하면 하네스 스킬·설정이
   로드되지 않는다.

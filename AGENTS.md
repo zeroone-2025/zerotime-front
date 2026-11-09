@@ -55,8 +55,9 @@ npm run test:e2e         # Playwright — chromium(Desktop) + mobile(Pixel 7), �
 
 ## 검증
 
-PR을 열기 전에 worktree 루트에서 전부 통과시킨다. **GitHub CI가 없는 repo**라 이 결과가 develop 머지의
-게이트다 — PR 본문에 통과 수를 붙인다. (운영 호스트 seodobi 실측, 2026-11-09)
+PR을 열기 전에 worktree 루트에서 전부 통과시킨다 — PR 본문에 통과 수를 붙인다. (운영 호스트 seodobi 실측, 2026-11-09)
+같은 명령을 PR CI(`.github/workflows/ci.yml` — develop·beta·main 대상 PR, develop push)가 다시 돌린다 —
+머지 전 `gh pr checks <번호>`로 초록을 확인한다.
 
 ```bash
 npm ci && npm run lint && npm run test:run && npm run build   # test 350여 개 통과, build 수십 초

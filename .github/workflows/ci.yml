@@ -1,0 +1,62 @@
+name: CI
+
+# PR 게이트: develop·beta·main 대상 PR에서 lint·유닛 테스트·build를 돌린다.
+# develop push는 Vercel dev 배포와 병렬로 도는 사후 알람이라 배포를 막지 않는다.
+# 이 워크플로 자신은 배포도 push도 하지 않는다 (웹 배포는 Vercel git 연동).
+# e2e(Playwright)와 모바일(Capacitor) 빌드는 여기서 돌리지 않는다.
+on:
+  pull_request:
+    branches:
+      - develop
+      - beta
+      - main
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Next 16은 Node 20.9 이상이 필요하다. 로컬 실측(seodobi)과 같은 메이저로 맞춘다.
+  NODE_VERSION: "22"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  checks:
+    name: Lint, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:run
+
+      # 정적 export 빌드. prebuild가 모바일 릴리스 계약 build-gate를 먼저 돌린다.
+      # 빌드타임에 인라인되는 공개 URL만 필요하므로 자리표시자 값이면 충분하다 (비밀 아님).
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL_WEB: http://localhost:8080
+          NEXT_PUBLIC_API_BASE_URL_NATIVE: http://localhost:8080
+          NEXT_PUBLIC_ADMIN_URL: http://localhost:3001

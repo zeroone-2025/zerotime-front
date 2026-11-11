@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { authApi, getUserProfile } from '@/_lib/api';
 import { setAccessToken } from '@/_lib/auth/tokenStore';
 import { createIdempotencyKey, MOBILE_RELEASE_CONTRACT } from '@/_lib/native/mobileRelease';
+import { toSafeInternalPath } from '@/_lib/navigation/safeRedirect';
 import { useUserStore } from '@/_lib/store/useUserStore';
 
 function AuthCallbackContent() {
@@ -22,7 +23,7 @@ function AuthCallbackContent() {
 
     const error = searchParams.get('error');
     const redirectTo = searchParams.get('redirect_to');
-    const safeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
+    const safeRedirect = toSafeInternalPath(redirectTo);
     const shouldResumeOnboarding = safeRedirect?.includes('resume_onboarding=true') ?? false;
 
     // 사용자가 로그인을 취소한 경우

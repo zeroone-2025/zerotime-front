@@ -7,6 +7,18 @@ export type AuthSessionState = 'anonymous' | 'active' | 'logout_pending';
 
 let accessToken: string | null = null;
 let authSessionState: AuthSessionState = 'anonymous';
+let logoutGeneration = 0;
+
+/**
+ * Thrown when a token refresh started before a logout resolves after it; the
+ * late token must not be stored or the logged-out session would be revived.
+ */
+export class StaleRefreshError extends Error {
+  constructor() {
+    super('Token refresh was superseded by a logout.');
+    this.name = 'StaleRefreshError';
+  }
+}
 
 export function getAccessToken(): string | null {
   return accessToken;
@@ -25,7 +37,17 @@ export function isLogoutPending(): boolean {
  * server revocation and native notification cleanup have both completed.
  */
 export function markLogoutPending(): void {
+  logoutGeneration += 1;
   authSessionState = 'logout_pending';
+}
+
+/** Capture before a refresh request; compare with isLogoutGenerationCurrent when it resolves. */
+export function getLogoutGeneration(): number {
+  return logoutGeneration;
+}
+
+export function isLogoutGenerationCurrent(generation: number): boolean {
+  return generation === logoutGeneration;
 }
 
 export function setAccessToken(

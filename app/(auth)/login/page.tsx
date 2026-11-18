@@ -6,6 +6,7 @@ import LoginButtonGroup from '@/_components/auth/LoginButtonGroup';
 import Logo from '@/_components/ui/Logo';
 import AuthPageShell from '@/_components/layout/AuthPageShell';
 import { useUser } from '@/_lib/hooks/useUser';
+import { toSafeInternalPath } from '@/_lib/navigation/safeRedirect';
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: 'Google',
@@ -20,7 +21,7 @@ function LoginPageContent() {
   const { isAuthLoaded, isLoggedIn } = useUser();
   const [recentProviderLabel, setRecentProviderLabel] = useState<string | null>(null);
   const redirectTo = searchParams.get('redirect_to');
-  const safeRedirectTo = redirectTo?.startsWith('/') ? redirectTo : undefined;
+  const safeRedirectTo = toSafeInternalPath(redirectTo) ?? undefined;
 
   useEffect(() => {
     if (!isAuthLoaded) return;

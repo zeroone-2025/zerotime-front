@@ -6,7 +6,9 @@ import {
 } from '@/_lib/native/nativeAuth';
 import {
   clearAccessToken,
+  getLogoutGeneration,
   hasAccessToken,
+  isLogoutGenerationCurrent,
   markLogoutPending,
   setAccessToken,
 } from '@/_lib/auth/tokenStore';
@@ -39,8 +41,12 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     }
   }
 
+  const generation = getLogoutGeneration();
   try {
     const response = await authApi.post<{ access_token: string }>('/auth/refresh');
+    if (!isLogoutGenerationCurrent(generation)) {
+      return null;
+    }
     const newToken = response.data.access_token;
     if (newToken) {
       setAccessToken(newToken);
@@ -48,6 +54,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     }
     return null;
   } catch (error) {
+    if (!isLogoutGenerationCurrent(generation)) {
+      return null;
+    }
     clearAccessToken();
     const status = responseStatus(error);
     if (typeof window !== 'undefined' && (status === 401 || status === 403)) {

@@ -456,22 +456,6 @@ export default function ProfileClient() {
             서버 상태 응답을 검증하는 중입니다. 검증되지 않은 응답은 성공으로 표시하지 않습니다.
           </p>
         )}
-        {deletionStatus?.cancelable && (
-          <div className="mt-5 rounded-xl border border-gray-200 p-4 text-sm text-gray-600">
-            <p className="font-semibold text-gray-800">예약 취소</p>
-            <p className="mt-1 leading-5">
-              취소에는 동일 제공업체 재인증과 서버 확인이 필요합니다. 안전하게 보관된 상태 핸들을 사용하는
-              계정 삭제 페이지에서 재인증을 완료하세요.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push('/account-deletion/')}
-              className="mt-3 text-xs font-semibold text-blue-700 underline underline-offset-2"
-            >
-              삭제 예약 취소 계속하기
-            </button>
-          </div>
-        )}
         {deletionStatusError && (
           <p className="mt-4 text-sm leading-6 text-red-700" role="alert" aria-live="assertive">
             {deletionStatusError}
@@ -605,7 +589,7 @@ export default function ProfileClient() {
               </div>
             )}
             <p className="mb-2 text-xs leading-5 text-gray-500">
-              회원 탈퇴 시 계정 접근이 즉시 비활성화됩니다.
+              회원 탈퇴 시 계정이 비활성화됩니다. 작성한 데이터는 삭제되지 않습니다.
             </p>
             <button
               type="button"
@@ -626,7 +610,7 @@ export default function ProfileClient() {
             cancelLabel="취소"
             variant="danger"
           >
-            <p>회원 탈퇴 시 계정 접근이 즉시 비활성화됩니다.</p>
+            <p>회원 탈퇴 시 계정이 비활성화됩니다. 작성한 데이터는 삭제되지 않습니다.</p>
           </ConfirmModal>
         </div>
       </div>

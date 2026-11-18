@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import FullPageModal from '@/_components/layout/FullPageModal';
 import { useChinbaEventDetail } from '@/_lib/hooks/useChinba';
 import { useSmartBack } from '@/_lib/hooks/useSmartBack';
+import { toSafeInternalPath } from '@/_lib/navigation/safeRedirect';
 
 import ChinbaEventDetailBody from './ChinbaEventDetailBody';
 
@@ -24,12 +25,10 @@ export default function ChinbaDetailClient() {
     // 완료는 그 폼에서 '기록하기/기록하지 않기'를 선택해야 확정된다.
     // returnTo 없이 진입한 경우(공유 링크·사이드바 등)도 팀 일정이면 팀 상세로 보낸다 —
     // 여기서 끊기면 완료를 확정할 경로가 없다.
-    const returnTo = searchParams.get('returnTo');
-    const dest = returnTo
-      ? decodeURIComponent(returnTo)
-      : event?.team_id
-        ? `/chinba/team/detail?id=${event.team_id}&tab=mwoheni`
-        : null;
+    // searchParams.get이 이미 디코딩한 값이다 — 다시 디코딩하지 않고 앱 안 경로만 허용한다.
+    const dest =
+      toSafeInternalPath(searchParams.get('returnTo'))
+      ?? (event?.team_id ? `/chinba/team/detail?id=${event.team_id}&tab=mwoheni` : null);
     if (!dest) return;
     router.replace(recordQuery ? `${dest}${dest.includes('?') ? '&' : '?'}${recordQuery}` : dest);
   };

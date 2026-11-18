@@ -1,6 +1,13 @@
 import axios, { type AxiosInstance } from 'axios';
 
-import { clearAccessToken, getAccessToken, setAccessToken } from '@/_lib/auth/tokenStore';
+import {
+  clearAccessToken,
+  getAccessToken,
+  getLogoutGeneration,
+  isLogoutGenerationCurrent,
+  setAccessToken,
+  StaleRefreshError,
+} from '@/_lib/auth/tokenStore';
 import {
   isValidatedNativeReleaseRuntime,
   MobileReleaseClient,
@@ -154,7 +161,11 @@ function refreshAccessToken(): Promise<string> {
     return refreshPromise;
   }
 
+  const generation = getLogoutGeneration();
   const activeRefresh = refreshForCurrentPlatform().then((token) => {
+    if (!isLogoutGenerationCurrent(generation)) {
+      throw new StaleRefreshError();
+    }
     setAccessToken(token, { persistSessionHint: !isNativePlatform() });
     return token;
   });
@@ -199,7 +210,9 @@ api.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
     } catch (refreshError) {
-      clearAccessToken();
+      if (!(refreshError instanceof StaleRefreshError)) {
+        clearAccessToken();
+      }
       return Promise.reject(refreshError);
     }
   },
